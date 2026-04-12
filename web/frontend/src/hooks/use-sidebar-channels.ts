@@ -1,18 +1,8 @@
 import {
   IconBrandChrome,
-  IconBrandDingtalk,
   IconBrandDiscord,
-  IconBrandLine,
-  IconBrandMatrix,
-  IconBrandQq,
   IconBrandSlack,
-  IconBrandTelegram,
-  IconBrandWechat,
-  IconBrandWhatsapp,
-  IconCamera,
-  IconMessages,
   IconPlug,
-  IconRobot,
 } from "@tabler/icons-react"
 import type { TFunction } from "i18next"
 import { useAtomValue } from "jotai"
@@ -30,59 +20,23 @@ import { gatewayAtom } from "@/store/gateway"
 const DEFAULT_VISIBLE_CHANNELS = 4
 const CHANNEL_IMPORTANCE_TAIL = [
   "slack",
-  "line",
-  "wecom",
-  "dingtalk",
-  "qq",
-  "onebot",
-  "matrix",
   "pico",
-  "maixcam",
-  "irc",
-  "whatsapp",
-  "whatsapp_native",
 ]
 
 function getChannelImportanceOrder(language: string): string[] {
   const priority = language.startsWith("zh")
-    ? ["feishu", "weixin", "discord", "telegram"]
-    : ["discord", "telegram", "feishu", "weixin"]
+    ? ["discord"]
+    : ["discord"]
   return [...priority, ...CHANNEL_IMPORTANCE_TAIL]
-}
-
-function IconLark({ className }: { className?: string }) {
-  return React.createElement("span", {
-    className,
-    "aria-hidden": "true",
-    style: {
-      display: "inline-block",
-      backgroundColor: "currentColor",
-      mask: "url(/lark.svg) center / contain no-repeat",
-      WebkitMask: "url(/lark.svg) center / contain no-repeat",
-    } as React.CSSProperties,
-  })
 }
 
 const CHANNEL_ICON_MAP: Record<
   string,
   React.ComponentType<{ className?: string }>
 > = {
-  telegram: IconBrandTelegram,
   discord: IconBrandDiscord,
   slack: IconBrandSlack,
-  feishu: IconLark,
-  dingtalk: IconBrandDingtalk,
-  line: IconBrandLine,
-  qq: IconBrandQq,
-  weixin: IconBrandWechat,
-  wecom: IconBrandWechat,
-  whatsapp: IconBrandWhatsapp,
-  whatsapp_native: IconBrandWhatsapp,
-  matrix: IconBrandMatrix,
-  maixcam: IconCamera,
-  onebot: IconRobot,
   pico: IconBrandChrome,
-  irc: IconMessages,
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -99,14 +53,6 @@ function isChannelEnabled(
   const channelConfig = asRecord(channelsConfig[channel.config_key])
   if (channelConfig.enabled !== true) {
     return false
-  }
-
-  // whatsapp / whatsapp_native share one config block and are split by use_native.
-  if (channel.name === "whatsapp_native") {
-    return channelConfig.use_native === true
-  }
-  if (channel.name === "whatsapp") {
-    return channelConfig.use_native !== true
   }
 
   return true

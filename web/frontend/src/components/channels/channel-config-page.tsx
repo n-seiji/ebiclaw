@@ -17,17 +17,12 @@ import {
 } from "@/components/channels/channel-config-fields"
 import { getChannelDisplayName } from "@/components/channels/channel-display-name"
 import { DiscordForm } from "@/components/channels/channel-forms/discord-form"
-import { FeishuForm } from "@/components/channels/channel-forms/feishu-form"
 import { GenericForm } from "@/components/channels/channel-forms/generic-form"
 import { SlackForm } from "@/components/channels/channel-forms/slack-form"
-import { TelegramForm } from "@/components/channels/channel-forms/telegram-form"
-import { WecomForm } from "@/components/channels/channel-forms/wecom-form"
-import { WeixinForm } from "@/components/channels/channel-forms/weixin-form"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { useGateway } from "@/hooks/use-gateway"
-import { refreshGatewayState } from "@/store/gateway"
 
 interface ChannelConfigPageProps {
   channelName: string
@@ -49,21 +44,14 @@ function asBool(value: unknown): boolean {
 }
 
 function normalizeConfig(
-  channel: SupportedChannel,
+  _channel: SupportedChannel,
   rawConfig: ChannelConfig,
 ): ChannelConfig {
-  const config = { ...rawConfig }
-  if (channel.name === "whatsapp_native") {
-    config.use_native = true
-  }
-  if (channel.name === "whatsapp") {
-    config.use_native = false
-  }
-  return config
+  return { ...rawConfig }
 }
 
 function buildSavePayload(
-  channel: SupportedChannel,
+  _channel: SupportedChannel,
   editConfig: ChannelConfig,
   enabled: boolean,
 ): ChannelConfig {
@@ -89,98 +77,17 @@ function buildSavePayload(
     }
   }
 
-  if (channel.name === "whatsapp_native") {
-    payload.use_native = true
-  }
-  if (channel.name === "whatsapp") {
-    payload.use_native = false
-  }
-
   return payload
-}
-
-function isConfigured(
-  channel: SupportedChannel,
-  config: ChannelConfig,
-  configuredSecrets: readonly string[],
-): boolean {
-  const hasValue = (key: string) =>
-    !isMissingRequiredValue(
-      getFieldValueForValidation(config, configuredSecrets, key),
-    )
-
-  switch (channel.name) {
-    case "telegram":
-      return hasValue("token")
-    case "discord":
-      return hasValue("token")
-    case "slack":
-      return hasValue("bot_token")
-    case "feishu":
-      return hasValue("app_id") && hasValue("app_secret")
-    case "dingtalk":
-      return hasValue("client_id") && hasValue("client_secret")
-    case "line":
-      return hasValue("channel_secret") && hasValue("channel_access_token")
-    case "qq":
-      return hasValue("app_id") && hasValue("app_secret")
-    case "onebot":
-      return hasValue("ws_url")
-    case "weixin":
-      return hasValue("account_id")
-    case "wecom":
-      return hasValue("bot_id")
-    case "whatsapp":
-      return hasValue("bridge_url")
-    case "whatsapp_native":
-      return asBool(config.use_native)
-    case "pico":
-      return hasValue("token")
-    case "maixcam":
-      return hasValue("host")
-    case "matrix":
-      return (
-        hasValue("homeserver") &&
-        hasValue("user_id") &&
-        hasValue("access_token")
-      )
-    case "irc":
-      return hasValue("server")
-    default:
-      return false
-  }
 }
 
 function getRequiredFieldKeys(channelName: string): string[] {
   switch (channelName) {
-    case "telegram":
-      return ["token"]
     case "discord":
       return ["token"]
     case "slack":
       return ["bot_token"]
-    case "feishu":
-      return ["app_id", "app_secret"]
-    case "dingtalk":
-      return ["client_id", "client_secret"]
-    case "line":
-      return ["channel_secret", "channel_access_token"]
-    case "qq":
-      return ["app_id", "app_secret"]
-    case "onebot":
-      return ["ws_url"]
-    case "wecom":
-      return []
-    case "whatsapp":
-      return ["bridge_url"]
     case "pico":
       return ["token"]
-    case "maixcam":
-      return ["host"]
-    case "matrix":
-      return ["homeserver", "user_id", "access_token"]
-    case "irc":
-      return ["server"]
     default:
       return []
   }
@@ -205,11 +112,6 @@ function getChannelDocSlug(channelName: string): string {
 
 const CHANNELS_WITHOUT_DOCS = new Set([
   "pico",
-  "wecom",
-  "matrix",
-  "irc",
-  "whatsapp",
-  "whatsapp_native",
 ])
 
 export function ChannelConfigPage({ channelName }: ChannelConfigPageProps) {
@@ -290,11 +192,6 @@ export function ChannelConfigPage({ channelName }: ChannelConfigPageProps) {
     return buildSavePayload(channel, editConfig, enabled)
   }, [channel, editConfig, enabled])
 
-  const configured = useMemo(() => {
-    if (!channel) return false
-    return isConfigured(channel, editConfig, configuredSecrets)
-  }, [channel, configuredSecrets, editConfig])
-
   const docsUrl = useMemo(() => {
     if (!channel) return ""
     if (CHANNELS_WITHOUT_DOCS.has(channel.name)) return ""
@@ -314,18 +211,11 @@ export function ChannelConfigPage({ channelName }: ChannelConfigPageProps) {
     return getChannelDisplayName(channel, t)
   }, [channel, channelName, t])
 
-  const hidesPageLevelEnableToggle = channel?.name === "wecom"
+  const hidesPageLevelEnableToggle = false
 
   const hiddenKeys = useMemo(() => {
-    if (!channel) return []
-    if (channel.name === "whatsapp") {
-      return ["use_native"]
-    }
-    if (channel.name === "whatsapp_native") {
-      return ["use_native", "bridge_url"]
-    }
     return []
-  }, [channel])
+  }, [])
   const requiredKeys = useMemo(
     () => getRequiredFieldKeys(channelName),
     [channelName],
@@ -391,62 +281,10 @@ export function ChannelConfigPage({ channelName }: ChannelConfigPageProps) {
     }
   }
 
-  const handleWeixinBindSuccess = useCallback(async () => {
-    try {
-      setEnabled(true)
-      await Promise.all([loadData(true), refreshGatewayState({ force: true })])
-    } catch (e) {
-      const message =
-        e instanceof Error ? e.message : t("channels.page.saveError")
-      setServerError(message)
-      await loadData(true)
-    }
-  }, [loadData, t])
-
-  const handleWecomBindSuccess = useCallback(async () => {
-    try {
-      setEnabled(true)
-      await Promise.all([loadData(true), refreshGatewayState({ force: true })])
-    } catch (e) {
-      const message =
-        e instanceof Error ? e.message : t("channels.page.saveError")
-      setServerError(message)
-      await loadData(true)
-    }
-  }, [loadData, t])
-
-  const handleWecomEnabledChange = useCallback(
-    async (nextEnabled: boolean) => {
-      try {
-        setEnabled(nextEnabled)
-        await Promise.all([
-          loadData(true),
-          refreshGatewayState({ force: true }),
-        ])
-      } catch (e) {
-        const message =
-          e instanceof Error ? e.message : t("channels.page.saveError")
-        setServerError(message)
-        await loadData(true)
-      }
-    },
-    [loadData, t],
-  )
-
   const renderForm = () => {
     if (!channel) return null
-    const isEdit = configured
 
     switch (channel.name) {
-      case "telegram":
-        return (
-          <TelegramForm
-            config={editConfig}
-            onChange={handleChange}
-            configuredSecrets={configuredSecrets}
-            fieldErrors={fieldErrors}
-          />
-        )
       case "discord":
         return (
           <DiscordForm
@@ -464,45 +302,6 @@ export function ChannelConfigPage({ channelName }: ChannelConfigPageProps) {
             configuredSecrets={configuredSecrets}
             fieldErrors={fieldErrors}
           />
-        )
-      case "feishu":
-        return (
-          <FeishuForm
-            config={editConfig}
-            onChange={handleChange}
-            configuredSecrets={configuredSecrets}
-            fieldErrors={fieldErrors}
-          />
-        )
-      case "weixin":
-        return (
-          <WeixinForm
-            config={editConfig}
-            onChange={handleChange}
-            isEdit={isEdit}
-            onBindSuccess={() => void handleWeixinBindSuccess()}
-          />
-        )
-      case "wecom":
-        return (
-          <>
-            <WecomForm
-              config={editConfig}
-              isEdit={isEdit}
-              onBindSuccess={() => void handleWecomBindSuccess()}
-              onEnabledChange={(nextEnabled) =>
-                void handleWecomEnabledChange(nextEnabled)
-              }
-            />
-            <GenericForm
-              config={editConfig}
-              onChange={handleChange}
-              configuredSecrets={configuredSecrets}
-              hiddenKeys={[...hiddenKeys, "bot_id"]}
-              requiredKeys={requiredKeys}
-              fieldErrors={fieldErrors}
-            />
-          </>
         )
       default:
         return (

@@ -11,7 +11,6 @@ const PROVIDER_LABELS: Record<string, string> = {
   cerebras: "Cerebras",
   volcengine: "Volcengine (火山引擎)",
   shengsuanyun: "ShengsuanYun (神算云)",
-  antigravity: "Google Code Assist",
   "github-copilot": "GitHub Copilot",
   ollama: "Ollama (local)",
   mistral: "Mistral AI",

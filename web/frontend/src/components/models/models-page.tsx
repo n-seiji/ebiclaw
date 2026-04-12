@@ -24,15 +24,14 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   moonshot: 8,
   groq: 9,
   "github-copilot": 10,
-  antigravity: 11,
-  nvidia: 12,
-  cerebras: 13,
-  shengsuanyun: 14,
-  ollama: 15,
-  vllm: 16,
-  mistral: 17,
-  avian: 18,
-  mimo: 19,
+  nvidia: 11,
+  cerebras: 12,
+  shengsuanyun: 13,
+  ollama: 14,
+  vllm: 15,
+  mistral: 16,
+  avian: 17,
+  mimo: 18,
 }
 
 interface ProviderGroup {

@@ -30,7 +30,6 @@ const PROVIDER_DOMAINS: Record<string, string> = {
   cerebras: "cerebras.ai",
   volcengine: "volcengine.com",
   shengsuanyun: "shengsuanyun.com",
-  antigravity: "antigravity.google",
   "github-copilot": "github.com",
   ollama: "ollama.com",
   mistral: "mistral.ai",
