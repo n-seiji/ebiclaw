@@ -13,7 +13,6 @@ import (
 
 	"github.com/sipeed/picoclaw/pkg/config"
 	anthropicmessages "github.com/sipeed/picoclaw/pkg/providers/anthropic_messages"
-	"github.com/sipeed/picoclaw/pkg/providers/azure"
 	"github.com/sipeed/picoclaw/pkg/providers/bedrock"
 )
 
@@ -163,25 +162,6 @@ func CreateProviderFromConfig(cfg *config.ModelConfig) (LLMProvider, string, err
 			cfg.CustomHeaders,
 		), modelID, nil
 
-	case "azure", "azure-openai":
-		// Azure OpenAI uses deployment-based URLs, api-key header auth,
-		// and always sends max_completion_tokens.
-		if cfg.APIKey() == "" {
-			return nil, "", fmt.Errorf("api_key is required for azure protocol")
-		}
-		if cfg.APIBase == "" {
-			return nil, "", fmt.Errorf(
-				"api_base is required for azure protocol (e.g., https://your-resource.openai.azure.com)",
-			)
-		}
-		return azure.NewProviderWithTimeout(
-			cfg.APIKey(),
-			cfg.APIBase,
-			cfg.Proxy,
-			userAgent,
-			cfg.RequestTimeout,
-		), modelID, nil
-
 	case "bedrock":
 		// AWS Bedrock uses AWS SDK credentials (env vars, profiles, IAM roles, etc.)
 		// api_base can be:
@@ -328,9 +308,6 @@ func CreateProviderFromConfig(cfg *config.ModelConfig) (LLMProvider, string, err
 			userAgent,
 			cfg.RequestTimeout,
 		), modelID, nil
-
-	case "antigravity":
-		return NewAntigravityProvider(), modelID, nil
 
 	case "claude-cli", "claudecli":
 		workspace := cfg.Workspace

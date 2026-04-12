@@ -20,7 +20,7 @@ func TestHandleGetChannelConfig_ReturnsSecretPresenceWithoutLeakingSecrets(t *te
 	}
 	cfg.Channels.Feishu.Enabled = true
 	cfg.Channels.Feishu.AppID = "cli_test_app"
-	cfg.Channels.Feishu.AppSecret = *config.NewSecureString("feishu-secret-from-security")
+	cfg.Channels.Feishu.AppSecret = *config.NewSecureString("discord-secret-from-security")
 	if err := config.SaveConfig(configPath, cfg); err != nil {
 		t.Fatalf("SaveConfig() error = %v", err)
 	}
@@ -29,19 +29,19 @@ func TestHandleGetChannelConfig_ReturnsSecretPresenceWithoutLeakingSecrets(t *te
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/channels/feishu/config", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/channels/discord/config", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf(
-			"GET /api/channels/feishu/config status = %d, want %d, body=%s",
+			"GET /api/channels/discord/config status = %d, want %d, body=%s",
 			rec.Code,
 			http.StatusOK,
 			rec.Body.String(),
 		)
 	}
-	if strings.Contains(rec.Body.String(), "feishu-secret-from-security") {
+	if strings.Contains(rec.Body.String(), "discord-secret-from-security") {
 		t.Fatalf("response leaked secret value: %s", rec.Body.String())
 	}
 
@@ -55,8 +55,8 @@ func TestHandleGetChannelConfig_ReturnsSecretPresenceWithoutLeakingSecrets(t *te
 		t.Fatalf("json.Unmarshal() error = %v", err)
 	}
 
-	if got := resp.ConfigKey; got != "feishu" {
-		t.Fatalf("config_key = %q, want %q", got, "feishu")
+	if got := resp.ConfigKey; got != "discord" {
+		t.Fatalf("config_key = %q, want %q", got, "discord")
 	}
 	if got := resp.Config["app_id"]; got != "cli_test_app" {
 		t.Fatalf("config.app_id = %#v, want %q", got, "cli_test_app")

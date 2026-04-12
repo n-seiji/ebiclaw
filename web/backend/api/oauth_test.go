@@ -267,9 +267,6 @@ func resetOAuthHooks(t *testing.T) {
 	origDeleteCredential := oauthDeleteCredential
 	origLoadConfig := oauthLoadConfig
 	origSaveConfig := oauthSaveConfig
-	origFetchProject := oauthFetchAntigravityProject
-	origFetchGoogleEmail := oauthFetchGoogleUserEmailFunc
-
 	t.Cleanup(func() {
 		oauthNow = origNow
 		oauthGeneratePKCE = origGeneratePKCE
@@ -283,7 +280,5 @@ func resetOAuthHooks(t *testing.T) {
 		oauthDeleteCredential = origDeleteCredential
 		oauthLoadConfig = origLoadConfig
 		oauthSaveConfig = origSaveConfig
-		oauthFetchAntigravityProject = origFetchProject
-		oauthFetchGoogleUserEmailFunc = origFetchGoogleEmail
 	})
 }

@@ -425,8 +425,6 @@ func oauthProviderForModel(model string) (string, bool) {
 		return oauthProviderOpenAI, true
 	case "anthropic":
 		return oauthProviderAnthropic, true
-	case "antigravity", "google-antigravity":
-		return oauthProviderGoogleAntigravity, true
 	default:
 		return "", false
 	}

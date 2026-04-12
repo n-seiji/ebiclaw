@@ -23,7 +23,7 @@ func supportsAudioTranscription(model string) bool {
 	protocol, _ := providers.ExtractProtocol(model)
 
 	switch protocol {
-	case "openai", "azure", "azure-openai",
+	case "openai",
 		"litellm", "openrouter", "groq", "zhipu", "gemini", "nvidia",
 		"ollama", "moonshot", "shengsuanyun", "deepseek", "cerebras",
 		"vivgrid", "volcengine", "vllm", "qwen", "qwen-intl", "qwen-international", "dashscope-intl",
@@ -77,10 +77,6 @@ func transcriberFromModelConfig(modelCfg *config.ModelConfig) Transcriber {
 		return nil
 	}
 
-	protocol, _ := providers.ExtractProtocol(modelCfg.Model)
-	if protocol == "elevenlabs" && modelCfg.APIKey() != "" {
-		return NewElevenLabsTranscriber(modelCfg.APIKey(), modelCfg.APIBase)
-	}
 	if modelID := whisperModelID(modelCfg); modelID != "" {
 		return NewWhisperTranscriber(modelCfg)
 	}
@@ -95,10 +91,6 @@ func fallbackTranscriberFromModelConfig(modelCfg *config.ModelConfig) Transcribe
 		return nil
 	}
 
-	protocol, _ := providers.ExtractProtocol(modelCfg.Model)
-	if protocol == "elevenlabs" && modelCfg.APIKey() != "" {
-		return NewElevenLabsTranscriber(modelCfg.APIKey(), modelCfg.APIBase)
-	}
 	if modelID := whisperModelID(modelCfg); modelID != "" {
 		return NewWhisperTranscriber(modelCfg)
 	}

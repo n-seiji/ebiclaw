@@ -13,15 +13,11 @@ import (
 
 	"github.com/sipeed/picoclaw/pkg/auth"
 	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/providers"
 )
 
 const (
 	oauthProviderOpenAI            = "openai"
 	oauthProviderAnthropic         = "anthropic"
-	oauthProviderGoogleAntigravity = "google-antigravity"
-
 	oauthMethodBrowser    = "browser"
 	oauthMethodDeviceCode = "device_code"
 	oauthMethodToken      = "token"
@@ -41,19 +37,16 @@ const (
 var oauthProviderOrder = []string{
 	oauthProviderOpenAI,
 	oauthProviderAnthropic,
-	oauthProviderGoogleAntigravity,
 }
 
 var oauthProviderMethods = map[string][]string{
 	oauthProviderOpenAI:            {oauthMethodBrowser, oauthMethodDeviceCode, oauthMethodToken},
 	oauthProviderAnthropic:         {oauthMethodToken},
-	oauthProviderGoogleAntigravity: {oauthMethodBrowser},
 }
 
 var oauthProviderLabels = map[string]string{
 	oauthProviderOpenAI:            "OpenAI",
 	oauthProviderAnthropic:         "Anthropic",
-	oauthProviderGoogleAntigravity: "Google Antigravity",
 }
 
 var (
@@ -69,8 +62,6 @@ var (
 	oauthDeleteCredential         = auth.DeleteCredential
 	oauthLoadConfig               = config.LoadConfig
 	oauthSaveConfig               = config.SaveConfig
-	oauthFetchAntigravityProject  = providers.FetchAntigravityProjectID
-	oauthFetchGoogleUserEmailFunc = fetchGoogleUserEmail
 )
 
 type oauthFlow struct {
@@ -525,9 +516,7 @@ func renderOAuthCallbackPage(w http.ResponseWriter, flowID, status, title, errMs
 func normalizeOAuthProvider(raw string) (string, error) {
 	provider := strings.ToLower(strings.TrimSpace(raw))
 	switch provider {
-	case "antigravity":
-		return oauthProviderGoogleAntigravity, nil
-	case oauthProviderOpenAI, oauthProviderAnthropic, oauthProviderGoogleAntigravity:
+	case oauthProviderOpenAI, oauthProviderAnthropic:
 		return provider, nil
 	default:
 		return "", fmt.Errorf("unsupported provider %q", raw)
@@ -548,8 +537,6 @@ func oauthConfigForProvider(provider string) (auth.OAuthProviderConfig, error) {
 	switch provider {
 	case oauthProviderOpenAI:
 		return auth.OpenAIOAuthConfig(), nil
-	case oauthProviderGoogleAntigravity:
-		return auth.GoogleAntigravityOAuthConfig(), nil
 	default:
 		return auth.OAuthProviderConfig{}, fmt.Errorf("provider %q does not support browser oauth", provider)
 	}
@@ -710,25 +697,6 @@ func (h *Handler) persistCredentialAndConfig(provider, authMethod string, cred *
 		cp.AuthMethod = authMethod
 	}
 
-	if provider == oauthProviderGoogleAntigravity {
-		if cp.Email == "" {
-			email, err := oauthFetchGoogleUserEmailFunc(cp.AccessToken)
-			if err != nil {
-				logger.ErrorC("oauth", fmt.Sprintf("oauth warning: could not fetch google email: %v", err))
-			} else {
-				cp.Email = email
-			}
-		}
-		if cp.ProjectID == "" {
-			projectID, err := oauthFetchAntigravityProject(cp.AccessToken)
-			if err != nil {
-				logger.ErrorC("oauth", fmt.Sprintf("oauth warning: could not fetch antigravity project id: %v", err))
-			} else {
-				cp.ProjectID = projectID
-			}
-		}
-	}
-
 	if err := oauthSetCredential(provider, &cp); err != nil {
 		return fmt.Errorf("saving credential: %w", err)
 	}
@@ -766,11 +734,6 @@ func modelBelongsToProvider(provider, model string) bool {
 		return lower == "openai" || strings.HasPrefix(lower, "openai/")
 	case oauthProviderAnthropic:
 		return lower == "anthropic" || strings.HasPrefix(lower, "anthropic/")
-	case oauthProviderGoogleAntigravity:
-		return lower == "antigravity" ||
-			lower == "google-antigravity" ||
-			strings.HasPrefix(lower, "antigravity/") ||
-			strings.HasPrefix(lower, "google-antigravity/")
 	default:
 		return false
 	}
@@ -790,44 +753,8 @@ func defaultModelConfigForProvider(provider, authMethod string) *config.ModelCon
 			Model:      "anthropic/claude-sonnet-4.6",
 			AuthMethod: authMethod,
 		}
-	case oauthProviderGoogleAntigravity:
-		return &config.ModelConfig{
-			ModelName:  "gemini-flash",
-			Model:      "antigravity/gemini-3-flash",
-			AuthMethod: authMethod,
-		}
 	default:
 		return &config.ModelConfig{}
 	}
 }
 
-func fetchGoogleUserEmail(accessToken string) (string, error) {
-	req, err := http.NewRequest(http.MethodGet, "https://www.googleapis.com/oauth2/v2/userinfo", nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("userinfo request failed: %s", string(body))
-	}
-
-	var userInfo struct {
-		Email string `json:"email"`
-	}
-	if err := json.Unmarshal(body, &userInfo); err != nil {
-		return "", err
-	}
-	if userInfo.Email == "" {
-		return "", fmt.Errorf("empty email in userinfo response")
-	}
-	return userInfo.Email, nil
-}
