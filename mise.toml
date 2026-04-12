@@ -1,0 +1,363 @@
+[tools]
+go = "1.25"
+
+[env]
+CGO_ENABLED = "0"
+
+# ---------- generate ----------
+[tasks.generate]
+description = "Run go generate"
+run = """
+echo "Run generate..."
+rm -rf ./cmd/picoclaw/workspace 2>/dev/null || true
+go generate ./...
+echo "Run generate complete"
+"""
+
+# ---------- build ----------
+[tasks.build]
+description = "Build picoclaw binary for current platform"
+depends = ["generate"]
+run = """
+source .mise/lib/platform.sh
+echo "Building ${BINARY_NAME}${EXT} for ${PLATFORM}/${ARCH}..."
+mkdir -p "$BUILD_DIR"
+GOARCH=$ARCH go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BINARY_PATH}${EXT}" "./${CMD_DIR}"
+echo "Build complete: ${BINARY_PATH}${EXT}"
+$LNCMD "${BINARY_NAME}-${PLATFORM}-${ARCH}${EXT}" "${BUILD_DIR}/${BINARY_NAME}${EXT}"
+"""
+
+# ---------- build-launcher ----------
+[tasks.build-launcher]
+description = "Build picoclaw-launcher (web console) binary"
+run = """
+source .mise/lib/platform.sh
+echo "Building picoclaw-launcher for ${PLATFORM}/${ARCH}..."
+mkdir -p "$BUILD_DIR"
+cd web
+mise run build -- --output "$(cd .. && pwd)/${BUILD_DIR}/picoclaw-launcher-${PLATFORM}-${ARCH}${EXT}"
+cd ..
+$LNCMD "picoclaw-launcher-${PLATFORM}-${ARCH}${EXT}" "${BUILD_DIR}/picoclaw-launcher${EXT}"
+echo "Build complete: ${BUILD_DIR}/picoclaw-launcher${EXT}"
+"""
+
+# ---------- build-launcher-frontend ----------
+[tasks.build-launcher-frontend]
+description = "Build launcher frontend only"
+run = "cd web && mise run build-frontend"
+
+# ---------- build-launcher-tui ----------
+[tasks.build-launcher-tui]
+description = "Build picoclaw-launcher TUI binary"
+run = """
+source .mise/lib/platform.sh
+echo "Building picoclaw-launcher-tui for ${PLATFORM}/${ARCH}..."
+mkdir -p "$BUILD_DIR"
+go build $GOFLAGS_CUSTOM -o "${BUILD_DIR}/picoclaw-launcher-tui-${PLATFORM}-${ARCH}" ./cmd/picoclaw-launcher-tui
+ln -sf "picoclaw-launcher-tui-${PLATFORM}-${ARCH}" "${BUILD_DIR}/picoclaw-launcher-tui"
+echo "Build complete: ${BUILD_DIR}/picoclaw-launcher-tui"
+"""
+
+# ---------- build-whatsapp-native ----------
+[tasks.build-whatsapp-native]
+description = "Build with WhatsApp native (whatsmeow) support"
+depends = ["generate"]
+run = """
+source .mise/lib/platform.sh
+echo "Building for multiple platforms..."
+mkdir -p "$BUILD_DIR"
+GOOS=linux  GOARCH=amd64  go build -tags ${GO_BUILD_TAGS},whatsapp_native -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-amd64"       "./${CMD_DIR}"
+GOOS=linux  GOARCH=arm    GOARM=7 go build -tags ${GO_BUILD_TAGS},whatsapp_native -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-arm"  "./${CMD_DIR}"
+GOOS=linux  GOARCH=arm64  go build -tags ${GO_BUILD_TAGS},whatsapp_native -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-arm64"        "./${CMD_DIR}"
+GOOS=linux  GOARCH=loong64 go build -tags ${GO_BUILD_TAGS},whatsapp_native -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-loong64"     "./${CMD_DIR}"
+GOOS=linux  GOARCH=riscv64 go build -tags ${GO_BUILD_TAGS},whatsapp_native -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-riscv64"     "./${CMD_DIR}"
+GOOS=linux  GOARCH=mipsle GOMIPS=softfloat go build -tags ${GO_BUILD_TAGS_NO_GOOLM},whatsapp_native -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-mipsle" "./${CMD_DIR}"
+patch_mips_flags "${BUILD_DIR}/${BINARY_NAME}-linux-mipsle"
+GOOS=darwin GOARCH=arm64  go build -tags ${GO_BUILD_TAGS},whatsapp_native -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-darwin-arm64"        "./${CMD_DIR}"
+GOOS=windows GOARCH=amd64 go build -tags ${GO_BUILD_TAGS},whatsapp_native -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-windows-amd64.exe"  "./${CMD_DIR}"
+echo "Build complete"
+"""
+
+# ---------- build-linux-arm ----------
+[tasks.build-linux-arm]
+description = "Build for Linux ARMv7 (e.g. Raspberry Pi Zero 2 W 32-bit)"
+depends = ["generate"]
+run = """
+source .mise/lib/platform.sh
+echo "Building for linux/arm (GOARM=7)..."
+mkdir -p "$BUILD_DIR"
+GOOS=linux GOARCH=arm GOARM=7 go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-arm" "./${CMD_DIR}"
+echo "Build complete: ${BUILD_DIR}/${BINARY_NAME}-linux-arm"
+"""
+
+# ---------- build-linux-arm64 ----------
+[tasks.build-linux-arm64]
+description = "Build for Linux ARM64 (e.g. Raspberry Pi Zero 2 W 64-bit)"
+depends = ["generate"]
+run = """
+source .mise/lib/platform.sh
+echo "Building for linux/arm64..."
+mkdir -p "$BUILD_DIR"
+GOOS=linux GOARCH=arm64 go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-arm64" "./${CMD_DIR}"
+echo "Build complete: ${BUILD_DIR}/${BINARY_NAME}-linux-arm64"
+"""
+
+# ---------- build-linux-mipsle ----------
+[tasks.build-linux-mipsle]
+description = "Build for Linux MIPS32 LE"
+depends = ["generate"]
+run = """
+source .mise/lib/platform.sh
+echo "Building for linux/mipsle (softfloat)..."
+mkdir -p "$BUILD_DIR"
+GOOS=linux GOARCH=mipsle GOMIPS=softfloat go build $GOFLAGS_NO_GOOLM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-mipsle" "./${CMD_DIR}"
+patch_mips_flags "${BUILD_DIR}/${BINARY_NAME}-linux-mipsle"
+echo "Build complete: ${BUILD_DIR}/${BINARY_NAME}-linux-mipsle"
+"""
+
+# ---------- build-pi-zero ----------
+[tasks.build-pi-zero]
+description = "Build for Raspberry Pi Zero 2 W (32-bit and 64-bit)"
+depends = ["build-linux-arm", "build-linux-arm64"]
+run = """
+source .mise/lib/platform.sh
+echo "Pi Zero 2 W builds: ${BUILD_DIR}/${BINARY_NAME}-linux-arm (32-bit), ${BUILD_DIR}/${BINARY_NAME}-linux-arm64 (64-bit)"
+"""
+
+# ---------- build-all ----------
+[tasks.build-all]
+description = "Build picoclaw for all platforms"
+depends = ["generate"]
+run = """
+source .mise/lib/platform.sh
+echo "Building for multiple platforms..."
+mkdir -p "$BUILD_DIR"
+GOOS=linux   GOARCH=amd64   go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-amd64"     "./${CMD_DIR}"
+GOOS=linux   GOARCH=arm     GOARM=7 go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-arm"  "./${CMD_DIR}"
+GOOS=linux   GOARCH=arm64   go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-arm64"     "./${CMD_DIR}"
+patch_pty_loong64
+GOOS=linux   GOARCH=loong64 go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-loong64"   "./${CMD_DIR}"
+GOOS=linux   GOARCH=riscv64 go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-riscv64"   "./${CMD_DIR}"
+GOOS=linux   GOARCH=mipsle  GOMIPS=softfloat go build $GOFLAGS_NO_GOOLM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-mipsle" "./${CMD_DIR}"
+patch_mips_flags "${BUILD_DIR}/${BINARY_NAME}-linux-mipsle"
+GOOS=linux   GOARCH=arm     GOARM=7 go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-linux-armv7" "./${CMD_DIR}"
+GOOS=darwin  GOARCH=arm64   go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-darwin-arm64"    "./${CMD_DIR}"
+GOOS=windows GOARCH=amd64   go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-windows-amd64.exe" "./${CMD_DIR}"
+GOOS=netbsd  GOARCH=amd64   go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-netbsd-amd64"   "./${CMD_DIR}"
+GOOS=netbsd  GOARCH=arm64   go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "${BUILD_DIR}/${BINARY_NAME}-netbsd-arm64"   "./${CMD_DIR}"
+echo "All builds complete"
+"""
+
+# ---------- install ----------
+[tasks.install]
+description = "Install picoclaw to system"
+depends = ["build"]
+run = """
+source .mise/lib/platform.sh
+echo "Installing ${BINARY_NAME}..."
+mkdir -p "$INSTALL_BIN_DIR"
+cp "${BUILD_DIR}/${BINARY_NAME}" "${INSTALL_BIN_DIR}/${BINARY_NAME}${INSTALL_TMP_SUFFIX}"
+chmod +x "${INSTALL_BIN_DIR}/${BINARY_NAME}${INSTALL_TMP_SUFFIX}"
+mv -f "${INSTALL_BIN_DIR}/${BINARY_NAME}${INSTALL_TMP_SUFFIX}" "${INSTALL_BIN_DIR}/${BINARY_NAME}"
+echo "Installed binary to ${INSTALL_BIN_DIR}/${BINARY_NAME}"
+echo "Installation complete!"
+"""
+
+# ---------- uninstall ----------
+[tasks.uninstall]
+description = "Remove picoclaw from system"
+run = """
+source .mise/lib/platform.sh
+echo "Uninstalling ${BINARY_NAME}..."
+rm -f "${INSTALL_BIN_DIR}/${BINARY_NAME}"
+echo "Removed binary from ${INSTALL_BIN_DIR}/${BINARY_NAME}"
+echo "Note: Only the executable file has been deleted."
+echo "If you need to delete all configurations, run 'mise run uninstall-all'"
+"""
+
+# ---------- uninstall-all ----------
+[tasks.uninstall-all]
+description = "Remove picoclaw and all data"
+run = """
+source .mise/lib/platform.sh
+echo "Removing workspace and skills..."
+rm -rf "$PICOCLAW_HOME"
+echo "Removed workspace: $PICOCLAW_HOME"
+echo "Complete uninstallation done!"
+"""
+
+# ---------- clean ----------
+[tasks.clean]
+description = "Remove build artifacts"
+run = """
+echo "Cleaning build artifacts..."
+rm -rf build
+echo "Clean complete"
+"""
+
+# ---------- vet ----------
+[tasks.vet]
+description = "Run go vet for static analysis"
+depends = ["generate"]
+run = """
+source .mise/lib/platform.sh
+packages=$(go list $GOFLAGS_CUSTOM ./...)
+echo "$packages" | grep -v '^github.com/sipeed/picoclaw/web/' | xargs go vet $GOFLAGS_CUSTOM
+cd web/backend && web_go vet ./...
+"""
+
+# ---------- test ----------
+[tasks.test]
+description = "Test Go code"
+depends = ["generate"]
+run = """
+source .mise/lib/platform.sh
+go test $GOFLAGS_CUSTOM $(go list $GOFLAGS_CUSTOM ./... | grep -v github.com/sipeed/picoclaw/web/)
+cd web && mise run test
+"""
+
+# ---------- fmt ----------
+[tasks.fmt]
+description = "Format Go code"
+run = """
+source .mise/lib/platform.sh
+$GOLANGCI_LINT fmt
+"""
+
+# ---------- lint ----------
+[tasks.lint]
+description = "Run linters"
+run = """
+source .mise/lib/platform.sh
+$GOLANGCI_LINT run --build-tags "$GO_BUILD_TAGS"
+"""
+
+# ---------- fix ----------
+[tasks.fix]
+description = "Fix linting issues"
+run = """
+source .mise/lib/platform.sh
+$GOLANGCI_LINT run --fix --build-tags "$GO_BUILD_TAGS"
+"""
+
+# ---------- deps ----------
+[tasks.deps]
+description = "Download dependencies"
+run = """
+go mod download
+go mod verify
+"""
+
+# ---------- update-deps ----------
+[tasks.update-deps]
+description = "Update dependencies"
+run = """
+go get -u ./...
+go mod tidy
+"""
+
+# ---------- check ----------
+[tasks.check]
+description = "Run deps, fmt, vet, and test"
+depends = ["deps", "fmt", "vet", "test"]
+
+# ---------- run ----------
+[tasks.run]
+description = "Build and run picoclaw"
+depends = ["build"]
+run = """
+source .mise/lib/platform.sh
+"${BUILD_DIR}/${BINARY_NAME}" "$@"
+"""
+
+# ---------- docker-build ----------
+[tasks.docker-build]
+description = "Build Docker image (minimal Alpine-based)"
+run = """
+echo "Building minimal Docker image (Alpine-based)..."
+docker compose -f docker/docker-compose.yml build picoclaw-agent picoclaw-gateway
+"""
+
+# ---------- docker-build-full ----------
+[tasks.docker-build-full]
+description = "Build Docker image with full MCP support (Node.js 24)"
+run = """
+echo "Building full-featured Docker image (Node.js 24)..."
+docker compose -f docker/docker-compose.full.yml build picoclaw-agent picoclaw-gateway
+"""
+
+# ---------- docker-test ----------
+[tasks.docker-test]
+description = "Test MCP tools in Docker container"
+run = """
+echo "Testing MCP tools in Docker..."
+chmod +x scripts/test-docker-mcp.sh
+./scripts/test-docker-mcp.sh
+"""
+
+# ---------- docker-run ----------
+[tasks.docker-run]
+description = "Run picoclaw gateway in Docker (Alpine-based)"
+run = "docker compose -f docker/docker-compose.yml --profile gateway up"
+
+# ---------- docker-run-full ----------
+[tasks.docker-run-full]
+description = "Run picoclaw gateway in Docker (full-featured)"
+run = "docker compose -f docker/docker-compose.full.yml --profile gateway up"
+
+# ---------- docker-run-agent ----------
+[tasks.docker-run-agent]
+description = "Run picoclaw agent in Docker (interactive, Alpine-based)"
+run = "docker compose -f docker/docker-compose.yml run --rm picoclaw-agent"
+
+# ---------- docker-run-agent-full ----------
+[tasks.docker-run-agent-full]
+description = "Run picoclaw agent in Docker (interactive, full-featured)"
+run = "docker compose -f docker/docker-compose.full.yml run --rm picoclaw-agent"
+
+# ---------- docker-clean ----------
+[tasks.docker-clean]
+description = "Clean Docker images and volumes"
+run = """
+docker compose -f docker/docker-compose.yml down -v
+docker compose -f docker/docker-compose.full.yml down -v
+docker rmi picoclaw:latest picoclaw:full 2>/dev/null || true
+"""
+
+# ---------- build-macos-app ----------
+[tasks.build-macos-app]
+description = "Build PicoClaw macOS .app bundle"
+depends = ["build-launcher"]
+run = """
+source .mise/lib/platform.sh
+echo "Building macOS .app bundle..."
+if [ "$UNAME_S" != "Darwin" ]; then
+  echo "Error: This target is only available on macOS"
+  exit 1
+fi
+./scripts/build-macos-app.sh "${PLATFORM}-${ARCH}"
+echo "macOS .app bundle created: ${BUILD_DIR}/PicoClaw.app"
+"""
+
+# ---------- mem ----------
+[tasks.mem]
+description = "Build membench, download LOCOMO data, run benchmark"
+run = """
+source .mise/lib/platform.sh
+echo "Building membench..."
+mkdir -p "$BUILD_DIR"
+go build -o "${BUILD_DIR}/membench" ./cmd/membench
+echo "Build complete: ${BUILD_DIR}/membench"
+if [ ! -f "${BUILD_DIR}/memdata/locomo10.json" ]; then
+  echo "Downloading LOCOMO dataset..."
+  mkdir -p "${BUILD_DIR}/memdata"
+  curl -sfL "https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json" \
+    -o "${BUILD_DIR}/memdata/locomo10.json" && [ -s "${BUILD_DIR}/memdata/locomo10.json" ] || { echo "Error: LOCOMO download failed"; exit 1; }
+  echo "Download complete"
+else
+  echo "LOCOMO dataset already exists, skipping download"
+fi
+echo "Running benchmark..."
+rm -rf "${BUILD_DIR}/memout"
+"${BUILD_DIR}/membench" run --data "${BUILD_DIR}/memdata" --out "${BUILD_DIR}/memout" --budget 4000
+"""

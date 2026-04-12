@@ -1,0 +1,105 @@
+[env]
+FRONTEND_DIR = "frontend"
+BACKEND_DIR = "backend"
+BACKEND_DIST = "backend/dist"
+BUILD_DIR = "build"
+
+# ---------- dev ----------
+[tasks.dev]
+description = "Run both frontend and backend dev servers"
+depends = ["build-dev-picoclaw"]
+run = """
+source ../.mise/lib/platform.sh
+if [ ! -f "$BACKEND_DIST/index.html" ]; then
+  echo "Embedded frontend not found, building..."
+  mise run build-frontend
+fi
+echo "Starting backend and frontend dev servers..."
+mise run dev-backend -- -no-browser &
+mise run dev-frontend
+"""
+
+# ---------- dev-frontend ----------
+[tasks.dev-frontend]
+description = "Start frontend dev server (Vite, with proxy to backend)"
+run = "cd frontend && pnpm dev"
+
+# ---------- dev-backend ----------
+[tasks.dev-backend]
+description = "Start backend dev server"
+run = """
+source ../.mise/lib/platform.sh
+PICOCLAW_BINARY="${PICOCLAW_BINARY:-$(cd .. && pwd)/build/picoclaw}"
+LAUNCHER_LDFLAGS="$LDFLAGS"
+if [ "$PLATFORM" = "windows" ]; then
+  LAUNCHER_LDFLAGS="-H=windowsgui $LDFLAGS"
+fi
+cd backend && PICOCLAW_BINARY="$PICOCLAW_BINARY" web_go run -ldflags "$LAUNCHER_LDFLAGS" . "$@"
+"""
+
+# ---------- build ----------
+[tasks.build]
+description = "Build frontend and embed into Go binary"
+depends = ["build-frontend"]
+run = """
+source ../.mise/lib/platform.sh
+OUTPUT="${OUTPUT:-build/picoclaw-launcher}"
+LAUNCHER_LDFLAGS="$LDFLAGS"
+if [ "$PLATFORM" = "windows" ]; then
+  LAUNCHER_LDFLAGS="-H=windowsgui $LDFLAGS"
+fi
+mkdir -p "$(dirname "$OUTPUT")"
+web_go build $GOFLAGS_CUSTOM -ldflags "$LAUNCHER_LDFLAGS" -o "$OUTPUT" ./backend/
+"""
+
+# ---------- build-frontend ----------
+[tasks.build-frontend]
+description = "Build frontend assets"
+run = """
+cd frontend
+if [ ! -d node_modules ] || \
+   [ package.json -nt node_modules ] || \
+   [ pnpm-lock.yaml -nt node_modules ]; then
+  echo "Installing frontend dependencies..."
+  pnpm install --frozen-lockfile
+fi
+echo "Building frontend..."
+pnpm build:backend
+"""
+
+# ---------- build-dev-picoclaw ----------
+[tasks.build-dev-picoclaw]
+description = "Build picoclaw for launcher development"
+run = """
+source ../.mise/lib/platform.sh
+PICOCLAW_BINARY="${PICOCLAW_BINARY:-$(cd .. && pwd)/build/picoclaw}"
+echo "Building picoclaw for launcher development..."
+mkdir -p "$(dirname "$PICOCLAW_BINARY")"
+go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "$PICOCLAW_BINARY" ../cmd/picoclaw
+"""
+
+# ---------- test ----------
+[tasks.test]
+description = "Run all tests"
+run = """
+source ../.mise/lib/platform.sh
+cd backend && web_go test ./...
+cd ../frontend && pnpm lint
+"""
+
+# ---------- lint ----------
+[tasks.lint]
+description = "Lint and format"
+run = """
+source ../.mise/lib/platform.sh
+cd backend && web_go vet ./...
+cd ../frontend && pnpm check
+"""
+
+# ---------- clean ----------
+[tasks.clean]
+description = "Clean build artifacts"
+run = """
+rm -rf frontend/dist backend/dist build
+node frontend/scripts/ensure-backend-gitkeep.cjs
+"""
