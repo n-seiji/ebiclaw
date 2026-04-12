@@ -18,7 +18,7 @@
     <a href="https://discord.gg/V4sAZ9XWpN"><img src="https://img.shields.io/badge/Discord-Community-4c60eb?style=flat&logo=discord&logoColor=white" alt="Discord"></a>
   </p>
 
-[中文](README.zh.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Português](README.pt-br.md) | [Tiếng Việt](README.vi.md) | [Français](README.fr.md) | [Italiano](README.it.md) | [Bahasa Indonesia](README.id.md) | [Malay](README.my.md) | **English**
+[日本語](README.ja.md) | **English**
 
 </div>
 
@@ -168,25 +168,25 @@ Alternatively, download the binary for your platform from the [GitHub Releases](
 git clone https://github.com/sipeed/picoclaw.git
 
 cd picoclaw
-make deps
+mise run deps
 
 # Build core binary
-make build
+mise run build
 
 # Build Web UI Launcher (required for WebUI mode)
-make build-launcher
+mise run build-launcher
 
 # Build for multiple platforms
-make build-all
+mise run build-all
 
-# Build for Raspberry Pi Zero 2 W (32-bit: make build-linux-arm; 64-bit: make build-linux-arm64)
-make build-pi-zero
+# Build for Raspberry Pi Zero 2 W (32-bit: mise run build-linux-arm; 64-bit: mise run build-linux-arm64)
+mise run build-pi-zero
 
 # Build and install
-make install
+mise run install
 ```
 
-**Raspberry Pi Zero 2 W:** Use the binary that matches your OS: 32-bit Raspberry Pi OS -> `make build-linux-arm`; 64-bit -> `make build-linux-arm64`. Or run `make build-pi-zero` to build both.
+**Raspberry Pi Zero 2 W:** Use the binary that matches your OS: 32-bit Raspberry Pi OS -> `mise run build-linux-arm`; 64-bit -> `mise run build-linux-arm64`. Or run `mise run build-pi-zero` to build both.
 
 ## 🚀 Quick Start Guide
 
@@ -217,7 +217,7 @@ picoclaw-launcher
 
 **Getting started:** 
 
-Open the WebUI, then: **1)** Configure a Provider (add your LLM API key) -> **2)** Configure a Channel (e.g., Telegram) -> **3)** Start the Gateway -> **4)** Chat!
+Open the WebUI, then: **1)** Configure a Provider (add your LLM API key) -> **2)** Configure a Channel (e.g., Discord) -> **3)** Start the Gateway -> **4)** Chat!
 
 For detailed WebUI documentation, see [docs.picoclaw.io](https://docs.picoclaw.io).
 
@@ -412,9 +412,7 @@ PicoClaw supports 30+ LLM providers through the `model_list` configuration. Use 
 | [Ollama](https://ollama.com/) | `ollama/` | Not needed | Local models, self-hosted |
 | [vLLM](https://docs.vllm.ai/) | `vllm/` | Not needed | Local deployment, OpenAI-compatible |
 | [LiteLLM](https://docs.litellm.ai/) | `litellm/` | Varies | Proxy for 100+ providers |
-| [Azure OpenAI](https://portal.azure.com/) | `azure/` | Required | Enterprise Azure deployment |
 | [GitHub Copilot](https://github.com/features/copilot) | `github-copilot/` | OAuth | Device code login |
-| [Antigravity](https://console.cloud.google.com/) | `antigravity/` | OAuth | Google Cloud AI |
 | [AWS Bedrock](https://console.aws.amazon.com/bedrock)* | `bedrock/` | AWS credentials | Claude, Llama, Mistral on AWS |
 
 > \* AWS Bedrock requires build tag: `go build -tags bedrock`. Set `api_base` to a region name (e.g., `us-east-1`) for automatic endpoint resolution across all AWS partitions (aws, aws-cn, aws-us-gov). When using a full endpoint URL instead, you must also configure `AWS_REGION` via environment variable or AWS config/profile.
@@ -454,29 +452,14 @@ For full provider configuration details, see [Providers & Models](docs/providers
 
 ## 💬 Channels (Chat Apps)
 
-Talk to your PicoClaw through 18+ messaging platforms:
+Talk to your PicoClaw through messaging platforms:
 
 | Channel | Setup | Protocol | Docs |
 |---------|-------|----------|------|
-| **Telegram** | Easy (bot token) | Long polling | [Guide](docs/channels/telegram/README.md) |
 | **Discord** | Easy (bot token + intents) | WebSocket | [Guide](docs/channels/discord/README.md) |
-| **WhatsApp** | Easy (QR scan or bridge URL) | Native / Bridge | [Guide](docs/chat-apps.md#whatsapp) |
-| **Weixin** | Easy (Native QR scan) | iLink API | [Guide](docs/chat-apps.md#weixin) |
-| **QQ** | Easy (AppID + AppSecret) | WebSocket | [Guide](docs/channels/qq/README.md) |
 | **Slack** | Easy (bot + app token) | Socket Mode | [Guide](docs/channels/slack/README.md) |
-| **Matrix** | Medium (homeserver + token) | Sync API | [Guide](docs/channels/matrix/README.md) |
-| **DingTalk** | Medium (client credentials) | Stream | [Guide](docs/channels/dingtalk/README.md) |
-| **Feishu / Lark** | Medium (App ID + Secret) | WebSocket/SDK | [Guide](docs/channels/feishu/README.md) |
-| **LINE** | Medium (credentials + webhook) | Webhook | [Guide](docs/channels/line/README.md) |
-| **WeCom** | Easy (QR login or manual) | WebSocket | [Guide](docs/channels/wecom/README.md) |
-| **VK** | Easy (group token) | Long Poll | [Guide](docs/channels/vk/README.md) |
-| **IRC** | Medium (server + nick) | IRC protocol | [Guide](docs/chat-apps.md#irc) |
-| **OneBot** | Medium (WebSocket URL) | OneBot v11 | [Guide](docs/channels/onebot/README.md) |
-| **MaixCam** | Easy (enable) | TCP socket | [Guide](docs/channels/maixcam/README.md) |
 | **Pico** | Easy (enable) | Native protocol | Built-in |
 | **Pico Client** | Easy (WebSocket URL) | WebSocket | Built-in |
-
-> All webhook-based channels share a single Gateway HTTP server (`gateway.host`:`gateway.port`, default `127.0.0.1:18790`). Feishu uses WebSocket/SDK mode and does not use the shared HTTP server.
 
 > Log verbosity is controlled by `gateway.log_level` (default: `warn`). Supported values: `debug`, `info`, `warn`, `error`, `fatal`. Can also be set via `PICOCLAW_LOG_LEVEL`. See [Configuration](docs/configuration.md#gateway-log-level) for details.
 
@@ -566,7 +549,6 @@ Connect PicoClaw to the Agent Social Network simply by sending a single message 
 | Command                   | Description                      |
 | ------------------------- | -------------------------------- |
 | `picoclaw onboard`        | Initialize config & workspace    |
-| `picoclaw auth weixin` | Connect WeChat account via QR |
 | `picoclaw agent -m "..."` | Chat with the agent              |
 | `picoclaw agent`          | Interactive chat mode            |
 | `picoclaw gateway`        | Start the gateway                |
@@ -599,10 +581,10 @@ For detailed guides beyond this README:
 | Topic | Description |
 |-------|-------------|
 | [Docker & Quick Start](docs/docker.md) | Docker Compose setup, Launcher/Agent modes |
-| [Chat Apps](docs/chat-apps.md) | All 17+ channel setup guides |
+| [Chat Apps](docs/chat-apps.md) | Channel setup guides |
 | [Configuration](docs/configuration.md) | Environment variables, workspace layout, security sandbox |
 | [Scheduled Tasks and Cron Jobs](docs/cron.md) | Cron schedule types, deliver modes, command gates, job storage |
-| [Providers & Models](docs/providers.md) | 30+ LLM providers, model routing, model_list configuration |
+| [Providers & Models](docs/providers.md) | LLM providers, model routing, model_list configuration |
 | [Spawn & Async Tasks](docs/spawn-tasks.md) | Quick tasks, long tasks with spawn, async sub-agent orchestration |
 | [Hooks](docs/hooks/README.md) | Event-driven hook system: observers, interceptors, approval hooks |
 | [Steering](docs/steering.md) | Inject messages into a running agent loop between tool calls |

@@ -70,8 +70,6 @@ This design also enables **multi-agent support** with flexible provider selectio
 | **LongCat**         | `longcat/`        | `https://api.longcat.chat/openai`                   | OpenAI    | [Get Key](https://longcat.chat/platform)                         |
 | **ModelScope (魔搭)**| `modelscope/`    | `https://api-inference.modelscope.cn/v1`            | OpenAI    | [Get Token](https://modelscope.cn/my/tokens)                     |
 | **Xiaomi MiMo**     | `mimo/`           | `https://api.xiaomimimo.com/v1`                     | OpenAI    | [Get Key](https://platform.xiaomimimo.com)                       |
-| **Azure OpenAI**    | `azure/`          | `https://{resource}.openai.azure.com`               | Azure     | [Get Key](https://portal.azure.com)                              |
-| **Antigravity**     | `antigravity/`    | Google Cloud                                        | Custom    | OAuth only                                                       |
 | **GitHub Copilot**  | `github-copilot/` | `localhost:4321`                                    | gRPC      | -                                                                |
 
 #### Basic Configuration
@@ -113,11 +111,11 @@ This design also enables **multi-agent support** with flexible provider selectio
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `model_name` | string | Yes | Unique name used to reference this model in agent config |
-| `model` | string | Yes | Vendor/model identifier (e.g., `openai/gpt-5.4`, `azure/gpt-5.4`, `anthropic/claude-sonnet-4.6`) |
+| `model` | string | Yes | Vendor/model identifier (e.g., `openai/gpt-5.4`, `anthropic/claude-sonnet-4.6`) |
 | `api_keys` | string[] | Yes* | API key(s) for authentication. Multiple keys enable per-request rotation. Not required for local providers (Ollama, LM Studio, VLLM) |
 | `api_base` | string | No | Override the default API endpoint URL |
 | `proxy` | string | No | HTTP proxy URL for this model entry |
-| `user_agent` | string | No | Custom `User-Agent` header sent with API requests (supported by OpenAI-compatible, Anthropic, and Azure providers) |
+| `user_agent` | string | No | Custom `User-Agent` header sent with API requests (supported by OpenAI-compatible and Anthropic providers) |
 | `request_timeout` | int | No | Request timeout in seconds (default varies by provider) |
 | `max_tokens_field` | string | No | Override the max tokens field name in request body (e.g., `max_completion_tokens` for o1 models) |
 | `thinking_level` | string | No | Extended thinking level: `off`, `low`, `medium`, `high`, `xhigh`, or `adaptive` |

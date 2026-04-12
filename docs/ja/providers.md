@@ -62,7 +62,6 @@
 | **Vivgrid**         | `vivgrid/`            | `https://api.vivgrid.com/v1`                        | OpenAI     | [キーを取得](https://vivgrid.com)                                 |
 | **LongCat**         | `longcat/`            | `https://api.longcat.chat/openai`                   | OpenAI     | [キーを取得](https://longcat.chat/platform)                       |
 | **ModelScope (魔搭)**| `modelscope/`        | `https://api-inference.modelscope.cn/v1`            | OpenAI     | [トークンを取得](https://modelscope.cn/my/tokens)                |
-| **Antigravity**     | `antigravity/`        | Google Cloud                                        | カスタム   | OAuth のみ                                                        |
 | **GitHub Copilot**  | `github-copilot/`     | `localhost:4321`                                    | gRPC       | -                                                                 |
 
 #### 基本設定
@@ -104,11 +103,11 @@
 | フィールド | 型 | 必須 | 説明 |
 |-----------|------|------|------|
 | `model_name` | string | はい | agent 設定でこのモデルを参照するための一意の名前 |
-| `model` | string | はい | ベンダー/モデル識別子（例：`openai/gpt-5.4`、`azure/gpt-5.4`、`anthropic/claude-sonnet-4.6`） |
+| `model` | string | はい | ベンダー/モデル識別子（例：`openai/gpt-5.4`、`anthropic/claude-sonnet-4.6`） |
 | `api_keys` | string[] | はい* | 認証キー。複数キーでリクエストごとのローテーションが可能。ローカル provider（Ollama、LM Studio、VLLM）には不要 |
 | `api_base` | string | いいえ | デフォルトの API エンドポイント URL を上書き |
 | `proxy` | string | いいえ | このモデルエントリの HTTP プロキシ URL |
-| `user_agent` | string | いいえ | カスタム `User-Agent` リクエストヘッダー（OpenAI 互換、Anthropic、Azure provider で対応） |
+| `user_agent` | string | いいえ | カスタム `User-Agent` リクエストヘッダー（OpenAI 互換、Anthropic provider で対応） |
 | `request_timeout` | int | いいえ | リクエストタイムアウト（秒）。デフォルト値は provider により異なる |
 | `max_tokens_field` | string | いいえ | リクエストボディの max tokens フィールド名を上書き（例：o1 モデルでは `max_completion_tokens`） |
 | `thinking_level` | string | いいえ | 拡張思考レベル：`off`、`low`、`medium`、`high`、`xhigh`、`adaptive` |
