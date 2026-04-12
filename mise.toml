@@ -35,7 +35,7 @@ source .mise/lib/platform.sh
 echo "Building picoclaw-launcher for ${PLATFORM}/${ARCH}..."
 mkdir -p "$BUILD_DIR"
 cd web
-mise run build -- --output "$(cd .. && pwd)/${BUILD_DIR}/picoclaw-launcher-${PLATFORM}-${ARCH}${EXT}"
+OUTPUT="$(cd .. && pwd)/${BUILD_DIR}/picoclaw-launcher-${PLATFORM}-${ARCH}${EXT}" mise run build
 cd ..
 $LNCMD "picoclaw-launcher-${PLATFORM}-${ARCH}${EXT}" "${BUILD_DIR}/picoclaw-launcher${EXT}"
 echo "Build complete: ${BUILD_DIR}/picoclaw-launcher${EXT}"
