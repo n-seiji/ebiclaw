@@ -14,22 +14,9 @@ type channelCatalogItem struct {
 }
 
 var channelCatalog = []channelCatalogItem{
-	{Name: "weixin", ConfigKey: "weixin"},
-	{Name: "telegram", ConfigKey: "telegram"},
 	{Name: "discord", ConfigKey: "discord"},
 	{Name: "slack", ConfigKey: "slack"},
-	{Name: "feishu", ConfigKey: "feishu"},
-	{Name: "dingtalk", ConfigKey: "dingtalk"},
-	{Name: "line", ConfigKey: "line"},
-	{Name: "qq", ConfigKey: "qq"},
-	{Name: "onebot", ConfigKey: "onebot"},
-	{Name: "wecom", ConfigKey: "wecom"},
-	{Name: "whatsapp", ConfigKey: "whatsapp", Variant: "bridge"},
-	{Name: "whatsapp_native", ConfigKey: "whatsapp", Variant: "native"},
 	{Name: "pico", ConfigKey: "pico"},
-	{Name: "maixcam", ConfigKey: "maixcam"},
-	{Name: "matrix", ConfigKey: "matrix"},
-	{Name: "irc", ConfigKey: "irc"},
 }
 
 type channelConfigResponse struct {
@@ -102,20 +89,6 @@ func buildChannelConfigResponse(cfg *config.Config, item channelCatalogItem) cha
 	}
 
 	switch item.Name {
-	case "weixin":
-		channelCfg := cfg.Channels.Weixin
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "token", configured: channelCfg.Token.String() != ""},
-		)
-		channelCfg.Token = config.SecureString{}
-		resp.Config = channelCfg
-	case "telegram":
-		channelCfg := cfg.Channels.Telegram
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "token", configured: channelCfg.Token.String() != ""},
-		)
-		channelCfg.Token = config.SecureString{}
-		resp.Config = channelCfg
 	case "discord":
 		channelCfg := cfg.Channels.Discord
 		resp.ConfiguredSecrets = collectConfiguredSecrets(
@@ -132,85 +105,12 @@ func buildChannelConfigResponse(cfg *config.Config, item channelCatalogItem) cha
 		channelCfg.BotToken = config.SecureString{}
 		channelCfg.AppToken = config.SecureString{}
 		resp.Config = channelCfg
-	case "feishu":
-		channelCfg := cfg.Channels.Feishu
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "app_secret", configured: channelCfg.AppSecret.String() != ""},
-			channelSecretPresence{key: "encrypt_key", configured: channelCfg.EncryptKey.String() != ""},
-			channelSecretPresence{key: "verification_token", configured: channelCfg.VerificationToken.String() != ""},
-		)
-		channelCfg.AppSecret = config.SecureString{}
-		channelCfg.EncryptKey = config.SecureString{}
-		channelCfg.VerificationToken = config.SecureString{}
-		resp.Config = channelCfg
-	case "dingtalk":
-		channelCfg := cfg.Channels.DingTalk
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "client_secret", configured: channelCfg.ClientSecret.String() != ""},
-		)
-		channelCfg.ClientSecret = config.SecureString{}
-		resp.Config = channelCfg
-	case "line":
-		channelCfg := cfg.Channels.LINE
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "channel_secret", configured: channelCfg.ChannelSecret.String() != ""},
-			channelSecretPresence{
-				key:        "channel_access_token",
-				configured: channelCfg.ChannelAccessToken.String() != "",
-			},
-		)
-		channelCfg.ChannelSecret = config.SecureString{}
-		channelCfg.ChannelAccessToken = config.SecureString{}
-		resp.Config = channelCfg
-	case "qq":
-		channelCfg := cfg.Channels.QQ
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "app_secret", configured: channelCfg.AppSecret.String() != ""},
-		)
-		channelCfg.AppSecret = config.SecureString{}
-		resp.Config = channelCfg
-	case "onebot":
-		channelCfg := cfg.Channels.OneBot
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "access_token", configured: channelCfg.AccessToken.String() != ""},
-		)
-		channelCfg.AccessToken = config.SecureString{}
-		resp.Config = channelCfg
-	case "wecom":
-		channelCfg := cfg.Channels.WeCom
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "secret", configured: channelCfg.Secret.String() != ""},
-		)
-		channelCfg.Secret = config.SecureString{}
-		resp.Config = channelCfg
-	case "whatsapp", "whatsapp_native":
-		resp.Config = cfg.Channels.WhatsApp
 	case "pico":
 		channelCfg := cfg.Channels.Pico
 		resp.ConfiguredSecrets = collectConfiguredSecrets(
 			channelSecretPresence{key: "token", configured: channelCfg.Token.String() != ""},
 		)
 		channelCfg.Token = config.SecureString{}
-		resp.Config = channelCfg
-	case "maixcam":
-		resp.Config = cfg.Channels.MaixCam
-	case "matrix":
-		channelCfg := cfg.Channels.Matrix
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "access_token", configured: channelCfg.AccessToken.String() != ""},
-		)
-		channelCfg.AccessToken = config.SecureString{}
-		resp.Config = channelCfg
-	case "irc":
-		channelCfg := cfg.Channels.IRC
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "password", configured: channelCfg.Password.String() != ""},
-			channelSecretPresence{key: "nickserv_password", configured: channelCfg.NickServPassword.String() != ""},
-			channelSecretPresence{key: "sasl_password", configured: channelCfg.SASLPassword.String() != ""},
-		)
-		channelCfg.Password = config.SecureString{}
-		channelCfg.NickServPassword = config.SecureString{}
-		channelCfg.SASLPassword = config.SecureString{}
 		resp.Config = channelCfg
 	default:
 		resp.Config = map[string]any{}
