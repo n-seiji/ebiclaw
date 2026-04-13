@@ -12,6 +12,7 @@ import (
 type GitHubCopilotProvider struct {
 	uri         string
 	connectMode string // "stdio" or "grpc"
+	model       string
 
 	client  *copilot.Client
 	session *copilot.Session
@@ -53,6 +54,7 @@ func NewGitHubCopilotProvider(uri string, connectMode string, model string) (*Gi
 		return &GitHubCopilotProvider{
 			uri:         uri,
 			connectMode: connectMode,
+			model:       model,
 			client:      client,
 			session:     session,
 		}, nil
@@ -94,19 +96,9 @@ func (p *GitHubCopilotProvider) Chat(
 	if err != nil {
 		return nil, fmt.Errorf("marshal messages: %w", err)
 	}
-	p.mu.Lock()
-	session := p.session
-	p.mu.Unlock()
-
-	if session == nil {
-		return nil, fmt.Errorf("provider closed")
-	}
-
-	resp, err := session.SendAndWait(ctx, copilot.MessageOptions{
-		Prompt: string(fullcontent),
-	})
+	resp, err := p.sendWithRetry(ctx, string(fullcontent))
 	if err != nil {
-		return nil, fmt.Errorf("failed to send message to copilot: %w", err)
+		return nil, err
 	}
 
 	if resp == nil {
@@ -121,6 +113,70 @@ func (p *GitHubCopilotProvider) Chat(
 		FinishReason: "stop",
 		Content:      content,
 	}, nil
+}
+
+func (p *GitHubCopilotProvider) sendWithRetry(ctx context.Context, prompt string) (*copilot.SessionEvent, error) {
+	p.mu.Lock()
+	session := p.session
+	p.mu.Unlock()
+
+	if session == nil {
+		return nil, fmt.Errorf("provider closed")
+	}
+
+	resp, err := session.SendAndWait(ctx, copilot.MessageOptions{
+		Prompt: prompt,
+	})
+	if err == nil {
+		return resp, nil
+	}
+
+	// Retry once with a fresh session on session-related errors
+	if reconnErr := p.reconnect(ctx); reconnErr != nil {
+		return nil, fmt.Errorf("failed to send message to copilot: %w (reconnect also failed: %v)", err, reconnErr)
+	}
+
+	p.mu.Lock()
+	session = p.session
+	p.mu.Unlock()
+
+	resp, err = session.SendAndWait(ctx, copilot.MessageOptions{
+		Prompt: prompt,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to send message to copilot after reconnect: %w", err)
+	}
+	return resp, nil
+}
+
+func (p *GitHubCopilotProvider) reconnect(ctx context.Context) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.client != nil {
+		p.client.Stop()
+	}
+
+	client := copilot.NewClient(&copilot.ClientOptions{
+		CLIUrl: p.uri,
+	})
+	if err := client.Start(ctx); err != nil {
+		return fmt.Errorf("reconnect start: %w", err)
+	}
+
+	session, err := client.CreateSession(ctx, &copilot.SessionConfig{
+		Model:               p.model,
+		OnPermissionRequest: copilot.PermissionHandler.ApproveAll,
+		Hooks:               &copilot.SessionHooks{},
+	})
+	if err != nil {
+		client.Stop()
+		return fmt.Errorf("reconnect create session: %w", err)
+	}
+
+	p.client = client
+	p.session = session
+	return nil
 }
 
 func (p *GitHubCopilotProvider) GetDefaultModel() string {
