@@ -1,0 +1,577 @@
+{
+  "navigation": {
+    "chat": "チャット",
+    "model_group": "モデル",
+    "models": "モデル",
+    "credentials": "認証情報",
+    "agent_group": "エージェント",
+    "hub": "ハブ",
+    "skills": "スキル",
+    "tools": "ツール",
+    "services": "サービス",
+    "channels_group": "チャネル",
+    "show_more_channels": "もっと見る",
+    "show_less_channels": "折りたたむ",
+    "config": "設定",
+    "logs": "ログ"
+  },
+  "launcherLogin": {
+    "title": "サインイン",
+    "description": "続行するにはダッシュボードのパスワードを入力してください。",
+    "passwordLabel": "パスワード",
+    "passwordPlaceholder": "パスワードを入力",
+    "submit": "サインイン",
+    "errorInvalid": "パスワードが正しくありません。もう一度お試しください。",
+    "errorNetwork": "ネットワークエラー。もう一度お試しください。"
+  },
+  "launcherSetup": {
+    "title": "ダッシュボードパスワードの設定",
+    "description": "このダッシュボードへのアクセスを保護するためのパスワードを設定してください。サインインのたびに使用します。",
+    "passwordLabel": "パスワード",
+    "passwordPlaceholder": "8文字以上",
+    "confirmLabel": "パスワード(確認)",
+    "confirmPlaceholder": "パスワードを再入力",
+    "submit": "パスワードを設定",
+    "errorMismatch": "パスワードが一致しません。",
+    "errorNetwork": "ネットワークエラー。もう一度お試しください。"
+  },
+  "chat": {
+    "welcome": "何かお手伝いできることはありますか？",
+    "welcomeDesc": "天気、設定、その他のタスクについて何でも聞いてください。お手伝いします。",
+    "placeholder": "新しいメッセージを入力...\nEnterで送信、Shift+Enterで改行",
+    "newChat": "新しいチャット",
+    "notConnected": "ゲートウェイが起動していません。起動してチャットを開始してください。",
+    "thinking": {
+      "step1": "考えています...",
+      "step2": "リクエストを分析中...",
+      "step3": "応答を準備中...",
+      "step4": "もうすぐです..."
+    },
+    "history": "履歴",
+    "noHistory": "チャット履歴はまだありません",
+    "historyLoadFailed": "チャット履歴の読み込みに失敗しました",
+    "historyOpenFailed": "このチャット履歴を開けませんでした",
+    "loadingMore": "さらに読み込み中...",
+    "deleteSession": "セッションを削除",
+    "messagesCount": "{{count}}件のメッセージ",
+    "noModel": "モデルを選択",
+    "attachImage": "画像を追加",
+    "removeImage": "画像を削除",
+    "uploadedImage": "アップロードした画像",
+    "invalidImage": "\"{{name}}\" はサポートされていない画像形式です。",
+    "imageTooLarge": "\"{{name}}\" は上限 {{size}} を超えています。",
+    "imageReadFailed": "\"{{name}}\" の読み込みに失敗しました。",
+    "empty": {
+      "noConfiguredModel": "モデルが未設定",
+      "noConfiguredModelDescription": "チャットを開始するには、APIキー付きで少なくとも1つのAIモデルを設定する必要があります。",
+      "goToModels": "モデル設定へ",
+      "noSelectedModel": "モデルが未選択",
+      "noSelectedModelDescription": "モデルは設定済みですが、デフォルトが指定されていません。チャットを始める前にモデルを選択してください。",
+      "notRunning": "ゲートウェイが起動していません",
+      "notRunningDescription": "チャットを開始するにはゲートウェイサービスを起動してください。上部バーの「ゲートウェイ起動」ボタンを使用します。"
+    },
+    "modelGroup": {
+      "apikey": "APIキー",
+      "oauth": "OAuth",
+      "local": "ローカル"
+    }
+  },
+  "header": {
+    "logout": {
+      "tooltip": "サインアウト",
+      "confirm": "サインアウト",
+      "description": "本当にダッシュボードからサインアウトしますか？"
+    },
+    "gateway": {
+      "stopDialog": {
+        "title": "ゲートウェイを停止しますか？",
+        "description": "本当にゲートウェイを停止しますか？アクティブなチャットセッションが切断され、推論処理も停止します。",
+        "confirm": "ゲートウェイを停止"
+      },
+      "action": {
+        "start": "ゲートウェイ起動",
+        "stop": "ゲートウェイ停止",
+        "restart": "ゲートウェイ再起動"
+      },
+      "status": {
+        "starting": "ゲートウェイを起動中...",
+        "restarting": "ゲートウェイを再起動中...",
+        "stopping": "ゲートウェイを停止中..."
+      },
+      "restartRequired": "設定変更を反映するにはゲートウェイの再起動が必要です。"
+    }
+  },
+  "common": {
+    "cancel": "キャンセル",
+    "save": "保存",
+    "saving": "保存中...",
+    "reset": "リセット",
+    "confirm": "確定"
+  },
+  "labels": {
+    "loading": "読み込み中..."
+  },
+  "footer": {
+    "version": "バージョン",
+    "commit": "コミット",
+    "build": "ビルド",
+    "version_unknown": "不明"
+  },
+  "credentials": {
+    "description": "対応プロバイダーのOAuthおよびトークン認証情報を管理します。",
+    "loading": "認証情報を読み込み中...",
+    "providers": {
+      "openai": {
+        "description": "ブラウザOAuth、デバイスコード、トークンログインに対応。"
+      },
+      "anthropic": {
+        "description": "Claude接続にはトークンログインを使用します。"
+      }
+    },
+    "status": {
+      "connected": "接続済み",
+      "needsRefresh": "更新が必要",
+      "expired": "有効期限切れ",
+      "notLoggedIn": "未ログイン"
+    },
+    "actions": {
+      "browser": "ブラウザOAuth",
+      "deviceCode": "デバイスコード",
+      "stopLoading": "読み込み停止",
+      "saveToken": "保存",
+      "logout": "ログアウト"
+    },
+    "logoutDialog": {
+      "title": "プロバイダーからログアウトしますか？",
+      "description": "保存された {{provider}} の認証情報が削除されます。"
+    },
+    "fields": {
+      "openaiToken": "OpenAI トークン",
+      "anthropicToken": "Anthropic トークン"
+    },
+    "labels": {
+      "account": "アカウント",
+      "email": "メール",
+      "project": "プロジェクト"
+    },
+    "errors": {
+      "loadFailed": "認証情報の読み込みに失敗しました",
+      "flowFailed": "認証フローの確認に失敗しました",
+      "loginFailed": "ログインに失敗しました",
+      "logoutFailed": "ログアウトに失敗しました",
+      "invalidBrowserResponse": "ブラウザログインのレスポンスが不正です",
+      "invalidDeviceResponse": "デバイスコードのレスポンスが不正です",
+      "popupBlocked": "新しいタブを開けませんでした。ポップアップを許可して再度お試しください。"
+    },
+    "flow": {
+      "current": "現在の認証ステータス",
+      "pending": "認証を待機中...",
+      "success": "認証に成功しました",
+      "error": "認証に失敗しました",
+      "expired": "認証セッションの有効期限が切れました"
+    },
+    "device": {
+      "title": "OpenAI デバイスログイン",
+      "description": "認証ページを開いて以下のコードを入力してください。このページは自動更新されます。",
+      "code": "ユーザーコード",
+      "url": "認証URL",
+      "polling": "ログイン状態を確認中...",
+      "open": "認証ページを開く"
+    }
+  },
+  "models": {
+    "description": "AIプロバイダーのAPIキーを設定します。設定済みのモデルだけがチャットで利用できます。",
+    "loadError": "モデルの読み込みに失敗しました",
+    "noDefaultHintPrefix": "デフォルトモデルが未設定です。クリックで",
+    "noDefaultHintSuffix": "設定してください。",
+    "status": {
+      "available": "利用可能",
+      "unconfigured": "未設定",
+      "unreachable": "サービスに到達できません"
+    },
+    "badge": {
+      "default": "デフォルト",
+      "virtual": "仮想"
+    },
+    "action": {
+      "edit": "APIキーを編集",
+      "setDefault": "デフォルトに設定",
+      "delete": "モデルを削除"
+    },
+    "defaultOnSave": {
+      "label": "デフォルトモデル",
+      "description": "保存後、このモデルを自動的にデフォルトに設定します。"
+    },
+    "add": {
+      "button": "モデルを追加",
+      "title": "カスタムモデルを追加",
+      "description": "OpenAI互換またはネイティブのモデルエンドポイントを追加します。",
+      "modelName": "モデルエイリアス",
+      "modelNamePlaceholder": "例: my-gpt4",
+      "modelNameHint": "会話内でこのモデルを識別するための短い名前。",
+      "modelId": "モデル識別子",
+      "modelIdPlaceholder": "例: openai/gpt-4o",
+      "modelIdHint": "形式: プロトコル/モデルID。対応: openai, anthropic, gemini, groq, …",
+      "errorRequired": "この項目は必須です。",
+      "errorDuplicateModelName": "モデルエイリアスが既に存在します。別の名前を使用してください。",
+      "saveError": "モデルの追加に失敗しました",
+      "confirm": "モデルを追加"
+    },
+    "delete": {
+      "title": "モデルを削除しますか？",
+      "description": "\"{{name}}\" がモデル一覧から完全に削除されます。この操作は元に戻せません。",
+      "confirm": "削除"
+    },
+    "advanced": {
+      "toggle": "詳細オプション"
+    },
+    "field": {
+      "apiBase": "APIベースURL",
+      "apiKey": "APIキー",
+      "apiKeyPlaceholder": "APIキーを入力",
+      "apiKeyPlaceholderSet": "既存のキーを保持する場合は空欄のまま",
+      "proxy": "HTTPプロキシ",
+      "proxyHint": "任意。例: http://127.0.0.1:7890",
+      "authMethod": "認証方式",
+      "authMethodHint": "認証方式: oauth, token。APIキー認証の場合は空欄にしてください。",
+      "connectMode": "接続モード",
+      "connectModeHint": "CLIベースのプロバイダーの接続モード: stdio または grpc。",
+      "workspace": "ワークスペースパス",
+      "workspaceHint": "CLIベースプロバイダー(例: GitHub Copilot)の作業ディレクトリ。",
+      "requestTimeout": "リクエストタイムアウト(秒)",
+      "requestTimeoutHint": "レスポンスを待つ最大秒数。0でデフォルトを使用。",
+      "rpm": "レート制限(RPM)",
+      "rpmHint": "1分あたりの最大リクエスト数。0で無制限。",
+      "thinkingLevel": "思考レベル",
+      "thinkingLevelHint": "拡張思考の予算: off, low, medium, high, xhigh, adaptive。",
+      "maxTokensField": "最大トークンフィールド",
+      "maxTokensFieldHint": "最大トークンのリクエストフィールド名を上書きします。例: max_completion_tokens。",
+      "extraBody": "追加ボディ",
+      "extraBodyHint": "リクエストボディに注入する追加のJSONフィールド。例: {\"reasoning_split\": true}",
+      "customHeaders": "カスタムヘッダー",
+      "customHeadersHint": "すべてのリクエストに注入する追加のHTTPヘッダー。例: {\"X-Source\": \"coding-plan\"}"
+    },
+    "edit": {
+      "title": "{{name}} の設定",
+      "apiKeyHint": "キーは既に設定済みです。変更しない場合は空欄のままにしてください。",
+      "oauthNote": "このプロバイダーはOAuthを使用します。APIキーは不要です。",
+      "saveError": "保存に失敗しました"
+    }
+  },
+  "channels": {
+    "loadError": "チャネルの読み込みに失敗しました",
+    "name": {
+      "discord": "Discord",
+      "slack": "Slack",
+      "pico": "Web"
+    },
+    "field": {
+      "token": "Botトークン",
+      "tokenPlaceholder": "Botトークンを入力",
+      "botToken": "Botトークン",
+      "appToken": "Appトークン",
+      "baseUrl": "APIベースURL",
+      "proxy": "HTTPプロキシ",
+      "mentionOnly": "メンション時のみ",
+      "typingEnabled": "入力中インジケーター",
+      "placeholderEnabled": "プレースホルダーメッセージ",
+      "placeholderText": "プレースホルダーテキスト",
+      "groupTriggerMentionOnly": "グループではメンション時のみ",
+      "groupTriggerPrefixes": "グループトリガープレフィックス",
+      "allowFrom": "許可する送信元",
+      "allowFromPlaceholder": "例: 123456, 789012",
+      "allowOrigins": "許可するオリジン",
+      "allowOriginsPlaceholder": "例: https://example.com, http://localhost:5173",
+      "secretPlaceholder": "シークレットを入力",
+      "secretHintSet": "値は既に設定済みです。変更しない場合は空欄のままにしてください。"
+    },
+    "page": {
+      "notFound": "チャネル \"{{name}}\" はサポートされていません。",
+      "saveSuccess": "チャネル設定を保存しました。",
+      "saveError": "チャネル設定の保存に失敗しました",
+      "docLink": "ドキュメント",
+      "enableLabel": "チャネルを有効化",
+      "restartRequiredTitle": "ゲートウェイの再起動が必要です",
+      "restartRequiredDesc": "最新の {{name}} 設定を保存しました。反映するにはゲートウェイを再起動してください。"
+    },
+    "form": {
+      "desc": {
+        "token": "プラットフォームAPIへの接続に使用するBotアクセストークン。",
+        "botToken": "メッセージの送受信に使用するBotトークン。",
+        "appToken": "Socket Mode接続に使用するAppトークン。",
+        "baseUrl": "プラットフォームAPIのベースURL。未指定時は公式エンドポイントを使用します。",
+        "proxy": "外部ネットワークアクセス用のHTTPプロキシアドレス。",
+        "mentionOnly": "グループチャットでBotが明示的にメンションされた場合のみ応答します。",
+        "typingEnabled": "アシスタントが応答を生成中に入力中ステータスを表示します。",
+        "placeholderEnabled": "最終応答が送信される前に一時的なプレースホルダーメッセージを有効化します。",
+        "groupTriggerMentionOnly": "グループチャットでは、Botがメンションされた場合のみ応答します。",
+        "groupTriggerPrefixes": "カスタムのグループチャットトリガープレフィックス(カンマ区切り)。",
+        "allowFrom": "許可するユーザーまたはグループID(カンマ区切り)。",
+        "allowOrigins": "許可するオリジンドメイン(カンマ区切り)。",
+        "replyTimeout": "返信タイムアウト(秒)。",
+        "maxSteps": "処理の最大ステップ数。",
+        "welcomeMessage": "新規セッション用のウェルカムメッセージ。",
+        "allowTokenQuery": "URLクエリパラメータでのトークン指定を許可します。",
+        "pingInterval": "接続ハートビート間隔(秒)。",
+        "readTimeout": "読み取りタイムアウト(秒)。",
+        "writeTimeout": "書き込みタイムアウト(秒)。",
+        "maxConnections": "最大同時接続数。",
+        "maxBase64FileSizeMiB": "ローカルファイルをbase64変換してアップロードする際の最大サイズ(MiB)。0で無制限。URLアップロードには適用されません。",
+        "genericField": "{{field}} を設定します。"
+      }
+    },
+    "validation": {
+      "requiredField": "この項目は必須です。"
+    }
+  },
+  "pages": {
+    "agent": {
+      "load_error": "エージェントのサポート情報の読み込みに失敗しました。",
+      "skills": {
+        "empty": "現在利用可能なスキルはありません。",
+        "install_success": "{{name}} をインストールしました。",
+        "install_error": "スキルのインストールに失敗しました。",
+        "search_placeholder": "名前、説明、レジストリで検索",
+        "source_label": "タイプ",
+        "sort_label": "並び順",
+        "import": "スキルをインポート",
+        "import_success": "スキルをインポートしました。",
+        "import_error": "スキルのインポートに失敗しました。",
+        "import_invalid_type": "MarkdownまたはZIPのスキルファイルのみサポートされています。",
+        "import_invalid_size": "スキルファイルは1MB以下である必要があります。",
+        "import_constraints": "1MB以下のMarkdownまたはZIPスキルファイルをインポートできます",
+        "view": "表示",
+        "delete": "削除",
+        "delete_title": "スキルを削除しますか？",
+        "delete_description": "\"{{name}}\" をワークスペーススキルから削除します。",
+        "delete_confirm": "削除",
+        "delete_success": "スキルを削除しました。",
+        "delete_error": "スキルの削除に失敗しました。",
+        "viewer_title": "スキル内容",
+        "viewer_description": "現在有効なSKILL.mdの内容を確認できます。",
+        "load_detail_error": "スキル内容の読み込みに失敗しました。",
+        "no_description": "説明がありません。",
+        "no_results": "現在のフィルタに一致するスキルはありません。",
+        "dropzone_title": "ワークスペースにインポート",
+        "dropzone_description": "スキルファイルをここにドラッグするか、ディスクから選択してください。",
+        "dropzone_label": "スキルファイルをここにドロップ",
+        "dropzone_active": "離してこのスキルをインポート",
+        "dropzone_release": "スキルは正規化されてワークスペースのスキルディレクトリに保存されます。",
+        "marketplace_title": "スキルを探す",
+        "marketplace_description": "スキルレジストリを検索して、有用なスキルをこのワークスペースにインストールできます",
+        "marketplace_search_placeholder": "github、docker、databaseなどの機能を検索...",
+        "marketplace_search_action": "検索",
+        "marketplace_search_status": "検索ステータス",
+        "marketplace_install_status": "インストールステータス",
+        "marketplace_notice_title": "セキュリティ通知",
+        "marketplace_notice_body": "レジストリのスキルはサードパーティのコンテンツです。インストール前に作者、ページURL、手順、必要なコードや認証情報を確認してください。",
+        "marketplace_status_disabled": "無効化されています。まずツールページで対応ツールを有効化してください。",
+        "marketplace_status_enable_hint": "まずツールページで関連ツールを有効化してください。",
+        "marketplace_search_error": "レジストリの検索に失敗しました。",
+        "marketplace_loading_results": "スキルを検索中...",
+        "marketplace_loading_more": "さらにスキルを読み込み中...",
+        "marketplace_results_title": "「{{query}}」の検索結果 {{count}} 件",
+        "marketplace_results_hint": "レジストリの検索結果は現在のワークスペースにインストールされます。",
+        "marketplace_install_action": "インストール",
+        "marketplace_installed": "インストール済み",
+        "marketplace_view_installed": "ローカルを表示",
+        "marketplace_installed_hint": "このワークスペースに「{{name}}」として既に利用可能です。",
+        "marketplace_empty_results": "「{{query}}」に一致するインストール可能なスキルはありません。",
+        "marketplace_idle": "機能名を検索して、設定済みレジストリからインストール可能なスキルを探してください。",
+        "marketplace_unavailable": "レジストリ検索は現在利用できません。スキルツールの設定を確認してください。",
+        "sort": {
+          "name_asc": "名前 (A-Z)",
+          "name_desc": "名前 (Z-A)",
+          "source": "タイプ"
+        },
+        "origin": {
+          "all": "すべてのタイプ",
+          "builtin": "ビルトイン",
+          "third_party": "サードパーティ",
+          "manual": "手動"
+        },
+        "summary": {
+          "total": "スキル総数"
+        },
+        "detail_tabs": {
+          "preview": "プレビュー",
+          "raw": "生データ",
+          "meta": "メタデータ"
+        },
+        "metadata": {
+          "name": "名前",
+          "description": "説明",
+          "registry": "レジストリ",
+          "url": "URL",
+          "version": "インストール済みバージョン",
+          "lines": "行数",
+          "characters": "文字数"
+        }
+      },
+      "tools": {
+        "search_placeholder": "ツールを検索...",
+        "no_results": "条件に一致するツールはありません。",
+        "filter": {
+          "all": "すべてのステータス",
+          "enabled": "有効のみ",
+          "disabled": "無効のみ",
+          "blocked": "ブロックのみ"
+        },
+        "empty": "利用可能なツールはありません。",
+        "enable_success": "ツールを有効化しました。",
+        "disable_success": "ツールを無効化しました。",
+        "toggle_error": "ツールの状態更新に失敗しました。",
+        "status": {
+          "enabled": "有効",
+          "disabled": "無効",
+          "blocked": "ブロック"
+        },
+        "categories": {
+          "automation": "自動化",
+          "filesystem": "ファイルシステム",
+          "web": "Web",
+          "communication": "コミュニケーション",
+          "skills": "スキル",
+          "agents": "エージェント",
+          "hardware": "ハードウェア",
+          "discovery": "ディスカバリ"
+        },
+        "reasons": {
+          "requires_linux": "このツールは必要なデバイスファイルが公開されているLinuxホストでのみ動作します。",
+          "requires_skills": "このスキルレジストリツールを使用するには `tools.skills` を有効にしてください。",
+          "requires_subagent": "spawnツールが処理を委譲できるようにするには `tools.subagent` を有効にしてください。",
+          "requires_mcp_discovery": "MCPディスカバリツールを利用可能にするには `tools.mcp.discovery` を有効にしてください。"
+        }
+      }
+    },
+    "config": {
+      "load_error": "設定の読み込みに失敗しました。ページを再読み込みして再度お試しください。",
+      "workspace": "ワークスペースディレクトリ",
+      "workspace_hint": "エージェントのファイル操作のベースディレクトリ。",
+      "restrict_workspace": "ワークスペース内に制限",
+      "restrict_workspace_hint": "ファイル操作をワークスペース内のみに制限します。",
+      "split_on_marker": "おしゃべりモード",
+      "split_on_marker_hint": "長いメッセージを人間のチャットのように短く分割します。",
+      "tool_feedback_enabled": "ツールフィードバック",
+      "tool_feedback_enabled_hint": "各ツール実行前に短いツール呼び出しプレビューを現在のチャットに送信します。",
+      "tool_feedback_max_args_length": "ツールフィードバック引数プレビュー長",
+      "tool_feedback_max_args_length_hint": "各ツールフィードバックメッセージに表示する引数の最大文字数。0でデフォルトを使用。",
+      "exec_enabled": "コマンド実行を許可",
+      "exec_enabled_hint": "アプリでのコマンド実行を有効/無効にします。無効時はコマンドリクエストは実行されません。",
+      "allow_remote": "リモートコマンドを許可",
+      "allow_remote_hint": "有効時はリモートセッションや非ローカルコンテキストからもコマンドを実行できます。無効時はコマンド実行はローカルの安全なコンテキストに制限されます。",
+      "enable_deny_patterns": "ブラックリストを有効化",
+      "enable_deny_patterns_hint": "有効時は組み込みの危険パターンと下記のカスタムブラックリストに一致するコマンドをブロックします。",
+      "exec_timeout_seconds": "コマンドタイムアウト(秒)",
+      "exec_timeout_seconds_hint": "コマンドリクエストの最大実行時間。0でデフォルトタイムアウトを使用。",
+      "custom_deny_patterns": "コマンドブラックリスト",
+      "custom_deny_patterns_hint": "追加のコマンドブロックルール。1行に1つの正規表現。ここにあるルールに一致するコマンドはブロックされます。",
+      "custom_allow_patterns": "コマンドホワイトリスト",
+      "custom_allow_patterns_hint": "追加のコマンド許可ルール。1行に1つの正規表現。ここに一致するコマンドはブラックリストのマッチをスキップしますが、他の安全制限は引き続き適用されます。",
+      "custom_patterns_placeholder": "^rm\\s+-rf\\b\n^git\\s+push\\b",
+      "pattern_detector_title": "パターン検出ツール",
+      "pattern_detector_hint": "コマンドを入力して、ブラックリストまたはホワイトリストのパターンに一致するかテストできます。",
+      "pattern_detector_input_placeholder": "テストするコマンドを入力 (例: rm -rf /tmp)",
+      "pattern_detector_test_button": "テスト",
+      "pattern_detector_result_allowed": "許可 (ホワイトリストに一致)",
+      "pattern_detector_result_blocked": "ブロック (ブラックリストに一致)",
+      "pattern_detector_result_no_match": "マッチなし (デフォルトルールを使用)",
+      "allow_shell_execution": "スケジュールコマンドを許可",
+      "allow_shell_execution_hint": "デフォルトでスケジュールタスクからのコマンド実行を許可します。無効時はコマンドタスクのスケジュールに command_confirm=true が必要です。",
+      "cron_exec_timeout": "スケジュールコマンドタイムアウト(分)",
+      "cron_exec_timeout_hint": "スケジュールコマンドの最大実行時間。0でタイムアウトを無効化。",
+      "max_tokens": "最大トークン",
+      "max_tokens_hint": "モデル応答ごとのトークン上限。",
+      "context_window": "コンテキストウィンドウ",
+      "context_window_hint": "モデルの入力コンテキスト容量(トークン数)。空欄でデフォルト(max_tokensの4倍)を使用。",
+      "max_tool_iterations": "最大ツール反復数",
+      "max_tool_iterations_hint": "1タスクでのツール呼び出しループの最大回数。",
+      "summarize_threshold": "要約メッセージしきい値",
+      "summarize_threshold_hint": "このメッセージ数を超えると要約を開始します。",
+      "summarize_token_percent": "要約トークン割合",
+      "summarize_token_percent_hint": "会話の要約をトリガーする際に使用します。",
+      "session_scope": "セッションスコープ",
+      "session_scope_hint": "チャットコンテキストをピア/チャネル間でどう分離するか。",
+      "session_scope_per_channel_peer": "チャネル+ピアごと",
+      "session_scope_per_channel_peer_desc": "各チャネル内の各ユーザーごとにコンテキストを分離します。",
+      "session_scope_per_channel": "チャネルごと",
+      "session_scope_per_channel_desc": "チャネルごとに1つの共有コンテキスト。",
+      "session_scope_per_peer": "ピアごと",
+      "session_scope_per_peer_desc": "チャネルをまたいでユーザーごとに1つのコンテキスト。",
+      "session_scope_global": "グローバル",
+      "session_scope_global_desc": "すべてのメッセージが1つのグローバルコンテキストを共有。",
+      "heartbeat_enabled": "ハートビート",
+      "heartbeat_enabled_hint": "定期的なハートビートメッセージを送信します。",
+      "heartbeat_interval": "ハートビート間隔(分)",
+      "heartbeat_interval_hint": "ハートビート信号の間隔(分)。",
+      "devices_enabled": "デバイスを有効化",
+      "devices_enabled_hint": "ハードウェアデバイス連携を有効化します。",
+      "monitor_usb": "USBを監視",
+      "monitor_usb_hint": "デバイス有効時にUSBの接続/切断イベントを監視します。",
+      "autostart_label": "ログイン時に起動",
+      "autostart_hint": "ログイン時にPicoClaw Webを自動起動します。",
+      "autostart_unsupported": "このプラットフォームではログイン時起動はサポートされていません。",
+      "autostart_load_error": "ログイン時起動の状態取得に失敗しました。",
+      "server_port": "サービスポート",
+      "server_port_hint": "PicoClaw Webが使用するHTTPポート。",
+      "launcher_token": "ログイントークン",
+      "launcher_token_section_hint": "このセクションの変更はランチャーの再起動後に反映されます。",
+      "launcher_token_hint": "ランチャーログイン画面でのサインインに使用します。",
+      "launcher_token_placeholder": "ログイントークンを入力",
+      "lan_access": "LANアクセスを有効化",
+      "lan_access_hint": "ローカルネットワーク上の他デバイスからのアクセスを許可します。",
+      "allowed_cidrs": "許可するネットワークCIDR",
+      "allowed_cidrs_hint": "これらのCIDR範囲からのクライアントのみサービスにアクセスできます。1行に1つまたはカンマ区切り。空欄ですべて許可。",
+      "allowed_cidrs_placeholder": "192.168.1.0/24\n10.0.0.0/8",
+      "sections": {
+        "agent": "エージェント",
+        "runtime": "ランタイム",
+        "exec": "コマンド実行",
+        "cron": "定期タスク",
+        "launcher": "ランチャー",
+        "devices": "デバイス"
+      },
+      "open_raw": "生の設定",
+      "back_to_visual": "ビジュアル設定",
+      "raw_json_title": "生のJSON設定",
+      "json_placeholder": "有効なJSON設定を入力...",
+      "save_success": "設定を保存しました。",
+      "save_error": "設定の保存に失敗しました。",
+      "reset_confirm_title": "変更をリセット",
+      "reset_confirm_desc": "未保存の変更を最後に保存した状態に戻しますか？",
+      "reset_success": "変更を最後に保存した状態に戻しました。",
+      "invalid_json": "JSONの形式が不正です。",
+      "format_success": "JSONをフォーマットしました。",
+      "format_error": "JSONの形式が不正です。",
+      "format": "整形",
+      "unsaved_changes": "未保存の変更があります。"
+    },
+    "logs": {
+      "log_level_error": "ログレベルの更新に失敗しました。",
+      "clear": "ログをクリア",
+      "empty": "ログを待機中..."
+    }
+  },
+  "tour": {
+    "skip": "ツアーをスキップ",
+    "prev": "前へ",
+    "next": "次へ",
+    "finish": "完了",
+    "welcome": {
+      "title": "PicoClawへようこそ",
+      "description": "PicoClawは強力なAIアシスタントプラットフォームです。基本セットアップを数秒で完了しましょう。"
+    },
+    "models": {
+      "title": "モデルを設定",
+      "description": "左のメニューから「モデル」をクリックしてAIプロバイダーのAPIキーを設定します。設定済みのモデルのみがチャットで使用できます。"
+    },
+    "gateway": {
+      "title": "ゲートウェイを起動",
+      "description": "モデル設定後、上部の「ゲートウェイ起動」ボタンをクリックしてAIとのチャットを開始できます。"
+    },
+    "docs": {
+      "title": "ドキュメントを見る",
+      "description": "さらにヘルプが必要ですか？右上のドキュメントボタンをクリックして詳細ガイドや設定ドキュメントを確認できます。"
+    }
+  }
+}
