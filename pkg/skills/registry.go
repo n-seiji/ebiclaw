@@ -101,7 +101,9 @@ func NewRegistryManagerFromConfig(cfg RegistryConfig) *RegistryManager {
 		rm.maxConcurrent = cfg.MaxConcurrentSearches
 	}
 	if cfg.ClawHub.Enabled {
-		rm.AddRegistry(NewClawHubRegistry(cfg.ClawHub))
+		if reg := NewClawHubRegistry(cfg.ClawHub); reg != nil {
+			rm.AddRegistry(reg)
+		}
 	}
 	return rm
 }

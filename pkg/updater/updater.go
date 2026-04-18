@@ -176,26 +176,24 @@ func UpdateSelf(programName string) error {
 	return UpdateSelfFromRelease("", runtime.GOOS, runtime.GOARCH, programName)
 }
 
-// GetReleaseAPIURL returns the GitHub Releases API URL for the given repo owner.
-// Example: owner="sky5454" -> https://api.github.com/repos/sky5454/picoclaw/releases/latest
-func GetReleaseAPIURL(owner string) string {
-	return fmt.Sprintf("https://api.github.com/repos/%s/picoclaw/releases/latest", owner)
+// GetReleaseAPIURL returns the GitHub Releases API URL for the given owner/repo.
+func GetReleaseAPIURL(owner, repo string) string {
+	return fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo)
 }
 
-// GetProdReleaseAPIURL returns the production release API URL (upstream).
+// GetProdReleaseAPIURL returns the production release API URL.
 func GetProdReleaseAPIURL() string {
-	return GetReleaseAPIURL("sipeed")
+	return GetReleaseAPIURL("n-seiji", "ebiclaw")
 }
 
 // GetReleaseTagAPIURL returns the GitHub Releases API URL for a specific tag.
-// Example: owner="sipeed", tag="nightly" -> https://api.github.com/repos/sipeed/picoclaw/releases/tags/nightly
-func GetReleaseTagAPIURL(owner, tag string) string {
-	return fmt.Sprintf("https://api.github.com/repos/%s/picoclaw/releases/tags/%s", owner, tag)
+func GetReleaseTagAPIURL(owner, repo, tag string) string {
+	return fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/tags/%s", owner, repo, tag)
 }
 
-// GetNightlyReleaseAPIURL returns the nightly release API URL for the production repo.
+// GetNightlyReleaseAPIURL returns the nightly release API URL.
 func GetNightlyReleaseAPIURL() string {
-	return GetReleaseTagAPIURL("sipeed", "nightly")
+	return GetReleaseTagAPIURL("n-seiji", "ebiclaw", "nightly")
 }
 
 // findAssetURL resolves the appropriate asset URL for the given release

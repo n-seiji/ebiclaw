@@ -440,8 +440,7 @@ func DefaultConfig() *Config {
 				},
 				Registries: SkillsRegistriesConfig{
 					ClawHub: ClawHubRegistryConfig{
-						Enabled: true,
-						BaseURL: "https://clawhub.ai",
+						Enabled: false,
 					},
 				},
 				MaxConcurrentSearches: 2,

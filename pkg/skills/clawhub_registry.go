@@ -35,7 +35,7 @@ type ClawHubRegistry struct {
 func NewClawHubRegistry(cfg ClawHubConfig) *ClawHubRegistry {
 	baseURL := cfg.BaseURL
 	if baseURL == "" {
-		baseURL = "https://clawhub.ai"
+		return nil
 	}
 	searchPath := cfg.SearchPath
 	if searchPath == "" {

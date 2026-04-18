@@ -744,7 +744,7 @@ func registrySkillURL(cfg *config.Config, registryName, slug string) string {
 	case "clawhub":
 		baseURL := strings.TrimRight(cfg.Tools.Skills.Registries.ClawHub.BaseURL, "/")
 		if baseURL == "" {
-			baseURL = "https://clawhub.ai"
+			return ""
 		}
 		return baseURL + "/skills/" + url.PathEscape(slug)
 	default:
