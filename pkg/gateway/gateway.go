@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/sipeed/picoclaw/pkg/agent"
+	"github.com/sipeed/picoclaw/pkg/archiver"
 	"github.com/sipeed/picoclaw/pkg/audio/asr"
 	"github.com/sipeed/picoclaw/pkg/audio/tts"
 	"github.com/sipeed/picoclaw/pkg/bus"
@@ -46,6 +47,7 @@ const (
 
 type services struct {
 	CronService      *cron.CronService
+	ArchiverService  *archiver.Service
 	HeartbeatService *heartbeat.HeartbeatService
 	MediaStore       media.MediaStore
 	ChannelManager   *channels.Manager
@@ -327,6 +329,17 @@ func setupAndStartServices(
 	}
 	fmt.Println("✓ Cron service started")
 
+	// Archiver: subscribe to bus + start cron loop. No-op if disabled.
+	archiverLLM := newArchiverLLMAdapter(cfg, cfg.Archiver.Distill.ModelName)
+	runningServices.ArchiverService = archiver.NewService(cfg.Archiver, archiverLLM)
+	if obs := runningServices.ArchiverService.Observer(); obs != nil {
+		_ = msgBus.Subscribe(obs)
+	}
+	runningServices.ArchiverService.Start(context.Background())
+	if cfg.Archiver.Active() {
+		fmt.Println("✓ Archiver service started")
+	}
+
 	runningServices.HeartbeatService = heartbeat.NewHeartbeatService(
 		cfg.WorkspacePath(),
 		cfg.Heartbeat.Interval,
@@ -435,6 +448,9 @@ func stopAndCleanupServices(runningServices *services, shutdownTimeout time.Dura
 	}
 	if runningServices.CronService != nil {
 		runningServices.CronService.Stop()
+	}
+	if runningServices.ArchiverService != nil {
+		runningServices.ArchiverService.Stop()
 	}
 	if runningServices.MediaStore != nil {
 		if fms, ok := runningServices.MediaStore.(*media.FileMediaStore); ok {
@@ -554,6 +570,17 @@ func restartServices(
 		return fmt.Errorf("error restarting cron service: %w", err)
 	}
 	fmt.Println("  ✓ Cron service restarted")
+
+	// Archiver: re-create with new config and resubscribe to bus.
+	archiverLLM := newArchiverLLMAdapter(cfg, cfg.Archiver.Distill.ModelName)
+	runningServices.ArchiverService = archiver.NewService(cfg.Archiver, archiverLLM)
+	if obs := runningServices.ArchiverService.Observer(); obs != nil {
+		_ = msgBus.Subscribe(obs)
+	}
+	runningServices.ArchiverService.Start(context.Background())
+	if cfg.Archiver.Active() {
+		fmt.Println("  ✓ Archiver service restarted")
+	}
 
 	runningServices.HeartbeatService = heartbeat.NewHeartbeatService(
 		cfg.WorkspacePath(),
