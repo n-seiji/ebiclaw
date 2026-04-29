@@ -41,6 +41,39 @@ func TestObserver_ReceivesInbound(t *testing.T) {
 	}
 }
 
+func TestObserver_ReceivesOutbound(t *testing.T) {
+	mb := NewMessageBus()
+	defer mb.Close()
+
+	got := make(chan OutboundMessage, 1)
+	cancel := mb.Subscribe(ObserverFuncs{
+		OutboundFn: func(_ context.Context, m OutboundMessage) {
+			got <- m
+		},
+	})
+	defer cancel()
+
+	go func() {
+		for range mb.OutboundChan() {
+		}
+	}()
+
+	ctx, cancelCtx := context.WithTimeout(context.Background(), time.Second)
+	defer cancelCtx()
+	if err := mb.PublishOutbound(ctx, OutboundMessage{Channel: "slack", ChatID: "C1", Content: "out"}); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+
+	select {
+	case m := <-got:
+		if m.ChatID != "C1" || m.Content != "out" {
+			t.Fatalf("unexpected msg: %+v", m)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("observer did not receive outbound message")
+	}
+}
+
 func TestObserver_MultipleAndCancel(t *testing.T) {
 	mb := NewMessageBus()
 	defer mb.Close()
