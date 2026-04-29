@@ -37,6 +37,8 @@ type MessageBus struct {
 	audioChunks   chan AudioChunk
 	voiceControls chan VoiceControl
 
+	observers observerRegistry
+
 	closeOnce      sync.Once
 	done           chan struct{}
 	closed         atomic.Bool
@@ -84,7 +86,11 @@ func publish[T any](ctx context.Context, mb *MessageBus, ch chan T, msg T) error
 }
 
 func (mb *MessageBus) PublishInbound(ctx context.Context, msg InboundMessage) error {
-	return publish(ctx, mb, mb.inbound, msg)
+	if err := publish(ctx, mb, mb.inbound, msg); err != nil {
+		return err
+	}
+	mb.dispatchInbound(msg)
+	return nil
 }
 
 func (mb *MessageBus) InboundChan() <-chan InboundMessage {
@@ -92,7 +98,11 @@ func (mb *MessageBus) InboundChan() <-chan InboundMessage {
 }
 
 func (mb *MessageBus) PublishOutbound(ctx context.Context, msg OutboundMessage) error {
-	return publish(ctx, mb, mb.outbound, msg)
+	if err := publish(ctx, mb, mb.outbound, msg); err != nil {
+		return err
+	}
+	mb.dispatchOutbound(msg)
+	return nil
 }
 
 func (mb *MessageBus) OutboundChan() <-chan OutboundMessage {
@@ -121,6 +131,27 @@ func (mb *MessageBus) PublishVoiceControl(ctx context.Context, ctrl VoiceControl
 
 func (mb *MessageBus) VoiceControlsChan() <-chan VoiceControl {
 	return mb.voiceControls
+}
+
+// Subscribe registers an Observer. The returned cancel func removes it.
+// Observers receive non-blocking copies in detached goroutines and must not
+// block the bus.
+func (mb *MessageBus) Subscribe(o Observer) (cancel func()) {
+	return mb.observers.add(o)
+}
+
+func (mb *MessageBus) dispatchInbound(m InboundMessage) {
+	for _, o := range mb.observers.snapshot() {
+		o := o
+		go o.OnInbound(context.Background(), m)
+	}
+}
+
+func (mb *MessageBus) dispatchOutbound(m OutboundMessage) {
+	for _, o := range mb.observers.snapshot() {
+		o := o
+		go o.OnOutbound(context.Background(), m)
+	}
 }
 
 // SetStreamDelegate registers a StreamDelegate (typically the channel Manager).
