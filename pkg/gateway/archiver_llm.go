@@ -46,13 +46,15 @@ func (a *archiverLLMAdapter) Distill(ctx context.Context, prompt string) (string
 		return "", fmt.Errorf("archiver llm adapter: no model configured")
 	}
 
-	// Temporarily swap the agents.defaults.model_name so providers.CreateProvider
-	// resolves the requested model. CreateProvider reads cfg.Agents.Defaults.GetModelName()
-	// internally, so we restore the previous value before returning.
-	prev := a.cfg.Agents.Defaults.ModelName
-	a.cfg.Agents.Defaults.ModelName = resolved
-	provider, modelID, err := providers.CreateProvider(a.cfg)
-	a.cfg.Agents.Defaults.ModelName = prev
+	// Build a shallow copy of the config with our resolved model name so we
+	// don't race with concurrent readers of cfg.Agents.Defaults.ModelName
+	// (e.g. the agent loop, provider creation in other services). Both
+	// Config.Agents and AgentsConfig.Defaults are struct values, so the copy
+	// gets its own ModelName slot. Pointer/slice fields inside AgentDefaults
+	// are shared by design — we never mutate them.
+	cfgCopy := *a.cfg
+	cfgCopy.Agents.Defaults.ModelName = resolved
+	provider, modelID, err := providers.CreateProvider(&cfgCopy)
 	if err != nil {
 		return "", fmt.Errorf("archiver llm adapter: create provider: %w", err)
 	}

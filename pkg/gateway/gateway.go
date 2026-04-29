@@ -46,17 +46,18 @@ const (
 )
 
 type services struct {
-	CronService      *cron.CronService
-	ArchiverService  *archiver.Service
-	HeartbeatService *heartbeat.HeartbeatService
-	MediaStore       media.MediaStore
-	ChannelManager   *channels.Manager
-	DeviceService    *devices.Service
-	HealthServer     *health.Server
-	VoiceAgentCancel context.CancelFunc
-	manualReloadChan chan struct{}
-	reloading        atomic.Bool
-	authToken        string
+	CronService            *cron.CronService
+	ArchiverService        *archiver.Service
+	ArchiverObserverCancel func()
+	HeartbeatService       *heartbeat.HeartbeatService
+	MediaStore             media.MediaStore
+	ChannelManager         *channels.Manager
+	DeviceService          *devices.Service
+	HealthServer           *health.Server
+	VoiceAgentCancel       context.CancelFunc
+	manualReloadChan       chan struct{}
+	reloading              atomic.Bool
+	authToken              string
 }
 
 type startupBlockedProvider struct {
@@ -333,7 +334,7 @@ func setupAndStartServices(
 	archiverLLM := newArchiverLLMAdapter(cfg, cfg.Archiver.Distill.ModelName)
 	runningServices.ArchiverService = archiver.NewService(cfg.Archiver, archiverLLM)
 	if obs := runningServices.ArchiverService.Observer(); obs != nil {
-		_ = msgBus.Subscribe(obs)
+		runningServices.ArchiverObserverCancel = msgBus.Subscribe(obs)
 	}
 	runningServices.ArchiverService.Start(context.Background())
 	if cfg.Archiver.Active() {
@@ -448,6 +449,10 @@ func stopAndCleanupServices(runningServices *services, shutdownTimeout time.Dura
 	}
 	if runningServices.CronService != nil {
 		runningServices.CronService.Stop()
+	}
+	if runningServices.ArchiverObserverCancel != nil {
+		runningServices.ArchiverObserverCancel()
+		runningServices.ArchiverObserverCancel = nil
 	}
 	if runningServices.ArchiverService != nil {
 		runningServices.ArchiverService.Stop()
@@ -571,11 +576,20 @@ func restartServices(
 	}
 	fmt.Println("  ✓ Cron service restarted")
 
-	// Archiver: re-create with new config and resubscribe to bus.
+	// Archiver: re-create with new config and resubscribe to bus. Cancel any
+	// previous subscription first so observers do not leak across reloads
+	// (which would cause duplicate raw writes).
+	if runningServices.ArchiverObserverCancel != nil {
+		runningServices.ArchiverObserverCancel()
+		runningServices.ArchiverObserverCancel = nil
+	}
+	if runningServices.ArchiverService != nil {
+		runningServices.ArchiverService.Stop()
+	}
 	archiverLLM := newArchiverLLMAdapter(cfg, cfg.Archiver.Distill.ModelName)
 	runningServices.ArchiverService = archiver.NewService(cfg.Archiver, archiverLLM)
 	if obs := runningServices.ArchiverService.Observer(); obs != nil {
-		_ = msgBus.Subscribe(obs)
+		runningServices.ArchiverObserverCancel = msgBus.Subscribe(obs)
 	}
 	runningServices.ArchiverService.Start(context.Background())
 	if cfg.Archiver.Active() {
