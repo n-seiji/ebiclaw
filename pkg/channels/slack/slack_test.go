@@ -168,3 +168,53 @@ func TestSlackChannelIsAllowed(t *testing.T) {
 		}
 	})
 }
+
+func newSlackChannelForTest(t *testing.T, botUserID string) *SlackChannel {
+	t.Helper()
+	cfg := config.SlackConfig{}
+	cfg.BotToken = *config.NewSecureString("xoxb-test")
+	cfg.AppToken = *config.NewSecureString("xapp-test")
+	ch, err := NewSlackChannel(cfg, bus.NewMessageBus())
+	if err != nil {
+		t.Fatalf("NewSlackChannel: %v", err)
+	}
+	ch.botUserID = botUserID
+	return ch
+}
+
+func TestSlackContainsBotMention(t *testing.T) {
+	ch := newSlackChannelForTest(t, "UBOT123")
+	if !ch.containsBotMention("hello <@UBOT123> please help") {
+		t.Error("expected mention to be detected")
+	}
+	if ch.containsBotMention("hello world") {
+		t.Error("plain text should not match")
+	}
+	if ch.containsBotMention("<@UOTHER>") {
+		t.Error("mentioning a different user should not match")
+	}
+
+	noBot := newSlackChannelForTest(t, "")
+	if noBot.containsBotMention("<@U1>") {
+		t.Error("empty botUserID must conservatively report false")
+	}
+}
+
+func TestSlackSubscribedThreadsState(t *testing.T) {
+	ch := newSlackChannelForTest(t, "UBOT123")
+	key := "C123/1700000000.000100"
+
+	if _, ok := ch.subscribedThreads.Load(key); ok {
+		t.Fatal("freshly constructed channel should not have any thread subscribed")
+	}
+
+	ch.subscribedThreads.Store(key, struct{}{})
+	if _, ok := ch.subscribedThreads.Load(key); !ok {
+		t.Fatal("subscribedThreads.Store did not register the key")
+	}
+
+	// A different channel/thread combo must not collide.
+	if _, ok := ch.subscribedThreads.Load("C999/1700000000.000100"); ok {
+		t.Fatal("unrelated thread keys must not be subscribed")
+	}
+}

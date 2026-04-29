@@ -32,6 +32,12 @@ type SlackChannel struct {
 	// channelMetaCache memoises slack conversation lookups so repeated messages
 	// on the same channel do not hammer the conversations.info endpoint.
 	channelMetaCache sync.Map // map[channelID]channelMeta
+	// subscribedThreads tracks Slack thread roots ("<channel>/<threadTS>") in
+	// which the bot has been engaged (mentioned or has replied). In-thread
+	// messages are only delivered to the agent when their root is registered
+	// here; otherwise they belong to a conversation that does not concern us.
+	// State is in-memory and resets on gateway restart by design.
+	subscribedThreads sync.Map // map[string]struct{}
 }
 
 type channelMeta struct {
@@ -131,9 +137,13 @@ func (c *SlackChannel) Send(ctx context.Context, msg bus.OutboundMessage) ([]str
 		slack.MsgOptionText(msg.Content, false),
 	}
 
+	// Track which thread root we are about to anchor to, so we can later
+	// register it as a subscribed thread on a successful send.
+	anchoredThreadRoot := threadTS
 	if msg.ReplyToMessageID != "" && threadTS == "" {
 		// Answer to the message by creating a Thread under it
 		opts = append(opts, slack.MsgOptionTS(msg.ReplyToMessageID))
+		anchoredThreadRoot = msg.ReplyToMessageID
 	} else if threadTS != "" {
 		// If we are already in a thread, continue in the thread
 		opts = append(opts, slack.MsgOptionTS(threadTS))
@@ -142,6 +152,12 @@ func (c *SlackChannel) Send(ctx context.Context, msg bus.OutboundMessage) ([]str
 	_, ts, err := c.api.PostMessageContext(ctx, channelID, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("slack send: %w", channels.ErrTemporary)
+	}
+
+	// Register the thread we just engaged in so subsequent in-thread replies
+	// (without a bot mention) are recognized as addressed to us.
+	if anchoredThreadRoot != "" {
+		c.subscribedThreads.Store(channelID+"/"+anchoredThreadRoot, struct{}{})
 	}
 
 	if ref, ok := c.pendingAcks.LoadAndDelete(msg.ChatID); ok {
@@ -319,6 +335,40 @@ func (c *SlackChannel) handleMessageEvent(ev *slackevents.MessageEvent) {
 		chatID = channelID + "/" + threadTS
 	}
 
+	// Drop any message that contains a bot mention: those are delivered via
+	// the AppMention event path and we must not double-process them here.
+	if c.containsBotMention(ev.Text) {
+		logger.DebugCF("slack", "Message dropped (mention will be handled by AppMention event)", map[string]any{
+			"channel_id": channelID,
+			"thread_ts":  threadTS,
+		})
+		return
+	}
+
+	// Self-address policy:
+	//  - DM: always considered addressed to the bot.
+	//  - Outside a thread + no mention: not addressed to us, ignore.
+	//  - Inside a thread + no mention: only respond if the thread root is in
+	//    our subscribedThreads map (i.e., we were mentioned earlier in the
+	//    thread, or have already replied in it).
+	isDM := strings.HasPrefix(channelID, "D")
+	if !isDM {
+		if threadTS == "" {
+			logger.DebugCF("slack", "Channel message ignored: no mention outside any thread", map[string]any{
+				"channel_id": channelID,
+			})
+			return
+		}
+		threadKey := channelID + "/" + threadTS
+		if _, ok := c.subscribedThreads.Load(threadKey); !ok {
+			logger.DebugCF("slack", "In-thread message ignored: thread not subscribed", map[string]any{
+				"channel_id": channelID,
+				"thread_ts":  threadTS,
+			})
+			return
+		}
+	}
+
 	c.pendingAcks.Store(chatID, slackMessageRef{
 		ChannelID: channelID,
 		Timestamp: messageTS,
@@ -326,15 +376,6 @@ func (c *SlackChannel) handleMessageEvent(ev *slackevents.MessageEvent) {
 
 	content := ev.Text
 	content = c.stripBotMention(content)
-
-	// In non-DM channels, apply group trigger filtering
-	if !strings.HasPrefix(channelID, "D") {
-		respond, cleaned := c.ShouldRespondInGroup(false, content)
-		if !respond {
-			return
-		}
-		content = cleaned
-	}
 
 	var mediaPaths []string
 
@@ -438,6 +479,16 @@ func (c *SlackChannel) handleAppMention(ev *slackevents.AppMentionEvent) {
 	} else {
 		chatID = channelID + "/" + messageTS
 	}
+
+	// Register the thread root so subsequent in-thread replies without a
+	// mention are still recognized as part of this conversation. For mentions
+	// outside a thread we anchor to the message TS itself, which is the new
+	// thread root we will create when we reply.
+	threadRoot := threadTS
+	if threadRoot == "" {
+		threadRoot = messageTS
+	}
+	c.subscribedThreads.Store(channelID+"/"+threadRoot, struct{}{})
 
 	c.pendingAcks.Store(chatID, slackMessageRef{
 		ChannelID: channelID,
@@ -554,6 +605,16 @@ func (c *SlackChannel) stripBotMention(text string) string {
 	mention := fmt.Sprintf("<@%s>", c.botUserID)
 	text = strings.ReplaceAll(text, mention, "")
 	return strings.TrimSpace(text)
+}
+
+// containsBotMention reports whether the given Slack message text contains an
+// explicit mention of the bot user. botUserID is empty before AuthTest succeeds,
+// in which case we conservatively treat it as not-mentioned.
+func (c *SlackChannel) containsBotMention(text string) bool {
+	if c.botUserID == "" {
+		return false
+	}
+	return strings.Contains(text, "<@"+c.botUserID+">")
 }
 
 // shouldIgnoreChannel reports whether messages from the given channel should
