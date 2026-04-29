@@ -14,6 +14,7 @@ import (
 	"github.com/caarlos0/env/v11"
 
 	"github.com/sipeed/picoclaw/pkg"
+	"github.com/sipeed/picoclaw/pkg/archiver"
 	"github.com/sipeed/picoclaw/pkg/fileutil"
 	"github.com/sipeed/picoclaw/pkg/logger"
 )
@@ -39,6 +40,7 @@ type Config struct {
 	Heartbeat HeartbeatConfig `json:"heartbeat"           yaml:"-"`
 	Devices   DevicesConfig   `json:"devices"             yaml:"-"`
 	Voice     VoiceConfig     `json:"voice"               yaml:"-"`
+	Archiver  archiver.Config `json:"archiver,omitempty" yaml:"-"`
 	// BuildInfo contains build-time version information
 	BuildInfo BuildInfo `json:"build_info,omitempty" yaml:"-"`
 
