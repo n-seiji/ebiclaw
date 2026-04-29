@@ -118,6 +118,14 @@ func NewAgentInstance(
 		toolsRegistry.Register(tools.NewAppendFileTool(workspace, restrict, allowWritePaths))
 	}
 
+	// Archive tools are opt-in: they expose the conversation archive
+	// repository read-only and are only registered when the archiver feature
+	// is fully wired and the operator explicitly enables tool exposure.
+	if cfg.Archiver.Active() && cfg.Archiver.ToolsReadOnly {
+		toolsRegistry.Register(tools.NewArchiveSearchTool(cfg.Archiver.RepositoryPath, true))
+		toolsRegistry.Register(tools.NewArchiveReadTool(cfg.Archiver.RepositoryPath, true))
+	}
+
 	sessionsDir := filepath.Join(workspace, "sessions")
 	sessions := initSessionStore(sessionsDir)
 

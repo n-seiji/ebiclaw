@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sipeed/picoclaw/pkg/archiver"
 	"github.com/sipeed/picoclaw/pkg/config"
 	"github.com/sipeed/picoclaw/pkg/media"
 	"github.com/sipeed/picoclaw/pkg/providers"
@@ -566,5 +567,85 @@ func TestNewAgentInstance_InvalidExecConfigDoesNotExit(t *testing.T) {
 
 	if _, ok := agent.Tools.Get("read_file"); !ok {
 		t.Fatal("read_file tool should still be registered")
+	}
+}
+
+// TestNewAgentInstance_ArchiveToolsGatedByConfig verifies that archive_search
+// and archive_read are only registered when the archiver is Active() AND the
+// operator has explicitly enabled read-only tool exposure.
+func TestNewAgentInstance_ArchiveToolsGatedByConfig(t *testing.T) {
+	tests := []struct {
+		name       string
+		archiver   archiver.Config
+		wantTools  bool
+	}{
+		{
+			name:      "disabled archiver does not register tools",
+			archiver:  archiver.Config{},
+			wantTools: false,
+		},
+		{
+			name: "active archiver without ToolsReadOnly does not register tools",
+			archiver: archiver.Config{
+				Enabled:        true,
+				RepositoryPath: "/tmp/archive-repo",
+				ToolsReadOnly:  false,
+			},
+			wantTools: false,
+		},
+		{
+			name: "active archiver with ToolsReadOnly registers both tools",
+			archiver: archiver.Config{
+				Enabled:        true,
+				RepositoryPath: "/tmp/archive-repo",
+				ToolsReadOnly:  true,
+			},
+			wantTools: true,
+		},
+		{
+			name: "ToolsReadOnly without Active() does not register",
+			archiver: archiver.Config{
+				Enabled:        false,
+				RepositoryPath: "/tmp/archive-repo",
+				ToolsReadOnly:  true,
+			},
+			wantTools: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			workspace := t.TempDir()
+			cfg := &config.Config{
+				Agents: config.AgentsConfig{
+					Defaults: config.AgentDefaults{
+						Workspace: workspace,
+						ModelName: "test-model",
+					},
+				},
+				Archiver: tt.archiver,
+			}
+
+			agent := NewAgentInstance(nil, &cfg.Agents.Defaults, cfg, &mockProvider{})
+
+			_, hasSearch := agent.Tools.Get("archive_search")
+			_, hasRead := agent.Tools.Get("archive_read")
+
+			if tt.wantTools {
+				if !hasSearch {
+					t.Errorf("archive_search not registered, want registered")
+				}
+				if !hasRead {
+					t.Errorf("archive_read not registered, want registered")
+				}
+			} else {
+				if hasSearch {
+					t.Errorf("archive_search registered, want NOT registered")
+				}
+				if hasRead {
+					t.Errorf("archive_read registered, want NOT registered")
+				}
+			}
+		})
 	}
 }
