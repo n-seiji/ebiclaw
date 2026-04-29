@@ -73,7 +73,7 @@ func (t *CronTool) Name() string {
 
 // Description returns the tool description
 func (t *CronTool) Description() string {
-	return "Schedule reminders, tasks, or system commands. IMPORTANT: When user asks to be reminded or scheduled, you MUST call this tool. Use 'at_seconds' for one-time reminders (e.g., 'remind me in 10 minutes' → at_seconds=600). Use 'every_seconds' ONLY for recurring tasks (e.g., 'every 2 hours' → every_seconds=7200). Use 'cron_expr' for complex recurring schedules. Use 'command' to execute shell commands directly."
+	return "Schedule reminders, tasks, or system commands. IMPORTANT: When user asks to be reminded or scheduled, you MUST call this tool. Use 'at_seconds' for one-time reminders (e.g., 'remind me in 10 minutes' → at_seconds=600). Use 'every_seconds' ONLY for recurring tasks (e.g., 'every 2 hours' → every_seconds=7200). Use 'cron_expr' for complex recurring schedules. Use 'command' to execute shell commands directly. Set 'verbatim=true' when the user has explicitly authored the text to be sent (e.g., 'remind me \"drink water\" in 1h' or 'send \"see you tomorrow\" to this chat at 9pm') — the 'message' field will be delivered to the channel as-is without re-running the agent. Leave 'verbatim' false (default) when the reminder intent should be re-rendered at trigger time (e.g., 'remind me later about the PR review')."
 }
 
 // Parameters returns the tool parameters schema
@@ -97,6 +97,10 @@ func (t *CronTool) Parameters() map[string]any {
 			"command_confirm": map[string]any{
 				"type":        "boolean",
 				"description": "Optional explicit confirmation flag for scheduling a shell command. Command execution must also be enabled via tools.cron.allow_command.",
+			},
+			"verbatim": map[string]any{
+				"type":        "boolean",
+				"description": "Optional. When true, the 'message' field is delivered to the original channel as-is at trigger time, bypassing the agent. Use when the user authored the exact text to send. When false (default), the message is treated as an instruction and the agent re-renders it at trigger time.",
 			},
 			"at_seconds": map[string]any{
 				"type":        "integer",
@@ -207,6 +211,11 @@ func (t *CronTool) addJob(ctx context.Context, args map[string]any) *ToolResult 
 		}
 	}
 
+	verbatim, _ := args["verbatim"].(bool)
+	if verbatim && command != "" {
+		return ErrorResult("verbatim and command cannot be combined")
+	}
+
 	// Truncate message for job name (max 30 chars)
 	messagePreview := utils.Truncate(message, 30)
 
@@ -225,6 +234,10 @@ func (t *CronTool) addJob(ctx context.Context, args map[string]any) *ToolResult 
 	needsUpdate := false
 	if command != "" {
 		job.Payload.Command = command
+		needsUpdate = true
+	}
+	if verbatim {
+		job.Payload.Kind = cron.PayloadKindTextSend
 		needsUpdate = true
 	}
 	if needsUpdate {
@@ -302,6 +315,20 @@ func (t *CronTool) ExecuteJob(ctx context.Context, job *cron.CronJob) string {
 	}
 	if chatID == "" {
 		chatID = "direct"
+	}
+
+	// Verbatim delivery: send the saved message directly to the channel,
+	// bypassing the agent entirely. Used for user-authored reminders where
+	// the exact outgoing text is already finalized at scheduling time.
+	if job.Payload.Kind == cron.PayloadKindTextSend {
+		pubCtx, pubCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer pubCancel()
+		t.msgBus.PublishOutbound(pubCtx, bus.OutboundMessage{
+			Channel: channel,
+			ChatID:  chatID,
+			Content: job.Payload.Message,
+		})
+		return "ok"
 	}
 
 	// Execute command if present

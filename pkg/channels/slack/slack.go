@@ -29,6 +29,15 @@ type SlackChannel struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
 	pendingAcks  sync.Map
+	// channelMetaCache memoises slack conversation lookups so repeated messages
+	// on the same channel do not hammer the conversations.info endpoint.
+	channelMetaCache sync.Map // map[channelID]channelMeta
+}
+
+type channelMeta struct {
+	name      string
+	isPrivate bool
+	isIM      bool
 }
 
 type slackMessageRef struct {
@@ -280,6 +289,12 @@ func (c *SlackChannel) handleMessageEvent(ev *slackevents.MessageEvent) {
 	if ev.SubType != "" && ev.SubType != "file_share" {
 		return
 	}
+	if c.shouldIgnoreChannel(ev.Channel) {
+		logger.DebugCF("slack", "Message dropped by channel filter", map[string]any{
+			"channel_id": ev.Channel,
+		})
+		return
+	}
 
 	// check allowlist to avoid downloading attachments for rejected users
 	sender := bus.SenderInfo{
@@ -360,6 +375,9 @@ func (c *SlackChannel) handleMessageEvent(ev *slackevents.MessageEvent) {
 	if strings.HasPrefix(channelID, "D") {
 		peerKind = "direct"
 		peerID = senderID
+	} else if threadTS != "" && c.isPerThreadChannel(channelID) {
+		// Channel name opted in to per-thread session scoping by suffix.
+		peerID = channelID + "/" + threadTS
 	}
 
 	peer := bus.Peer{Kind: peerKind, ID: peerID}
@@ -384,6 +402,12 @@ func (c *SlackChannel) handleMessageEvent(ev *slackevents.MessageEvent) {
 
 func (c *SlackChannel) handleAppMention(ev *slackevents.AppMentionEvent) {
 	if ev.User == c.botUserID {
+		return
+	}
+	if c.shouldIgnoreChannel(ev.Channel) {
+		logger.DebugCF("slack", "Mention dropped by channel filter", map[string]any{
+			"channel_id": ev.Channel,
+		})
 		return
 	}
 
@@ -431,6 +455,9 @@ func (c *SlackChannel) handleAppMention(ev *slackevents.AppMentionEvent) {
 	if strings.HasPrefix(channelID, "D") {
 		mentionPeerKind = "direct"
 		mentionPeerID = senderID
+	} else if threadTS != "" && c.isPerThreadChannel(channelID) {
+		// Channel name opted in to per-thread session scoping by suffix.
+		mentionPeerID = channelID + "/" + threadTS
 	}
 
 	mentionPeer := bus.Peer{Kind: mentionPeerKind, ID: mentionPeerID}
@@ -527,6 +554,79 @@ func (c *SlackChannel) stripBotMention(text string) string {
 	mention := fmt.Sprintf("<@%s>", c.botUserID)
 	text = strings.ReplaceAll(text, mention, "")
 	return strings.TrimSpace(text)
+}
+
+// shouldIgnoreChannel reports whether messages from the given channel should
+// be dropped before any agent processing. Direct messages always pass; private
+// group channels and channels whose names start with "ext-" or "ext_" are
+// ignored. The per-channel result is cached in channelMetaCache.
+func (c *SlackChannel) shouldIgnoreChannel(channelID string) bool {
+	if channelID == "" {
+		return false
+	}
+	// DM channels (ID prefix "D") are always allowed without an API lookup.
+	if strings.HasPrefix(channelID, "D") {
+		return false
+	}
+
+	if cached, ok := c.channelMetaCache.Load(channelID); ok {
+		meta := cached.(channelMeta)
+		return ignoreByMeta(meta)
+	}
+
+	info, err := c.api.GetConversationInfoContext(c.ctx, &slack.GetConversationInfoInput{
+		ChannelID: channelID,
+	})
+	if err != nil {
+		// If we cannot resolve, fail open (allow) so transient API errors do
+		// not silently drop user messages. The lookup will be retried next
+		// time because we do not cache the failure.
+		logger.WarnCF("slack", "Failed to look up conversation info; allowing message", map[string]any{
+			"channel_id": channelID,
+			"error":      err.Error(),
+		})
+		return false
+	}
+
+	meta := channelMeta{
+		name:      info.Name,
+		isPrivate: info.IsPrivate,
+		isIM:      info.IsIM,
+	}
+	c.channelMetaCache.Store(channelID, meta)
+	return ignoreByMeta(meta)
+}
+
+// ignoreByMeta encapsulates the policy: direct messages are never ignored,
+// private group channels and ext- / ext_ prefixed channels are ignored.
+func ignoreByMeta(m channelMeta) bool {
+	if m.isIM {
+		return false
+	}
+	if m.isPrivate {
+		return true
+	}
+	name := strings.ToLower(m.name)
+	if strings.HasPrefix(name, "ext-") || strings.HasPrefix(name, "ext_") {
+		return true
+	}
+	return false
+}
+
+// isPerThreadChannel checks the channel name suffix to decide whether the
+// session should be scoped per thread. shouldIgnoreChannel must have been
+// called first so the cache entry exists; if not we fall back to channel-wide.
+func (c *SlackChannel) isPerThreadChannel(channelID string) bool {
+	if channelID == "" {
+		return false
+	}
+	cached, ok := c.channelMetaCache.Load(channelID)
+	if !ok {
+		return false
+	}
+	meta := cached.(channelMeta)
+	name := strings.ToLower(meta.name)
+	return strings.HasSuffix(name, "_per_thread") || strings.HasSuffix(name, "-per-thread")
 }
 
 func parseSlackChatID(chatID string) (channelID, threadTS string) {

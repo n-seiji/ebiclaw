@@ -324,6 +324,110 @@ func TestCronTool_ExecuteJobSkipsWhenMessageToolAlreadySent(t *testing.T) {
 	}
 }
 
+func TestCronTool_VerbatimSchedulesTextSendKind(t *testing.T) {
+	tool := newTestCronTool(t)
+	ctx := WithToolContext(context.Background(), "slack", "C123")
+	result := tool.Execute(ctx, map[string]any{
+		"action":     "add",
+		"message":    "drink water",
+		"verbatim":   true,
+		"at_seconds": float64(60),
+	})
+
+	if result.IsError {
+		t.Fatalf("expected verbatim scheduling to succeed, got: %s", result.ForLLM)
+	}
+
+	jobs := tool.cronService.ListJobs(false)
+	if len(jobs) != 1 {
+		t.Fatalf("expected 1 job, got %d", len(jobs))
+	}
+	if jobs[0].Payload.Kind != cron.PayloadKindTextSend {
+		t.Fatalf("payload kind = %q, want %q", jobs[0].Payload.Kind, cron.PayloadKindTextSend)
+	}
+	if jobs[0].Payload.Message != "drink water" {
+		t.Fatalf("payload message = %q, want %q", jobs[0].Payload.Message, "drink water")
+	}
+}
+
+func TestCronTool_VerbatimDefaultsToAgentTurn(t *testing.T) {
+	tool := newTestCronTool(t)
+	ctx := WithToolContext(context.Background(), "slack", "C123")
+	result := tool.Execute(ctx, map[string]any{
+		"action":     "add",
+		"message":    "follow up on PR",
+		"at_seconds": float64(60),
+	})
+
+	if result.IsError {
+		t.Fatalf("expected scheduling to succeed, got: %s", result.ForLLM)
+	}
+
+	jobs := tool.cronService.ListJobs(false)
+	if len(jobs) != 1 {
+		t.Fatalf("expected 1 job, got %d", len(jobs))
+	}
+	if jobs[0].Payload.Kind != cron.PayloadKindAgentTurn {
+		t.Fatalf("payload kind = %q, want %q", jobs[0].Payload.Kind, cron.PayloadKindAgentTurn)
+	}
+}
+
+func TestCronTool_VerbatimRejectsCommandCombination(t *testing.T) {
+	tool := newTestCronTool(t)
+	ctx := WithToolContext(context.Background(), "cli", "direct")
+	result := tool.Execute(ctx, map[string]any{
+		"action":          "add",
+		"message":         "check disk",
+		"command":         "df -h",
+		"command_confirm": true,
+		"verbatim":        true,
+		"at_seconds":      float64(60),
+	})
+
+	if !result.IsError {
+		t.Fatal("expected verbatim+command combination to be rejected")
+	}
+	if !strings.Contains(result.ForLLM, "verbatim and command cannot be combined") {
+		t.Errorf("unexpected error: %s", result.ForLLM)
+	}
+}
+
+func TestCronTool_ExecuteJobVerbatimBypassesAgent(t *testing.T) {
+	executor := &stubJobExecutor{response: "should not be called"}
+	tool := newTestCronToolWithExecutorAndConfig(t, executor, config.DefaultConfig())
+
+	job := &cron.CronJob{ID: "job-verbatim"}
+	job.Payload.Kind = cron.PayloadKindTextSend
+	job.Payload.Channel = "slack"
+	job.Payload.To = "C123"
+	job.Payload.Message = "stand up"
+
+	if got := tool.ExecuteJob(context.Background(), job); got != "ok" {
+		t.Fatalf("ExecuteJob() = %q, want ok", got)
+	}
+
+	// The agent must not have been invoked.
+	if executor.lastPrompt != "" || executor.publishedResp != "" {
+		t.Fatalf("verbatim job should bypass agent, executor saw prompt=%q published=%q",
+			executor.lastPrompt, executor.publishedResp)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	select {
+	case msg := <-tool.msgBus.OutboundChan():
+		if msg.Content != "stand up" {
+			t.Fatalf("outbound content = %q, want %q", msg.Content, "stand up")
+		}
+		if msg.Channel != "slack" || msg.ChatID != "C123" {
+			t.Fatalf("outbound target = %s/%s, want slack/C123", msg.Channel, msg.ChatID)
+		}
+	case <-ctx.Done():
+		t.Fatal("timeout waiting for verbatim outbound message")
+	}
+}
+
 func TestCronTool_ExecuteJobReturnsErrorWithoutPublish(t *testing.T) {
 	executor := &stubJobExecutor{
 		response: "this response must not be published",

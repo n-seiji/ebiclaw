@@ -37,64 +37,74 @@ func getSessionManager() *SessionManager {
 type ExecTool struct {
 	workingDir          string
 	timeout             time.Duration
-	denyPatterns        []*regexp.Regexp
+	denyPatterns        []*regexp.Regexp // always-on (built-in + custom_deny_patterns)
+	bypassDenyPatterns  []*regexp.Regexp // ForbiddenCommands entries; bypassed when cwd is in WorkspaceDirs
 	allowPatterns       []*regexp.Regexp
 	customAllowPatterns []*regexp.Regexp
 	allowedPathPatterns []*regexp.Regexp
 	restrictToWorkspace bool
 	allowRemote         bool
+	workspaceDirs       []string
 	sessionManager      *SessionManager
 }
 
 var (
+	// defaultDenyPatterns are absolute denies — they apply everywhere, even
+	// inside trusted workspace directories. Anything that touches the host
+	// outside the project (system files, network shells, privilege escalation,
+	// process control) lives here.
 	defaultDenyPatterns = []*regexp.Regexp{
-		regexp.MustCompile(`\brm\s+-[rf]{1,2}\b`),
-		regexp.MustCompile(`\bdel\s+/[fq]\b`),
-		regexp.MustCompile(`\brmdir\s+/s\b`),
-		// Match disk wiping commands (must be followed by space/args)
 		regexp.MustCompile(
 			`(^|[^-\w])\b(format|mkfs|diskpart)\b\s`,
 		),
 		regexp.MustCompile(`\bdd\s+if=`),
-		// Block writes to block devices (all common naming schemes).
 		regexp.MustCompile(
 			`>\s*/dev/(sd[a-z]|hd[a-z]|vd[a-z]|xvd[a-z]|nvme\d|mmcblk\d|loop\d|dm-\d|md\d|sr\d|nbd\d)`,
 		),
 		regexp.MustCompile(`\b(shutdown|reboot|poweroff)\b`),
 		regexp.MustCompile(`:\(\)\s*\{.*\};\s*:`),
-		regexp.MustCompile(`\$\([^)]+\)`),
-		regexp.MustCompile(`\$\{[^}]+\}`),
-		regexp.MustCompile("`[^`]+`"),
 		regexp.MustCompile(`\|\s*sh\b`),
 		regexp.MustCompile(`\|\s*bash\b`),
-		regexp.MustCompile(`;\s*rm\s+-[rf]`),
-		regexp.MustCompile(`&&\s*rm\s+-[rf]`),
-		regexp.MustCompile(`\|\|\s*rm\s+-[rf]`),
 		regexp.MustCompile(`<<\s*EOF`),
-		regexp.MustCompile(`\$\(\s*cat\s+`),
 		regexp.MustCompile(`\$\(\s*curl\s+`),
 		regexp.MustCompile(`\$\(\s*wget\s+`),
-		regexp.MustCompile(`\$\(\s*which\s+`),
 		regexp.MustCompile(`\bsudo\b`),
-		regexp.MustCompile(`\bchmod\s+[0-7]{3,4}\b`),
 		regexp.MustCompile(`\bchown\b`),
 		regexp.MustCompile(`\bpkill\b`),
 		regexp.MustCompile(`\bkillall\b`),
-		regexp.MustCompile(`\bkill\b`),
 		regexp.MustCompile(`\bcurl\b.*\|\s*(sh|bash)`),
 		regexp.MustCompile(`\bwget\b.*\|\s*(sh|bash)`),
-		regexp.MustCompile(`\bnpm\s+install\s+-g\b`),
-		regexp.MustCompile(`\bpip\s+install\s+--user\b`),
 		regexp.MustCompile(`\bapt\s+(install|remove|purge)\b`),
 		regexp.MustCompile(`\byum\s+(install|remove)\b`),
 		regexp.MustCompile(`\bdnf\s+(install|remove)\b`),
+		regexp.MustCompile(`\bssh\b.*@`),
+		regexp.MustCompile(`\beval\b`),
+	}
+
+	// defaultBypassableDenyPatterns are denies that get skipped when the
+	// command runs with cwd inside one of tools.workspace_dirs. They are still
+	// the default for everywhere else.
+	defaultBypassableDenyPatterns = []*regexp.Regexp{
+		regexp.MustCompile(`\brm\s+-[rf]{1,2}\b`),
+		regexp.MustCompile(`\bdel\s+/[fq]\b`),
+		regexp.MustCompile(`\brmdir\s+/s\b`),
+		regexp.MustCompile(`;\s*rm\s+-[rf]`),
+		regexp.MustCompile(`&&\s*rm\s+-[rf]`),
+		regexp.MustCompile(`\|\|\s*rm\s+-[rf]`),
+		regexp.MustCompile(`\bchmod\s+[0-7]{3,4}\b`),
+		regexp.MustCompile(`\bkill\b`),
+		regexp.MustCompile(`\bnpm\s+install\s+-g\b`),
+		regexp.MustCompile(`\bpip\s+install\s+--user\b`),
 		regexp.MustCompile(`\bdocker\s+run\b`),
 		regexp.MustCompile(`\bdocker\s+exec\b`),
 		regexp.MustCompile(`\bgit\s+push\b`),
 		regexp.MustCompile(`\bgit\s+force\b`),
-		regexp.MustCompile(`\bssh\b.*@`),
-		regexp.MustCompile(`\beval\b`),
 		regexp.MustCompile(`\bsource\s+.*\.sh\b`),
+		regexp.MustCompile(`\$\([^)]+\)`),
+		regexp.MustCompile(`\$\{[^}]+\}`),
+		regexp.MustCompile("`[^`]+`"),
+		regexp.MustCompile(`\$\(\s*cat\s+`),
+		regexp.MustCompile(`\$\(\s*which\s+`),
 	}
 
 	// absolutePathPattern matches absolute file paths in commands (Unix and Windows).
@@ -125,8 +135,10 @@ func NewExecToolWithConfig(
 	allowPaths ...[]*regexp.Regexp,
 ) (*ExecTool, error) {
 	denyPatterns := make([]*regexp.Regexp, 0)
+	bypassDenyPatterns := make([]*regexp.Regexp, 0)
 	customAllowPatterns := make([]*regexp.Regexp, 0)
 	var allowedPathPatterns []*regexp.Regexp
+	var workspaceDirs []string
 	allowRemote := true
 	if len(allowPaths) > 0 {
 		allowedPathPatterns = allowPaths[0]
@@ -138,6 +150,7 @@ func NewExecToolWithConfig(
 		allowRemote = execConfig.AllowRemote
 		if enableDenyPatterns {
 			denyPatterns = append(denyPatterns, defaultDenyPatterns...)
+			bypassDenyPatterns = append(bypassDenyPatterns, defaultBypassableDenyPatterns...)
 			if len(execConfig.CustomDenyPatterns) > 0 {
 				fmt.Printf("Using custom deny patterns: %v\n", execConfig.CustomDenyPatterns)
 				for _, pattern := range execConfig.CustomDenyPatterns {
@@ -147,6 +160,19 @@ func NewExecToolWithConfig(
 					}
 					denyPatterns = append(denyPatterns, re)
 				}
+			}
+			// Propagate the central tools.forbidden_commands list. These are kept
+			// separate from the always-on deny set so they can be bypassed when
+			// the request runs with a cwd inside tools.workspace_dirs.
+			for _, entry := range cfg.Tools.ForbiddenCommands {
+				if strings.TrimSpace(entry) == "" {
+					continue
+				}
+				re, err := regexp.Compile(`(?i)\b` + regexp.QuoteMeta(entry) + `\b`)
+				if err != nil {
+					return nil, fmt.Errorf("invalid forbidden command %q: %w", entry, err)
+				}
+				bypassDenyPatterns = append(bypassDenyPatterns, re)
 			}
 		} else {
 			// If deny patterns are disabled, we won't add any patterns, allowing all commands.
@@ -159,8 +185,10 @@ func NewExecToolWithConfig(
 			}
 			customAllowPatterns = append(customAllowPatterns, re)
 		}
+		workspaceDirs = append(workspaceDirs, cfg.Tools.WorkspaceDirs...)
 	} else {
 		denyPatterns = append(denyPatterns, defaultDenyPatterns...)
+		bypassDenyPatterns = append(bypassDenyPatterns, defaultBypassableDenyPatterns...)
 	}
 
 	var timeout time.Duration
@@ -172,11 +200,13 @@ func NewExecToolWithConfig(
 		workingDir:          workingDir,
 		timeout:             timeout,
 		denyPatterns:        denyPatterns,
+		bypassDenyPatterns:  bypassDenyPatterns,
 		allowPatterns:       nil,
 		customAllowPatterns: customAllowPatterns,
 		allowedPathPatterns: allowedPathPatterns,
 		restrictToWorkspace: restrict,
 		allowRemote:         allowRemote,
+		workspaceDirs:       workspaceDirs,
 		sessionManager:      getSessionManager(),
 	}, nil
 }
@@ -1019,6 +1049,35 @@ func (t *ExecTool) executeSendKeys(args map[string]any) *ToolResult {
 	}
 }
 
+// cwdInWorkspaceDirs reports whether cwd resolves under one of the trusted
+// workspace directories. The check uses cleaned absolute paths and a path-
+// separator boundary so /foo does not match /foobar.
+func (t *ExecTool) cwdInWorkspaceDirs(cwd string) bool {
+	if len(t.workspaceDirs) == 0 || cwd == "" {
+		return false
+	}
+	abs, err := filepath.Abs(cwd)
+	if err != nil {
+		return false
+	}
+	abs = filepath.Clean(abs)
+	for _, dir := range t.workspaceDirs {
+		dir = strings.TrimSpace(dir)
+		if dir == "" {
+			continue
+		}
+		dirAbs, err := filepath.Abs(dir)
+		if err != nil {
+			continue
+		}
+		dirAbs = filepath.Clean(dirAbs)
+		if abs == dirAbs || strings.HasPrefix(abs, dirAbs+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
+}
+
 func (t *ExecTool) guardCommand(command, cwd string) string {
 	cmd := strings.TrimSpace(command)
 	lower := strings.ToLower(cmd)
@@ -1036,6 +1095,14 @@ func (t *ExecTool) guardCommand(command, cwd string) string {
 		for _, pattern := range t.denyPatterns {
 			if pattern.MatchString(lower) {
 				return "Command blocked by safety guard (dangerous pattern detected)"
+			}
+		}
+		// ForbiddenCommands: bypass when running inside a trusted workspace dir.
+		if !t.cwdInWorkspaceDirs(cwd) {
+			for _, pattern := range t.bypassDenyPatterns {
+				if pattern.MatchString(lower) {
+					return "Command blocked by safety guard (forbidden command outside trusted workspace)"
+				}
 			}
 		}
 	}

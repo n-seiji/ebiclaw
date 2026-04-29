@@ -875,6 +875,23 @@ func (c ReadFileToolConfig) EffectiveMode() string {
 type ToolsConfig struct {
 	AllowReadPaths  []string `json:"allow_read_paths"  yaml:"-" env:"PICOCLAW_TOOLS_ALLOW_READ_PATHS"`
 	AllowWritePaths []string `json:"allow_write_paths" yaml:"-" env:"PICOCLAW_TOOLS_ALLOW_WRITE_PATHS"`
+	// ForbiddenCommands is a single, central list of shell command snippets that
+	// must never run. Each entry is propagated to two enforcement points:
+	//   1. ebiclaw's exec deny patterns (matched as a regex with word-boundary
+	//      anchors and shell metachars escaped).
+	//   2. claude CLI subprocess via --disallowed-tools "Bash(*<entry>*)" so the
+	//      same command is also blocked when claude reaches for its native Bash.
+	// Entries flagged by ForbiddenCommandsBypassInWorkspace get bypassed at the
+	// ebi exec layer when the command is run with a cwd inside WorkspaceDirs.
+	ForbiddenCommands []string `json:"forbidden_commands" yaml:"-" env:"PICOCLAW_TOOLS_FORBIDDEN_COMMANDS"`
+	// WorkspaceDirs lists trusted absolute directories. Inside any of these:
+	//   - ebi exec skips ForbiddenCommands matching for commands launched with a
+	//     cwd that falls under one of these paths.
+	//   - claude CLI is launched with --add-dir <dir> so its Edit/Write are
+	//     allowed for those paths.
+	// Entries should be plain absolute paths (no globs, no regex). Unlike
+	// AllowReadPaths/AllowWritePaths these are used as literal prefixes.
+	WorkspaceDirs []string `json:"workspace_dirs" yaml:"-" env:"PICOCLAW_TOOLS_WORKSPACE_DIRS"`
 	// FilterSensitiveData controls whether to filter sensitive values (API keys,
 	// tokens, secrets) from tool results before sending to the LLM.
 	// Default: true (enabled)

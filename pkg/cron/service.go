@@ -15,6 +15,15 @@ import (
 	"github.com/sipeed/picoclaw/pkg/fileutil"
 )
 
+// Payload kinds. AgentTurn re-runs the agent at trigger time so the message
+// can be re-rendered with the latest context. TextSend bypasses the agent
+// and delivers Payload.Message as-is to the channel — use when the exact
+// outgoing text is already finalized at scheduling time.
+const (
+	PayloadKindAgentTurn = "agent_turn"
+	PayloadKindTextSend  = "text_send"
+)
+
 type CronSchedule struct {
 	Kind    string `json:"kind"`
 	AtMS    *int64 `json:"atMs,omitempty"`
@@ -424,7 +433,7 @@ func (cs *CronService) AddJob(
 		Enabled:  true,
 		Schedule: schedule,
 		Payload: CronPayload{
-			Kind:    "agent_turn",
+			Kind:    PayloadKindAgentTurn,
 			Message: message,
 			Channel: channel,
 			To:      to,

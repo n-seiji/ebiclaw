@@ -13,8 +13,10 @@ import (
 
 // ClaudeCliProvider implements LLMProvider using the claude CLI as a subprocess.
 type ClaudeCliProvider struct {
-	command   string
-	workspace string
+	command           string
+	workspace         string
+	forbiddenCommands []string
+	workspaceDirs     []string
 }
 
 // NewClaudeCliProvider creates a new Claude CLI provider.
@@ -23,6 +25,20 @@ func NewClaudeCliProvider(workspace string) *ClaudeCliProvider {
 		command:   "claude",
 		workspace: workspace,
 	}
+}
+
+// SetForbiddenCommands wires the central forbidden-commands list so the
+// provider can pass them as --disallowed-tools to the claude CLI. Each entry
+// is wrapped as Bash(*entry*) to also block command-line variants reached via
+// claude's native Bash tool.
+func (p *ClaudeCliProvider) SetForbiddenCommands(cmds []string) {
+	p.forbiddenCommands = cmds
+}
+
+// SetWorkspaceDirs declares the trusted directories to expose to claude via
+// the --add-dir flag so its native Edit/Write tools can operate inside them.
+func (p *ClaudeCliProvider) SetWorkspaceDirs(dirs []string) {
+	p.workspaceDirs = dirs
 }
 
 // Chat implements LLMProvider.Chat by executing the claude CLI.
@@ -38,6 +54,25 @@ func (p *ClaudeCliProvider) Chat(
 	}
 	if model != "" && model != "claude-code" {
 		args = append(args, "--model", model)
+	}
+	// Apply central forbidden-commands list to claude's native tools as well.
+	// --disallowed-tools wins over --dangerously-skip-permissions.
+	if len(p.forbiddenCommands) > 0 {
+		args = append(args, "--disallowed-tools")
+		for _, entry := range p.forbiddenCommands {
+			if strings.TrimSpace(entry) == "" {
+				continue
+			}
+			args = append(args, fmt.Sprintf("Bash(*%s*)", entry))
+		}
+	}
+	// Expose trusted project dirs so claude's Edit/Write can operate inside.
+	for _, dir := range p.workspaceDirs {
+		dir = strings.TrimSpace(dir)
+		if dir == "" {
+			continue
+		}
+		args = append(args, "--add-dir", dir)
 	}
 	args = append(args, "-") // read from stdin
 

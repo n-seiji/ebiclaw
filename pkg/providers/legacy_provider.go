@@ -40,5 +40,18 @@ func CreateProvider(cfg *config.Config) (LLMProvider, string, error) {
 		return nil, "", fmt.Errorf("failed to create provider for model %q: %w", model, err)
 	}
 
+	// Wire the central forbidden-commands list into providers that can enforce
+	// it at the subprocess level. Right now only the claude CLI provider exposes
+	// a setter; other providers rely on ebiclaw-side deny patterns alone.
+	if setter, ok := provider.(interface{ SetForbiddenCommands([]string) }); ok &&
+		len(cfg.Tools.ForbiddenCommands) > 0 {
+		setter.SetForbiddenCommands(cfg.Tools.ForbiddenCommands)
+	}
+	// Expose trusted workspace dirs to providers so claude can edit inside them.
+	if setter, ok := provider.(interface{ SetWorkspaceDirs([]string) }); ok &&
+		len(cfg.Tools.WorkspaceDirs) > 0 {
+		setter.SetWorkspaceDirs(cfg.Tools.WorkspaceDirs)
+	}
+
 	return provider, modelID, nil
 }
