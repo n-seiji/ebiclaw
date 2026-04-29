@@ -23,10 +23,10 @@ type Handler struct {
 // NewHandler creates an instance of the API handler.
 func NewHandler(configPath string) *Handler {
 	return &Handler{
-		configPath:  configPath,
-		serverPort:  launcherconfig.DefaultPort,
-		oauthFlows:  make(map[string]*oauthFlow),
-		oauthState:  make(map[string]string),
+		configPath: configPath,
+		serverPort: launcherconfig.DefaultPort,
+		oauthFlows: make(map[string]*oauthFlow),
+		oauthState: make(map[string]string),
 	}
 }
 

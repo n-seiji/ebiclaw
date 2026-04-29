@@ -51,12 +51,12 @@ func TestArchiverStore_PutAppliesFields(t *testing.T) {
 	)
 
 	err := s.Put(map[string]any{
-		"enabled":         true,
-		"repository_path": "/tmp/y",
-		"allowlist":       []any{"slack/C2", "pico/main"},
-		"schedule":        map[string]any{"cron": "0 4 * * *", "timezone": "UTC"},
-		"distill":         map[string]any{"model_name": "haiku-4.5", "max_input_tokens": float64(10000), "max_retries": float64(5)},
-		"push":            map[string]any{"warn_after_consecutive_failures": float64(3)},
+		"enabled":                true,
+		"repository_path":        "/tmp/y",
+		"allowlist":              []any{"slack/C2", "pico/main"},
+		"schedule":               map[string]any{"cron": "0 4 * * *", "timezone": "UTC"},
+		"distill":                map[string]any{"model_name": "haiku-4.5", "max_input_tokens": float64(10000), "max_retries": float64(5)},
+		"push":                   map[string]any{"warn_after_consecutive_failures": float64(3)},
 		"tools_readonly_enabled": false,
 	})
 	if err != nil {
