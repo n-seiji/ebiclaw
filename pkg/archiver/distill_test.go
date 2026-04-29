@@ -19,6 +19,48 @@ func (f *fakeLLM) Distill(ctx context.Context, prompt string) (string, error) {
 	return f.out, f.err
 }
 
+func TestStripCodeFence(t *testing.T) {
+	cases := []struct {
+		in, want string
+	}{
+		{"plain content", "plain content"},
+		{"```json\n[]\n```", "[]"},
+		{"  ```\nfoo\n```  ", "foo"},
+		{"```json\n[1]```", "[1]"},
+	}
+	for _, c := range cases {
+		if got := stripCodeFence(c.in); got != c.want {
+			t.Errorf("stripCodeFence(%q)=%q want %q", c.in, got, c.want)
+		}
+	}
+}
+
+func TestRenderBody_AllSections(t *testing.T) {
+	body := renderBody(patchSpec{
+		TLDR:      "summary",
+		Timeline:  []string{"a", "b"},
+		Decisions: []string{"do x"},
+		Open:      []string{"q1"},
+	}, "previous")
+	for _, want := range []string{"TL;DR", "summary", "経緯", "- a", "決定事項", "do x", "未解決事項", "q1"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body missing %q: %s", want, body)
+		}
+	}
+	if got := renderBody(patchSpec{}, "previous"); got != "previous" {
+		t.Errorf("empty patch should preserve prev body, got %q", got)
+	}
+}
+
+func TestPickPlatform(t *testing.T) {
+	if got := pickPlatform("slack", "fallback"); got != "slack" {
+		t.Errorf("got %q", got)
+	}
+	if got := pickPlatform("", "fallback"); got != "fallback" {
+		t.Errorf("got %q", got)
+	}
+}
+
 func TestDistiller_CreatesNewTopic(t *testing.T) {
 	dir := t.TempDir()
 	rawDir := filepath.Join(dir, "raw", "slack", "C1")

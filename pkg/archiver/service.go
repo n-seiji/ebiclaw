@@ -104,9 +104,10 @@ func (s *Service) Start(ctx context.Context) {
 	go s.loop(ctx)
 }
 
-// Stop signals the cron loop and waits for it to exit.
+// Stop signals the cron loop and waits for it to exit. Idempotent: a second
+// call returns immediately without re-closing channels.
 func (s *Service) Stop() {
-	if !s.running.Load() {
+	if !s.running.CompareAndSwap(true, false) {
 		return
 	}
 	close(s.stop)
