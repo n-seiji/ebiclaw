@@ -8,7 +8,20 @@ import (
 	"time"
 
 	"github.com/sipeed/picoclaw/pkg/archiver"
+	"github.com/sipeed/picoclaw/web/backend/launcherconfig"
 )
+
+// registerArchiverRoutes mounts the conversation-archiver endpoints. The
+// concrete archiver.Service runs inside the gateway process, so the launcher
+// can read/write the config block but cannot drive runs directly; runner is
+// nil here and the run/status endpoints behave accordingly.
+func (h *Handler) registerArchiverRoutes(mux *http.ServeMux) {
+	store := launcherconfig.NewArchiverStore(h.configPath)
+	ah := NewArchiverHandler(store, nil)
+	mux.Handle("/api/archiver/config", ah)
+	mux.Handle("/api/archiver/status", ah)
+	mux.Handle("/api/archiver/run", ah)
+}
 
 // ArchiverConfigStore reads and writes the archiver block of config.json.
 // The concrete implementation is supplied by web/backend/launcherconfig.

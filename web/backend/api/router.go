@@ -81,6 +81,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Runtime build/version metadata
 	h.registerVersionRoutes(mux)
 
+	// Conversation archiver settings
+	h.registerArchiverRoutes(mux)
+
 }
 
 // Shutdown gracefully shuts down the handler, stopping the gateway if it was started by this handler.
