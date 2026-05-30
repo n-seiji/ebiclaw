@@ -10,13 +10,13 @@ import (
 	"github.com/slack-go/slack/slackevents"
 	"github.com/slack-go/slack/socketmode"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/channels"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/identity"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/media"
-	"github.com/sipeed/picoclaw/pkg/utils"
+	"github.com/n-seiji/ebiclaw/pkg/bus"
+	"github.com/n-seiji/ebiclaw/pkg/channels"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/identity"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/media"
+	"github.com/n-seiji/ebiclaw/pkg/utils"
 )
 
 type SlackChannel struct {
@@ -346,33 +346,31 @@ func (c *SlackChannel) handleMessageEvent(ev *slackevents.MessageEvent) {
 	}
 
 	// Self-address policy:
-	//  - DM: always considered addressed to the bot.
-	//  - Outside a thread + no mention: not addressed to us, ignore.
+	//  - Outside a thread + no mention: not addressed; emit as observe-only
+	//    so the archiver still ingests it but the agent skips the turn.
 	//  - Inside a thread + no mention: only respond if the thread root is in
-	//    our subscribedThreads map (i.e., we were mentioned earlier in the
-	//    thread, or have already replied in it).
+	//    our subscribedThreads map; otherwise emit as observe-only.
 	isDM := strings.HasPrefix(channelID, "D")
+	observeOnly := false
 	if !isDM {
 		if threadTS == "" {
-			logger.DebugCF("slack", "Channel message ignored: no mention outside any thread", map[string]any{
-				"channel_id": channelID,
-			})
-			return
-		}
-		threadKey := channelID + "/" + threadTS
-		if _, ok := c.subscribedThreads.Load(threadKey); !ok {
-			logger.DebugCF("slack", "In-thread message ignored: thread not subscribed", map[string]any{
-				"channel_id": channelID,
-				"thread_ts":  threadTS,
-			})
-			return
+			observeOnly = true
+		} else {
+			threadKey := channelID + "/" + threadTS
+			if _, ok := c.subscribedThreads.Load(threadKey); !ok {
+				observeOnly = true
+			}
 		}
 	}
 
-	c.pendingAcks.Store(chatID, slackMessageRef{
-		ChannelID: channelID,
-		Timestamp: messageTS,
-	})
+	// Acknowledgement reaction is only meaningful for messages we will reply
+	// to; observe-only messages must not trigger any visible UX side effects.
+	if !observeOnly {
+		c.pendingAcks.Store(chatID, slackMessageRef{
+			ChannelID: channelID,
+			Timestamp: messageTS,
+		})
+	}
 
 	content := ev.Text
 	content = c.stripBotMention(content)
@@ -430,15 +428,62 @@ func (c *SlackChannel) handleMessageEvent(ev *slackevents.MessageEvent) {
 		"platform":   "slack",
 		"team_id":    c.teamID,
 	}
+	if observeOnly {
+		metadata["observe_only"] = "true"
+	}
 
 	logger.DebugCF("slack", "Received message", map[string]any{
-		"sender_id":  senderID,
-		"chat_id":    chatID,
-		"preview":    utils.Truncate(content, 50),
-		"has_thread": threadTS != "",
+		"sender_id":    senderID,
+		"chat_id":      chatID,
+		"preview":      utils.Truncate(content, 50),
+		"has_thread":   threadTS != "",
+		"observe_only": observeOnly,
 	})
 
+	if observeOnly {
+		// Bypass HandleMessage so we don't fire the typing/reaction/placeholder
+		// auto-triggers (they are visible UX and would leak our presence on
+		// every channel message). The bus dispatch still notifies observers
+		// such as the archiver.
+		c.publishObserveOnly(peer, messageTS, senderID, chatID, content, mediaPaths, metadata, sender)
+		return
+	}
+
 	c.HandleMessage(c.ctx, peer, messageTS, senderID, chatID, content, mediaPaths, metadata, sender)
+}
+
+// publishObserveOnly publishes an inbound message strictly for observers
+// (e.g. the archiver). The agent loop short-circuits on the observe_only
+// metadata and does not run a turn, so no reply will be produced.
+func (c *SlackChannel) publishObserveOnly(
+	peer bus.Peer,
+	messageID, senderID, chatID, content string,
+	media []string,
+	metadata map[string]string,
+	sender bus.SenderInfo,
+) {
+	resolvedSenderID := senderID
+	if sender.CanonicalID != "" {
+		resolvedSenderID = sender.CanonicalID
+	}
+	msg := bus.InboundMessage{
+		Channel:    c.Name(),
+		SenderID:   resolvedSenderID,
+		Sender:     sender,
+		ChatID:     chatID,
+		Content:    content,
+		Media:      media,
+		Peer:       peer,
+		MessageID:  messageID,
+		MediaScope: channels.BuildMediaScope(c.Name(), chatID, messageID),
+		Metadata:   metadata,
+	}
+	if err := c.MessageBus().PublishInbound(c.ctx, msg); err != nil {
+		logger.WarnCF("slack", "Failed to publish observe-only message", map[string]any{
+			"chat_id": chatID,
+			"error":   err.Error(),
+		})
+	}
 }
 
 func (c *SlackChannel) handleAppMention(ev *slackevents.AppMentionEvent) {
@@ -513,13 +558,26 @@ func (c *SlackChannel) handleAppMention(ev *slackevents.AppMentionEvent) {
 
 	mentionPeer := bus.Peer{Kind: mentionPeerKind, ID: mentionPeerID}
 
+	// replyAnchor identifies the message TS that the response should anchor a
+	// thread to. For in-thread mentions we use the existing thread root so
+	// replies join the same thread; for top-level mentions we use the mention
+	// message TS itself so replies start a new thread under it. Carrying this
+	// in metadata as reply_to_message_id ensures that the eventual Slack Send
+	// always receives a thread anchor — even on code paths that may drop the
+	// "/<thread_ts>" suffix from chatID.
+	replyAnchor := threadTS
+	if replyAnchor == "" {
+		replyAnchor = messageTS
+	}
+
 	metadata := map[string]string{
-		"message_ts": messageTS,
-		"channel_id": channelID,
-		"thread_ts":  threadTS,
-		"platform":   "slack",
-		"is_mention": "true",
-		"team_id":    c.teamID,
+		"message_ts":          messageTS,
+		"channel_id":          channelID,
+		"thread_ts":           threadTS,
+		"platform":            "slack",
+		"is_mention":          "true",
+		"team_id":             c.teamID,
+		"reply_to_message_id": replyAnchor,
 	}
 
 	c.HandleMessage(c.ctx, mentionPeer, messageTS, senderID, chatID, content, nil, metadata, mentionSender)
@@ -618,16 +676,16 @@ func (c *SlackChannel) containsBotMention(text string) bool {
 }
 
 // shouldIgnoreChannel reports whether messages from the given channel should
-// be dropped before any agent processing. Direct messages always pass; private
-// group channels and channels whose names start with "ext-" or "ext_" are
-// ignored. The per-channel result is cached in channelMetaCache.
+// be dropped before any agent processing. Direct messages, private group
+// channels, and channels whose names start with "ext-" or "ext_" are ignored.
+// The per-channel result is cached in channelMetaCache.
 func (c *SlackChannel) shouldIgnoreChannel(channelID string) bool {
 	if channelID == "" {
 		return false
 	}
-	// DM channels (ID prefix "D") are always allowed without an API lookup.
+	// DM channels (ID prefix "D") are always ignored without an API lookup.
 	if strings.HasPrefix(channelID, "D") {
-		return false
+		return true
 	}
 
 	if cached, ok := c.channelMetaCache.Load(channelID); ok {
@@ -639,14 +697,14 @@ func (c *SlackChannel) shouldIgnoreChannel(channelID string) bool {
 		ChannelID: channelID,
 	})
 	if err != nil {
-		// If we cannot resolve, fail open (allow) so transient API errors do
-		// not silently drop user messages. The lookup will be retried next
-		// time because we do not cache the failure.
-		logger.WarnCF("slack", "Failed to look up conversation info; allowing message", map[string]any{
+		// Fail closed so unresolved channels do not accidentally bypass private
+		// / external channel policy. The lookup will be retried next time
+		// because we do not cache the failure.
+		logger.WarnCF("slack", "Failed to look up conversation info; dropping message", map[string]any{
 			"channel_id": channelID,
 			"error":      err.Error(),
 		})
-		return false
+		return true
 	}
 
 	meta := channelMeta{
@@ -658,11 +716,11 @@ func (c *SlackChannel) shouldIgnoreChannel(channelID string) bool {
 	return ignoreByMeta(meta)
 }
 
-// ignoreByMeta encapsulates the policy: direct messages are never ignored,
-// private group channels and ext- / ext_ prefixed channels are ignored.
+// ignoreByMeta encapsulates the policy: direct messages, private group
+// channels, and ext- / ext_ prefixed channels are ignored.
 func ignoreByMeta(m channelMeta) bool {
 	if m.isIM {
-		return false
+		return true
 	}
 	if m.isPrivate {
 		return true
