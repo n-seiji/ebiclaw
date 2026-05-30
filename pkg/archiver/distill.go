@@ -33,6 +33,11 @@ type DistillResult struct {
 	Updated int
 	Merged  int
 	Skipped bool // true if no new raw to process
+	// CutoffAt is the timestamp captured at the start of the distill run.
+	// All raw records with ts <= CutoffAt are guaranteed to have been
+	// considered by this run; the caller can use this as a safe upper bound
+	// when pruning raw history. Zero when Skipped is true.
+	CutoffAt time.Time
 }
 
 // distillAction matches the LLM JSON output.
@@ -62,6 +67,15 @@ type sourceRef struct {
 	Lines string `json:"lines"`
 }
 
+type promptRecord struct {
+	Timestamp time.Time
+	Role      string
+	Chat      string
+	Thread    string
+	Sender    string
+	Text      string
+}
+
 func (d *Distiller) Run(ctx context.Context, since time.Time) (DistillResult, error) {
 	state, err := ReadState(d.repoRoot)
 	if err != nil {
@@ -70,15 +84,19 @@ func (d *Distiller) Run(ctx context.Context, since time.Time) (DistillResult, er
 	if since.IsZero() {
 		since = state.LastDistilledAt
 	}
-	rawLines, err := d.collectRaw(since)
+	// Capture the cutoff *before* reading raw so messages arriving during the
+	// distill (including the LLM call) are not at risk of being pruned by a
+	// downstream cleanup step keyed off this value.
+	cutoff := time.Now().UTC()
+	rawRecords, err := d.collectRaw(since)
 	if err != nil {
 		return DistillResult{}, err
 	}
-	if len(rawLines) == 0 {
+	if len(rawRecords) == 0 {
 		return DistillResult{Skipped: true}, nil
 	}
 
-	prompt := buildPrompt(state.TopicIndex, rawLines)
+	prompt := buildPrompt(state.TopicIndex, rawRecords)
 	out, err := d.llm.Distill(ctx, prompt)
 	if err != nil {
 		return DistillResult{}, fmt.Errorf("llm: %w", err)
@@ -90,8 +108,8 @@ func (d *Distiller) Run(ctx context.Context, since time.Time) (DistillResult, er
 		return DistillResult{}, fmt.Errorf("parse llm output: %w", err)
 	}
 
-	res := DistillResult{}
-	now := time.Now().UTC()
+	res := DistillResult{CutoffAt: cutoff}
+	now := cutoff
 	indexBySlug := make(map[string]TopicIndexEntry)
 	for _, e := range state.TopicIndex {
 		indexBySlug[e.Slug] = e
@@ -155,9 +173,9 @@ func (d *Distiller) Run(ctx context.Context, since time.Time) (DistillResult, er
 	return res, nil
 }
 
-func (d *Distiller) collectRaw(since time.Time) ([]string, error) {
+func (d *Distiller) collectRaw(since time.Time) ([]promptRecord, error) {
 	rawDir := filepath.Join(d.repoRoot, "raw")
-	var lines []string
+	var records []promptRecord
 	err := filepath.Walk(rawDir, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -176,19 +194,20 @@ func (d *Distiller) collectRaw(since time.Time) ([]string, error) {
 		sc := bufio.NewScanner(f)
 		sc.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
 		for sc.Scan() {
-			line := sc.Text()
-			if since.IsZero() {
-				lines = append(lines, line)
+			var rec RawRecord
+			if err := json.Unmarshal(sc.Bytes(), &rec); err != nil {
 				continue
 			}
-			var rec struct {
-				Timestamp time.Time `json:"ts"`
-			}
-			if err := json.Unmarshal([]byte(line), &rec); err != nil {
-				continue
-			}
-			if rec.Timestamp.After(since) {
-				lines = append(lines, line)
+			if since.IsZero() || rec.Timestamp.After(since) {
+				chat, thread := normalizePromptChat(rec.Platform, rec.ChatID, rec.ThreadID)
+				records = append(records, promptRecord{
+					Timestamp: rec.Timestamp,
+					Role:      rec.Role,
+					Chat:      chat,
+					Thread:    thread,
+					Sender:    formatPromptSender(rec.Sender),
+					Text:      rec.Text,
+				})
 			}
 		}
 		return sc.Err()
@@ -196,10 +215,25 @@ func (d *Distiller) collectRaw(since time.Time) ([]string, error) {
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
-	return lines, nil
+	sort.SliceStable(records, func(i, j int) bool {
+		if !records[i].Timestamp.Equal(records[j].Timestamp) {
+			return records[i].Timestamp.Before(records[j].Timestamp)
+		}
+		if records[i].Chat != records[j].Chat {
+			return records[i].Chat < records[j].Chat
+		}
+		if records[i].Thread != records[j].Thread {
+			return records[i].Thread < records[j].Thread
+		}
+		if records[i].Role != records[j].Role {
+			return records[i].Role < records[j].Role
+		}
+		return records[i].Text < records[j].Text
+	})
+	return records, nil
 }
 
-func buildPrompt(topics []TopicIndexEntry, rawLines []string) string {
+func buildPrompt(topics []TopicIndexEntry, rawRecords []promptRecord) string {
 	var b strings.Builder
 	b.WriteString("You maintain a topic-based knowledge base. Group human messages into topics.\n")
 	b.WriteString("Output a JSON array of actions ('create' | 'update' | 'merge'). No prose.\n\n")
@@ -207,12 +241,32 @@ func buildPrompt(topics []TopicIndexEntry, rawLines []string) string {
 	for _, t := range topics {
 		fmt.Fprintf(&b, "- %s (%s): %s\n", t.Slug, t.Status, t.Title)
 	}
-	b.WriteString("\n# Raw messages (jsonl)\n")
-	for _, l := range rawLines {
-		b.WriteString(l)
-		b.WriteString("\n")
-	}
+	b.WriteString("\n# Raw messages (toon)\n")
+	b.WriteString(renderPromptRecordsTOON(rawRecords))
+	b.WriteString("\n")
 	return b.String()
+}
+
+func formatPromptSender(sender Sender) string {
+	switch {
+	case sender.DisplayName != "":
+		return sender.DisplayName
+	case sender.Username != "":
+		return sender.Username
+	default:
+		return sender.PlatformID
+	}
+}
+
+func normalizePromptChat(platform, chatID, threadID string) (chat string, thread string) {
+	thread = threadID
+	if baseChat, suffix, ok := strings.Cut(chatID, "/"); ok {
+		chatID = baseChat
+		if thread == "" {
+			thread = suffix
+		}
+	}
+	return ChannelKey(platform, chatID), thread
 }
 
 func stripCodeFence(s string) string {

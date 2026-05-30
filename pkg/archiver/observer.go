@@ -2,9 +2,10 @@ package archiver
 
 import (
 	"context"
+	"strings"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
+	"github.com/n-seiji/ebiclaw/pkg/bus"
 )
 
 // Observer adapts pkg/bus.Observer to a RawWriter.
@@ -22,7 +23,7 @@ func (o *Observer) OnInbound(_ context.Context, m bus.InboundMessage) {
 		Role:      "user",
 		Platform:  pickPlatform(m.Sender.Platform, m.Channel),
 		ChatID:    m.ChatID,
-		ThreadID:  m.Metadata["thread_id"],
+		ThreadID:  pickThreadID(m.ChatID, m.Metadata),
 		MessageID: m.MessageID,
 		Sender: Sender{
 			PlatformID:  m.Sender.PlatformID,
@@ -40,6 +41,7 @@ func (o *Observer) OnOutbound(_ context.Context, m bus.OutboundMessage) {
 		Role:      "assistant",
 		Platform:  m.Channel,
 		ChatID:    m.ChatID,
+		ThreadID:  pickThreadID(m.ChatID, m.Metadata),
 		Text:      m.Content,
 	}
 	_ = o.rw.Append(rec)
@@ -50,4 +52,19 @@ func pickPlatform(senderPlatform, channel string) string {
 		return senderPlatform
 	}
 	return channel
+}
+
+func pickThreadID(chatID string, metadata map[string]string) string {
+	if metadata != nil {
+		if threadID := metadata["thread_id"]; threadID != "" {
+			return threadID
+		}
+		if threadTS := metadata["thread_ts"]; threadTS != "" {
+			return threadTS
+		}
+	}
+	if _, threadID, ok := strings.Cut(chatID, "/"); ok {
+		return threadID
+	}
+	return ""
 }

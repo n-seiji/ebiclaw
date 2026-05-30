@@ -11,11 +11,13 @@ import (
 )
 
 type fakeLLM struct {
-	out string
-	err error
+	out        string
+	err        error
+	lastPrompt string
 }
 
 func (f *fakeLLM) Distill(ctx context.Context, prompt string) (string, error) {
+	f.lastPrompt = prompt
 	return f.out, f.err
 }
 
@@ -61,6 +63,118 @@ func TestPickPlatform(t *testing.T) {
 	}
 }
 
+func TestRenderPromptRecordsTOON(t *testing.T) {
+	records := []promptRecord{
+		{
+			Timestamp: time.Date(2026, 4, 29, 10, 0, 0, 0, time.UTC),
+			Role:      "user",
+			Chat:      "slack/C1",
+			Thread:    "1700.1",
+			Sender:    `alice "ops"`,
+			Text:      "first line\nsecond, line",
+		},
+		{
+			Timestamp: time.Date(2026, 4, 29, 10, 1, 0, 0, time.UTC),
+			Role:      "assistant",
+			Chat:      "slack/C1",
+			Text:      "ok",
+		},
+	}
+
+	got := renderPromptRecordsTOON(records)
+	for _, want := range []string{
+		`messages[2]{ts,role,chat,thread,sender,text}:`,
+		`"2026-04-29T10:00:00Z","user","slack/C1","1700.1","alice \"ops\"","first line\nsecond, line"`,
+		`"2026-04-29T10:01:00Z","assistant","slack/C1","","","ok"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("TOON output missing %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestCollectRaw_NormalizesAndFilters(t *testing.T) {
+	dir := t.TempDir()
+	rawDir := filepath.Join(dir, "raw", "slack", "C1")
+	if err := os.MkdirAll(rawDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldRec := RawRecord{
+		Timestamp: time.Date(2026, 4, 29, 9, 59, 0, 0, time.UTC),
+		Role:      "user",
+		Platform:  "slack",
+		ChatID:    "C1",
+		Sender:    Sender{PlatformID: "U1"},
+		Text:      "older",
+	}
+	newRec := RawRecord{
+		Timestamp: time.Date(2026, 4, 29, 10, 0, 0, 0, time.UTC),
+		Role:      "assistant",
+		Platform:  "slack",
+		ChatID:    "C1",
+		ThreadID:  "1700.1",
+		Sender:    Sender{DisplayName: "Pico"},
+		Text:      "newer",
+	}
+	var payload []byte
+	for _, rec := range []RawRecord{oldRec, newRec} {
+		line, err := json.Marshal(rec)
+		if err != nil {
+			t.Fatal(err)
+		}
+		payload = append(payload, append(line, '\n')...)
+	}
+	if err := os.WriteFile(filepath.Join(rawDir, "2026-04-29.jsonl"), payload, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	d := NewDistiller(dir, &fakeLLM{})
+	got, err := d.collectRaw(time.Date(2026, 4, 29, 9, 59, 30, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("collectRaw: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("len(got)=%d want 1", len(got))
+	}
+	if got[0].Chat != "slack/C1" || got[0].Thread != "1700.1" || got[0].Sender != "Pico" || got[0].Text != "newer" {
+		t.Fatalf("unexpected normalized record: %+v", got[0])
+	}
+}
+
+func TestCollectRaw_DerivesThreadFromChatIDSuffix(t *testing.T) {
+	dir := t.TempDir()
+	rawDir := filepath.Join(dir, "raw", "slack", "C1")
+	if err := os.MkdirAll(rawDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rec := RawRecord{
+		Timestamp: time.Date(2026, 4, 29, 10, 0, 0, 0, time.UTC),
+		Role:      "user",
+		Platform:  "slack",
+		ChatID:    "C1/1700.1",
+		Text:      "threaded",
+	}
+	line, err := json.Marshal(rec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rawDir, "2026-04-29.jsonl"), append(line, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	d := NewDistiller(dir, &fakeLLM{})
+	got, err := d.collectRaw(time.Time{})
+	if err != nil {
+		t.Fatalf("collectRaw: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("len(got)=%d want 1", len(got))
+	}
+	if got[0].Chat != "slack/C1" || got[0].Thread != "1700.1" {
+		t.Fatalf("unexpected normalized threaded chat: %+v", got[0])
+	}
+}
+
 func TestDistiller_CreatesNewTopic(t *testing.T) {
 	dir := t.TempDir()
 	rawDir := filepath.Join(dir, "raw", "slack", "C1")
@@ -98,6 +212,15 @@ func TestDistiller_CreatesNewTopic(t *testing.T) {
 	}
 	if len(got) == 0 {
 		t.Fatal("topic file empty")
+	}
+	if !strings.Contains(llm.lastPrompt, "# Raw messages (toon)") {
+		t.Fatalf("prompt should contain TOON header:\n%s", llm.lastPrompt)
+	}
+	if !strings.Contains(llm.lastPrompt, `messages[1]{ts,role,chat,thread,sender,text}:`) {
+		t.Fatalf("prompt should contain TOON table:\n%s", llm.lastPrompt)
+	}
+	if strings.Contains(llm.lastPrompt, string(line)) {
+		t.Fatalf("prompt should not embed raw JSONL directly:\n%s", llm.lastPrompt)
 	}
 }
 
