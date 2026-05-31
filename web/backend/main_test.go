@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/sipeed/picoclaw/web/backend/launcherconfig"
+	"github.com/n-seiji/ebiclaw/web/backend/launcherconfig"
 )
 
 func TestShouldEnableLauncherFileLogging(t *testing.T) {

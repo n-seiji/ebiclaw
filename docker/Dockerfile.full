@@ -1,5 +1,5 @@
 # ============================================================
-# Stage 1: Build the picoclaw binary
+# Stage 1: Build the ebiclaw binary
 # ============================================================
 FROM golang:1.26.0-alpine AS builder
 
@@ -35,10 +35,10 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
   uv --version
 
 # Copy binary
-COPY --from=builder /src/build/picoclaw /usr/local/bin/picoclaw
+COPY --from=builder /src/build/ebiclaw /usr/local/bin/ebiclaw
 
-# Create picoclaw home directory
-RUN /usr/local/bin/picoclaw onboard
+# Create ebiclaw home directory
+RUN /usr/local/bin/ebiclaw onboard
 
-ENTRYPOINT ["picoclaw"]
+ENTRYPOINT ["ebiclaw"]
 CMD ["gateway"]

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 func TestHandleGetChannelConfig_ReturnsSecretPresenceWithoutLeakingSecrets(t *testing.T) {

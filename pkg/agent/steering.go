@@ -6,10 +6,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/routing"
-	"github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/providers"
+	"github.com/n-seiji/ebiclaw/pkg/routing"
+	"github.com/n-seiji/ebiclaw/pkg/tools"
 )
 
 // SteeringMode controls how queued steering messages are dequeued.

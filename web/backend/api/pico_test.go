@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/channels/pico"
-	"github.com/sipeed/picoclaw/pkg/config"
-	ppid "github.com/sipeed/picoclaw/pkg/pid"
+	"github.com/n-seiji/ebiclaw/pkg/channels/pico"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	ppid "github.com/n-seiji/ebiclaw/pkg/pid"
 )
 
 func TestEnsurePicoChannel_FreshConfig(t *testing.T) {
@@ -313,7 +313,7 @@ func TestHandleWebSocketProxyReloadsGatewayTargetFromConfig(t *testing.T) {
 	t.Cleanup(func() { gatewayProcessMatcher = origMatcher })
 
 	home := t.TempDir()
-	t.Setenv("PICOCLAW_HOME", home)
+	t.Setenv("EBICLAW_HOME", home)
 
 	configPath := filepath.Join(t.TempDir(), "config.json")
 	h := NewHandler(configPath)
@@ -411,7 +411,7 @@ func TestHandleWebSocketProxyLoadsCachedPicoTokenWhenMissing(t *testing.T) {
 	t.Cleanup(func() { gatewayProcessMatcher = origMatcher })
 
 	home := t.TempDir()
-	t.Setenv("PICOCLAW_HOME", home)
+	t.Setenv("EBICLAW_HOME", home)
 
 	configPath := filepath.Join(t.TempDir(), "config.json")
 	h := NewHandler(configPath)
@@ -483,7 +483,7 @@ func TestHandleWebSocketProxyLoadsPidDataOnDemand(t *testing.T) {
 	t.Cleanup(func() { gatewayProcessMatcher = origMatcher })
 
 	home := t.TempDir()
-	t.Setenv("PICOCLAW_HOME", home)
+	t.Setenv("EBICLAW_HOME", home)
 
 	configPath := filepath.Join(t.TempDir(), "config.json")
 	h := NewHandler(configPath)

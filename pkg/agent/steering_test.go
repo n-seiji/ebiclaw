@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/media"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/routing"
-	"github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/n-seiji/ebiclaw/pkg/bus"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/media"
+	"github.com/n-seiji/ebiclaw/pkg/providers"
+	"github.com/n-seiji/ebiclaw/pkg/routing"
+	"github.com/n-seiji/ebiclaw/pkg/tools"
 )
 
 // --- steeringQueue unit tests ---

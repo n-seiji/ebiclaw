@@ -1,7 +1,7 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package ui
 
@@ -11,7 +11,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
-	tuicfg "github.com/sipeed/picoclaw/cmd/picoclaw-launcher-tui/config"
+	tuicfg "github.com/n-seiji/ebiclaw/cmd/ebiclaw-launcher-tui/config"
 )
 
 func (a *App) newSchemesPage() tview.Primitive {

@@ -4,22 +4,27 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"net/http"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/n-seiji/ebiclaw/pkg/archiver"
 )
 
 type Server struct {
-	server     *http.Server
-	mu         sync.RWMutex
-	ready      bool
-	checks     map[string]Check
-	startTime  time.Time
-	reloadFunc func() error
-	authToken  string // optional bearer token for protected endpoints
+	server             *http.Server
+	mu                 sync.RWMutex
+	ready              bool
+	checks             map[string]Check
+	startTime          time.Time
+	reloadFunc         func() error
+	archiverStatusFunc func() any
+	archiverRunFunc    func(context.Context) error
+	authToken          string // optional bearer token for protected endpoints
 }
 
 type Check struct {
@@ -48,6 +53,8 @@ func NewServer(host string, port int, token string) *Server {
 	mux.HandleFunc("/health", s.healthHandler)
 	mux.HandleFunc("/ready", s.readyHandler)
 	mux.HandleFunc("/reload", s.reloadHandler)
+	mux.HandleFunc("/archiver/status", s.archiverStatusHandler)
+	mux.HandleFunc("/archiver/run", s.archiverRunHandler)
 
 	addr := fmt.Sprintf("%s:%d", host, port)
 	s.server = &http.Server{
@@ -118,6 +125,18 @@ func (s *Server) SetReloadFunc(fn func() error) {
 	s.reloadFunc = fn
 }
 
+func (s *Server) SetArchiverStatusFunc(fn func() any) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.archiverStatusFunc = fn
+}
+
+func (s *Server) SetArchiverRunFunc(fn func(context.Context) error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.archiverRunFunc = fn
+}
+
 func (s *Server) reloadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Content-Type", "application/json")
@@ -162,6 +181,75 @@ func (s *Server) reloadHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "reload triggered"})
+}
+
+func (s *Server) archiverStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed, use GET"})
+		return
+	}
+	if !s.authorize(r) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	s.mu.RLock()
+	statusFunc := s.archiverStatusFunc
+	s.mu.RUnlock()
+	if statusFunc == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "archiver not configured"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(statusFunc())
+}
+
+func (s *Server) archiverRunHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed, use POST"})
+		return
+	}
+	if !s.authorize(r) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	s.mu.RLock()
+	runFunc := s.archiverRunFunc
+	s.mu.RUnlock()
+	if runFunc == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "archiver not configured"})
+		return
+	}
+
+	if err := runFunc(r.Context()); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		if errors.Is(err, archiver.ErrBusy) {
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "archiver triggered"})
 }
 
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -230,6 +318,8 @@ func (s *Server) RegisterOnMux(mux HandlerMux) {
 	mux.HandleFunc("/health", s.healthHandler)
 	mux.HandleFunc("/ready", s.readyHandler)
 	mux.HandleFunc("/reload", s.reloadHandler)
+	mux.HandleFunc("/archiver/status", s.archiverStatusHandler)
+	mux.HandleFunc("/archiver/run", s.archiverRunHandler)
 }
 
 func statusString(ok bool) string {
@@ -250,4 +340,15 @@ func extractBearerToken(header string) string {
 		return ""
 	}
 	return header[len(prefix):]
+}
+
+func (s *Server) authorize(r *http.Request) bool {
+	s.mu.RLock()
+	requiredToken := s.authToken
+	s.mu.RUnlock()
+	if requiredToken == "" {
+		return true
+	}
+	given := extractBearerToken(r.Header.Get("Authorization"))
+	return given != "" && subtle.ConstantTimeCompare([]byte(given), []byte(requiredToken)) == 1
 }

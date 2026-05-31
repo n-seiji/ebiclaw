@@ -33,7 +33,7 @@ jobs:
 
       # 4. 签名
       - name: Ad-hoc Sign
-        run: codesign --force --deep --sign - "build/PicoClaw Launcher.app"
+        run: codesign --force --deep --sign - "build/EbiClaw Launcher.app"
 
       # 5. 安装打包工具
       - name: Install create-dmg
@@ -44,15 +44,15 @@ jobs:
         run: |
           mkdir -p dist
           create-dmg \
-            --volname "PicoClaw Installer" \
+            --volname "EbiClaw Installer" \
             --window-pos 200 120 \
             --window-size 800 400 \
             --icon-size 100 \
-            --icon "PicoClaw Launcher.app" 200 190 \
-            --hide-extension "PicoClaw Launcher.app" \
+            --icon "EbiClaw Launcher.app" 200 190 \
+            --hide-extension "EbiClaw Launcher.app" \
             --app-drop-link 600 185 \
-            "dist/picoclaw-${{ matrix.arch }}.dmg" \
-            "build/PicoClaw Launcher.app"
+            "dist/ebiclaw-${{ matrix.arch }}.dmg" \
+            "build/EbiClaw Launcher.app"
 
       # 7. 上传文件到 GitHub Artifacts (供你下载)
       - name: Upload DMG

@@ -4,9 +4,9 @@ ARG TARGETPLATFORM
 
 RUN apk add --no-cache ca-certificates tzdata
 
-COPY $TARGETPLATFORM/picoclaw /usr/local/bin/picoclaw
-COPY $TARGETPLATFORM/picoclaw-launcher /usr/local/bin/picoclaw-launcher
-COPY $TARGETPLATFORM/picoclaw-launcher-tui /usr/local/bin/picoclaw-launcher-tui
+COPY $TARGETPLATFORM/ebiclaw /usr/local/bin/ebiclaw
+COPY $TARGETPLATFORM/ebiclaw-launcher /usr/local/bin/ebiclaw-launcher
+COPY $TARGETPLATFORM/ebiclaw-launcher-tui /usr/local/bin/ebiclaw-launcher-tui
 
-ENTRYPOINT ["picoclaw-launcher"]
+ENTRYPOINT ["ebiclaw-launcher"]
 CMD ["-console", "-public", "-no-browser"]

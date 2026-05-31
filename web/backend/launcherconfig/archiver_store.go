@@ -1,7 +1,7 @@
 package launcherconfig
 
 import (
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 // ArchiverStore reads and writes the archiver block of the live config.json

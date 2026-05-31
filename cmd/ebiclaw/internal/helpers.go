@@ -4,16 +4,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sipeed/picoclaw/pkg"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 )
 
 const Logo = pkg.Logo
 
-// GetPicoclawHome returns the picoclaw home directory.
-// Priority: $PICOCLAW_HOME > ~/.picoclaw
-func GetPicoclawHome() string {
+// GetEbiclawHome returns the ebiclaw home directory.
+// Priority: $EBICLAW_HOME > ~/.ebiclaw
+func GetEbiclawHome() string {
 	return config.GetHome()
 }
 
@@ -21,7 +21,7 @@ func GetConfigPath() string {
 	if configPath := os.Getenv(config.EnvConfig); configPath != "" {
 		return configPath
 	}
-	return filepath.Join(GetPicoclawHome(), "config.json")
+	return filepath.Join(GetEbiclawHome(), "config.json")
 }
 
 func LoadConfig() (*config.Config, error) {

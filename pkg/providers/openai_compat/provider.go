@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/providers/common"
-	"github.com/sipeed/picoclaw/pkg/providers/protocoltypes"
+	"github.com/n-seiji/ebiclaw/pkg/providers/common"
+	"github.com/n-seiji/ebiclaw/pkg/providers/protocoltypes"
 )
 
 type (

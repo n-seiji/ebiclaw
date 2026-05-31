@@ -12,12 +12,12 @@ import (
 )
 
 // LauncherDashboardCookieName is the HttpOnly cookie set after a successful token login.
-const LauncherDashboardCookieName = "picoclaw_launcher_auth"
+const LauncherDashboardCookieName = "ebiclaw_launcher_auth"
 
 // launcherDashboardSessionMaxAgeSec is the session cookie lifetime (7 days).
 const launcherDashboardSessionMaxAgeSec = 7 * 24 * 3600
 
-const launcherSessionMACLabel = "picoclaw-launcher-v1"
+const launcherSessionMACLabel = "ebiclaw-launcher-v1"
 
 // SessionCookieValue is the expected cookie value for the given signing key and dashboard token.
 func SessionCookieValue(signingKey []byte, dashboardToken string) string {

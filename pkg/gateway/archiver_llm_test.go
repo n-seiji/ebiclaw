@@ -3,7 +3,7 @@ package gateway
 import (
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/archiver"
+	"github.com/n-seiji/ebiclaw/pkg/archiver"
 )
 
 func TestArchiverLLMAdapter_SatisfiesInterface(t *testing.T) {

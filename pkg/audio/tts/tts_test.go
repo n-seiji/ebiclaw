@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/media"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/media"
 )
 
 func TestNewOpenAITTSProvider_APIBaseNormalization(t *testing.T) {

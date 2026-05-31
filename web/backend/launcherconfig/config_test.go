@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/sipeed/picoclaw/web/backend/middleware"
+	"github.com/n-seiji/ebiclaw/web/backend/middleware"
 )
 
 func TestLoadReturnsFallbackWhenMissing(t *testing.T) {
@@ -82,7 +82,7 @@ func TestValidateRejectsInvalidCIDR(t *testing.T) {
 }
 
 func TestEnsureDashboardSecrets_GeneratesEphemeral(t *testing.T) {
-	t.Setenv("PICOCLAW_LAUNCHER_TOKEN", "")
+	t.Setenv("EBICLAW_LAUNCHER_TOKEN", "")
 
 	tok, key, source, err := EnsureDashboardSecrets(Default())
 	if err != nil {
@@ -112,7 +112,7 @@ func TestEnsureDashboardSecrets_GeneratesEphemeral(t *testing.T) {
 }
 
 func TestEnsureDashboardSecrets_EnvOverridesGenerated(t *testing.T) {
-	t.Setenv("PICOCLAW_LAUNCHER_TOKEN", "env-only-token-override")
+	t.Setenv("EBICLAW_LAUNCHER_TOKEN", "env-only-token-override")
 
 	tok, _, source, err := EnsureDashboardSecrets(Config{LauncherToken: "config-token"})
 	if err != nil {
@@ -127,7 +127,7 @@ func TestEnsureDashboardSecrets_EnvOverridesGenerated(t *testing.T) {
 }
 
 func TestEnsureDashboardSecrets_ConfigOverridesGenerated(t *testing.T) {
-	t.Setenv("PICOCLAW_LAUNCHER_TOKEN", "")
+	t.Setenv("EBICLAW_LAUNCHER_TOKEN", "")
 
 	tok, _, source, err := EnsureDashboardSecrets(Config{LauncherToken: "config-token"})
 	if err != nil {

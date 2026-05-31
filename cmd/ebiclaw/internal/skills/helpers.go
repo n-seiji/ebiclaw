@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/skills"
-	"github.com/sipeed/picoclaw/pkg/utils"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/skills"
+	"github.com/n-seiji/ebiclaw/pkg/utils"
 )
 
 const skillsSearchMaxResults = 20
@@ -141,7 +141,7 @@ func skillsRemoveCmd(installer *skills.SkillInstaller, skillName string) {
 }
 
 func skillsInstallBuiltinCmd(workspace string) {
-	builtinSkillsDir := "./picoclaw/skills"
+	builtinSkillsDir := "./ebiclaw/skills"
 	workspaceSkillsDir := filepath.Join(workspace, "skills")
 
 	fmt.Printf("Copying builtin skills to workspace...\n")
@@ -182,7 +182,7 @@ func skillsListBuiltinCmd() {
 		fmt.Printf("Error loading config: %v\n", err)
 		return
 	}
-	builtinSkillsDir := filepath.Join(filepath.Dir(cfg.WorkspacePath()), "picoclaw", "skills")
+	builtinSkillsDir := filepath.Join(filepath.Dir(cfg.WorkspacePath()), "ebiclaw", "skills")
 
 	fmt.Println("\nAvailable Builtin Skills:")
 	fmt.Println("-----------------------")

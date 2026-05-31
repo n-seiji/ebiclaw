@@ -9,31 +9,31 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 func TestGetConfigPath(t *testing.T) {
 	t.Setenv("HOME", "/tmp/home")
 
 	got := GetConfigPath()
-	want := filepath.Join("/tmp/home", ".picoclaw", "config.json")
+	want := filepath.Join("/tmp/home", ".ebiclaw", "config.json")
 
 	assert.Equal(t, want, got)
 }
 
-func TestGetConfigPath_WithPICOCLAW_HOME(t *testing.T) {
-	t.Setenv(config.EnvHome, "/custom/picoclaw")
+func TestGetConfigPath_WithEBICLAW_HOME(t *testing.T) {
+	t.Setenv(config.EnvHome, "/custom/ebiclaw")
 	t.Setenv("HOME", "/tmp/home")
 
 	got := GetConfigPath()
-	want := filepath.Join("/custom/picoclaw", "config.json")
+	want := filepath.Join("/custom/ebiclaw", "config.json")
 
 	assert.Equal(t, want, got)
 }
 
-func TestGetConfigPath_WithPICOCLAW_CONFIG(t *testing.T) {
-	t.Setenv("PICOCLAW_CONFIG", "/custom/config.json")
-	t.Setenv(config.EnvHome, "/custom/picoclaw")
+func TestGetConfigPath_WithEBICLAW_CONFIG(t *testing.T) {
+	t.Setenv("EBICLAW_CONFIG", "/custom/config.json")
+	t.Setenv(config.EnvHome, "/custom/ebiclaw")
 	t.Setenv("HOME", "/tmp/home")
 
 	got := GetConfigPath()
@@ -51,7 +51,7 @@ func TestGetConfigPath_Windows(t *testing.T) {
 	t.Setenv("USERPROFILE", testUserProfilePath)
 
 	got := GetConfigPath()
-	want := filepath.Join(testUserProfilePath, ".picoclaw", "config.json")
+	want := filepath.Join(testUserProfilePath, ".ebiclaw", "config.json")
 
 	require.True(t, strings.EqualFold(got, want), "GetConfigPath() = %q, want %q", got, want)
 }

@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 )
 
 // LLMClient is the abstraction over pkg/providers used by the distiller.
@@ -79,6 +81,10 @@ type promptRecord struct {
 func (d *Distiller) Run(ctx context.Context, since time.Time) (DistillResult, error) {
 	state, err := ReadState(d.repoRoot)
 	if err != nil {
+		logger.ErrorCF("archiver", "Failed to read archiver state", map[string]any{
+			"error":           err.Error(),
+			"repository_path": d.repoRoot,
+		})
 		return DistillResult{}, err
 	}
 	if since.IsZero() {
@@ -90,23 +96,52 @@ func (d *Distiller) Run(ctx context.Context, since time.Time) (DistillResult, er
 	cutoff := time.Now().UTC()
 	rawRecords, err := d.collectRaw(since)
 	if err != nil {
+		logger.ErrorCF("archiver", "Failed to collect raw messages", map[string]any{
+			"error":           err.Error(),
+			"repository_path": d.repoRoot,
+		})
 		return DistillResult{}, err
 	}
 	if len(rawRecords) == 0 {
+		logger.InfoCF("archiver", "No raw messages to distill", map[string]any{
+			"repository_path": d.repoRoot,
+			"since":           since,
+		})
 		return DistillResult{Skipped: true}, nil
 	}
+	logger.InfoCF("archiver", "Collected raw messages for distill", map[string]any{
+		"repository_path": d.repoRoot,
+		"raw_count":       len(rawRecords),
+		"since":           since,
+	})
 
 	prompt := buildPrompt(state.TopicIndex, rawRecords)
 	out, err := d.llm.Distill(ctx, prompt)
 	if err != nil {
+		logger.ErrorCF("archiver", "Distill LLM call failed", map[string]any{
+			"error":           err.Error(),
+			"repository_path": d.repoRoot,
+			"raw_count":       len(rawRecords),
+		})
 		return DistillResult{}, fmt.Errorf("llm: %w", err)
 	}
 	out = stripCodeFence(out)
 
 	var actions []distillAction
 	if err := json.Unmarshal([]byte(out), &actions); err != nil {
+		logger.ErrorCF("archiver", "Failed to parse distill output", map[string]any{
+			"error":           err.Error(),
+			"repository_path": d.repoRoot,
+			"raw_count":       len(rawRecords),
+			"output_preview":  truncateForLog(out, 500),
+		})
 		return DistillResult{}, fmt.Errorf("parse llm output: %w", err)
 	}
+	logger.InfoCF("archiver", "Parsed distill actions", map[string]any{
+		"repository_path": d.repoRoot,
+		"raw_count":       len(rawRecords),
+		"action_count":    len(actions),
+	})
 
 	res := DistillResult{CutoffAt: cutoff}
 	now := cutoff
@@ -159,15 +194,27 @@ func (d *Distiller) Run(ctx context.Context, since time.Time) (DistillResult, er
 	sort.Slice(state.TopicIndex, func(i, j int) bool { return state.TopicIndex[i].Slug < state.TopicIndex[j].Slug })
 
 	if err := os.WriteFile(filepath.Join(d.repoRoot, "index.md"), []byte(RenderIndex(state.TopicIndex)), 0o644); err != nil {
+		logger.ErrorCF("archiver", "Failed to write archive index", map[string]any{
+			"error":           err.Error(),
+			"repository_path": d.repoRoot,
+		})
 		return res, err
 	}
 	summary := fmt.Sprintf("distilled: %d created, %d updated, %d merged", res.Created, res.Updated, res.Merged)
 	if err := AppendLog(d.repoRoot, now, summary); err != nil {
+		logger.ErrorCF("archiver", "Failed to append archive log", map[string]any{
+			"error":           err.Error(),
+			"repository_path": d.repoRoot,
+		})
 		return res, err
 	}
 
 	state.LastDistilledAt = now
 	if err := WriteState(d.repoRoot, state); err != nil {
+		logger.ErrorCF("archiver", "Failed to write archive state", map[string]any{
+			"error":           err.Error(),
+			"repository_path": d.repoRoot,
+		})
 		return res, err
 	}
 	return res, nil
@@ -267,6 +314,13 @@ func normalizePromptChat(platform, chatID, threadID string) (chat string, thread
 		}
 	}
 	return ChannelKey(platform, chatID), thread
+}
+
+func truncateForLog(s string, n int) string {
+	if n <= 0 || len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
 
 func stripCodeFence(s string) string {

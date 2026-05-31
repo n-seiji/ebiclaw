@@ -8,33 +8,33 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 )
 
-// GetPicoclawHome returns the picoclaw home directory.
-// Priority: $PICOCLAW_HOME > ~/.picoclaw
-func GetPicoclawHome() string {
+// GetEbiclawHome returns the ebiclaw home directory.
+// Priority: $EBICLAW_HOME > ~/.ebiclaw
+func GetEbiclawHome() string {
 	return config.GetHome()
 }
 
-// GetDefaultConfigPath returns the default path to the picoclaw config file.
+// GetDefaultConfigPath returns the default path to the ebiclaw config file.
 func GetDefaultConfigPath() string {
 	if configPath := os.Getenv(config.EnvConfig); configPath != "" {
 		return configPath
 	}
-	return filepath.Join(GetPicoclawHome(), "config.json")
+	return filepath.Join(GetEbiclawHome(), "config.json")
 }
 
-// FindPicoclawBinary locates the picoclaw executable.
+// FindEbiclawBinary locates the ebiclaw executable.
 // Search order:
-//  1. PICOCLAW_BINARY environment variable (explicit override)
+//  1. EBICLAW_BINARY environment variable (explicit override)
 //  2. Same directory as the current executable
-//  3. Falls back to "picoclaw" and relies on $PATH
-func FindPicoclawBinary() string {
-	binaryName := "picoclaw"
+//  3. Falls back to "ebiclaw" and relies on $PATH
+func FindEbiclawBinary() string {
+	binaryName := "ebiclaw"
 	if runtime.GOOS == "windows" {
-		binaryName = "picoclaw.exe"
+		binaryName = "ebiclaw.exe"
 	}
 
 	if p := os.Getenv(config.EnvBinary); p != "" {
@@ -44,14 +44,14 @@ func FindPicoclawBinary() string {
 	}
 
 	if exe, err := os.Executable(); err == nil {
-		logger.Debugf("Trying to find picoclaw binary in %s", exe)
+		logger.Debugf("Trying to find ebiclaw binary in %s", exe)
 		candidate := filepath.Join(filepath.Dir(exe), binaryName)
 		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
 			return candidate
 		}
 	}
 
-	return "picoclaw"
+	return "ebiclaw"
 }
 
 // GetLocalIP returns the local IP address of the machine.

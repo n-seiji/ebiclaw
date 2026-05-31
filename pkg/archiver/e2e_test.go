@@ -79,4 +79,13 @@ func TestE2E_FullCycle(t *testing.T) {
 	if !strings.Contains(string(out), "archive:") {
 		t.Fatalf("expected archive commit in remote log: %s", out)
 	}
+
+	// Raw entry timestamp (2026-04-29) is far older than distill-start (now),
+	// so the cleanup must have removed the file locally before the commit.
+	// (git only records a deletion when the file was previously tracked; this
+	// test seeds the file as untracked, so we assert disk state, not the
+	// commit's name-status output.)
+	if _, err := os.Stat(filepath.Join(rawDir, "2026-04-29.jsonl")); !os.IsNotExist(err) {
+		t.Errorf("expected raw file removed after distill cleanup; stat err = %v", err)
+	}
 }

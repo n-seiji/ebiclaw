@@ -1,8 +1,8 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // Inspired by and based on nanobot: https://github.com/HKUDS/nanobot
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package main
 
@@ -13,28 +13,28 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal"
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal/agent"
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal/auth"
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal/cron"
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal/gateway"
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal/migrate"
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal/model"
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal/onboard"
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal/skills"
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal/status"
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal/version"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/updater"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/agent"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/auth"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/cron"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/gateway"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/migrate"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/model"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/onboard"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/skills"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/status"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/version"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/updater"
 )
 
-func NewPicoclawCommand() *cobra.Command {
-	short := fmt.Sprintf("%s picoclaw - Personal AI Assistant %s\n\n", internal.Logo, config.GetVersion())
+func NewEbiclawCommand() *cobra.Command {
+	short := fmt.Sprintf("%s ebiclaw - Personal AI Assistant %s\n\n", internal.Logo, config.GetVersion())
 
 	cmd := &cobra.Command{
-		Use:     "picoclaw",
+		Use:     "ebiclaw",
 		Short:   short,
-		Example: "picoclaw version",
+		Example: "ebiclaw version",
 	}
 
 	cmd.AddCommand(
@@ -47,7 +47,7 @@ func NewPicoclawCommand() *cobra.Command {
 		migrate.NewMigrateCommand(),
 		skills.NewSkillsCommand(),
 		model.NewModelCommand(),
-		updater.NewUpdateCommand("picoclaw"),
+		updater.NewUpdateCommand("ebiclaw"),
 		version.NewVersionCommand(),
 	)
 
@@ -84,7 +84,7 @@ func main() {
 		}
 	}
 
-	cmd := NewPicoclawCommand()
+	cmd := NewEbiclawCommand()
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}

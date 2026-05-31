@@ -11,11 +11,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/identity"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/media"
+	"github.com/n-seiji/ebiclaw/pkg/bus"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/identity"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/media"
 )
 
 var (
@@ -114,7 +114,7 @@ func NewBaseChannel(
 	}
 
 	// Security Audit: Check for open-by-default (unsecured) channels.
-	// PicoClaw aims to be secure-by-default. If allow_from is empty, the bot
+	// EbiClaw aims to be secure-by-default. If allow_from is empty, the bot
 	// currently defaults to accepting messages from ANYONE. To explicitly
 	// acknowledge and permit this (e.g. for a public bot), use ["*"].
 	if len(bc.allowList) == 0 {
@@ -175,6 +175,13 @@ func (c *BaseChannel) ShouldRespondInGroup(isMentioned bool, content string) (bo
 
 func (c *BaseChannel) Name() string {
 	return c.name
+}
+
+// MessageBus returns the bus this channel is wired to. Concrete channels use
+// this when they need to publish an InboundMessage directly without the
+// auto-trigger UX side effects of HandleMessage (e.g. observe-only ingestion).
+func (c *BaseChannel) MessageBus() *bus.MessageBus {
+	return c.bus
 }
 
 func (c *BaseChannel) ReasoningChannelID() string {

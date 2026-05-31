@@ -1,9 +1,9 @@
 [Desktop Entry]
-Name=PicoClaw Launcher
-Comment=Web-based configuration and management UI for PicoClaw
-Exec=picoclaw-launcher
-Icon=picoclaw-launcher
+Name=EbiClaw Launcher
+Comment=Web-based configuration and management UI for EbiClaw
+Exec=ebiclaw-launcher
+Icon=ebiclaw-launcher
 Terminal=true
 Type=Application
 Categories=Utility;Network;
-Keywords=picoclaw;ai;agent;bot;
+Keywords=ebiclaw;ai;agent;bot;

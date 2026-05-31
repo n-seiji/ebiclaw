@@ -3,7 +3,7 @@ package skills
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/sipeed/picoclaw/pkg/skills"
+	"github.com/n-seiji/ebiclaw/pkg/skills"
 )
 
 func newShowCommand(loaderFn func() (*skills.SkillsLoader, error)) *cobra.Command {
@@ -11,7 +11,7 @@ func newShowCommand(loaderFn func() (*skills.SkillsLoader, error)) *cobra.Comman
 		Use:     "show",
 		Short:   "Show skill details",
 		Args:    cobra.ExactArgs(1),
-		Example: `picoclaw skills show weather`,
+		Example: `ebiclaw skills show weather`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			loader, err := loaderFn()
 			if err != nil {

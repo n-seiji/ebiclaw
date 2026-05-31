@@ -13,26 +13,26 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/agent"
-	"github.com/sipeed/picoclaw/pkg/archiver"
-	"github.com/sipeed/picoclaw/pkg/audio/asr"
-	"github.com/sipeed/picoclaw/pkg/audio/tts"
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/channels"
-	_ "github.com/sipeed/picoclaw/pkg/channels/discord"
-	"github.com/sipeed/picoclaw/pkg/channels/pico"
-	_ "github.com/sipeed/picoclaw/pkg/channels/slack"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/cron"
-	"github.com/sipeed/picoclaw/pkg/devices"
-	"github.com/sipeed/picoclaw/pkg/health"
-	"github.com/sipeed/picoclaw/pkg/heartbeat"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/media"
-	"github.com/sipeed/picoclaw/pkg/pid"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/state"
-	"github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/n-seiji/ebiclaw/pkg/agent"
+	"github.com/n-seiji/ebiclaw/pkg/archiver"
+	"github.com/n-seiji/ebiclaw/pkg/audio/asr"
+	"github.com/n-seiji/ebiclaw/pkg/audio/tts"
+	"github.com/n-seiji/ebiclaw/pkg/bus"
+	"github.com/n-seiji/ebiclaw/pkg/channels"
+	_ "github.com/n-seiji/ebiclaw/pkg/channels/discord"
+	"github.com/n-seiji/ebiclaw/pkg/channels/pico"
+	_ "github.com/n-seiji/ebiclaw/pkg/channels/slack"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/cron"
+	"github.com/n-seiji/ebiclaw/pkg/devices"
+	"github.com/n-seiji/ebiclaw/pkg/health"
+	"github.com/n-seiji/ebiclaw/pkg/heartbeat"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/media"
+	"github.com/n-seiji/ebiclaw/pkg/pid"
+	"github.com/n-seiji/ebiclaw/pkg/providers"
+	"github.com/n-seiji/ebiclaw/pkg/state"
+	"github.com/n-seiji/ebiclaw/pkg/tools"
 )
 
 const (
@@ -393,6 +393,18 @@ func setupAndStartServices(
 	addr := fmt.Sprintf("%s:%d", cfg.Gateway.Host, cfg.Gateway.Port)
 	runningServices.authToken = authToken
 	runningServices.HealthServer = health.NewServer(cfg.Gateway.Host, cfg.Gateway.Port, authToken)
+	runningServices.HealthServer.SetArchiverStatusFunc(func() any {
+		if runningServices.ArchiverService == nil {
+			return archiver.Status{}
+		}
+		return runningServices.ArchiverService.Status()
+	})
+	runningServices.HealthServer.SetArchiverRunFunc(func(ctx context.Context) error {
+		if runningServices.ArchiverService == nil {
+			return fmt.Errorf("archiver not configured")
+		}
+		return runningServices.ArchiverService.RunOnce(ctx)
+	})
 	runningServices.ChannelManager.SetupHTTPServer(addr, runningServices.HealthServer)
 
 	if err = runningServices.ChannelManager.StartAll(context.Background()); err != nil {

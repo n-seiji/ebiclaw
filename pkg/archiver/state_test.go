@@ -28,7 +28,7 @@ func TestState_RoundTrip(t *testing.T) {
 	if len(got.TopicIndex) != 1 || got.TopicIndex[0].Slug != "login-flow-bug" {
 		t.Fatalf("unexpected: %+v", got)
 	}
-	want := filepath.Join(dir, ".picoclaw-archive", "state.json")
+	want := filepath.Join(dir, ".ebiclaw-archive", "state.json")
 	if _, err := os.Stat(want); err != nil {
 		t.Fatalf("file missing: %v", err)
 	}

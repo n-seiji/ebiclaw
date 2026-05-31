@@ -3,7 +3,7 @@ package asr
 import (
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 func TestDetectTranscriber(t *testing.T) {

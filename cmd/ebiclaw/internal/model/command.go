@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal"
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 // LocalModel is a special model name that indicates that the model is local and with or without api_key.
@@ -22,10 +22,10 @@ If no argument is provided, shows the current default model.
 If a model name is provided, sets it as the default model.
 
 Examples:
-  picoclaw model                    # Show current default model
-  picoclaw model gpt-5.2           # Set gpt-5.2 as default
-  picoclaw model claude-sonnet-4.6 # Set claude-sonnet-4.6 as default
-  picoclaw model local-model       # Set local VLLM server as default
+  ebiclaw model                    # Show current default model
+  ebiclaw model gpt-5.2           # Set gpt-5.2 as default
+  ebiclaw model claude-sonnet-4.6 # Set claude-sonnet-4.6 as default
+  ebiclaw model local-model       # Set local VLLM server as default
 
 Note: 'local-model' is a special value for using a local VLLM server
 (running at localhost:8000 by default) which does not require an API key.`,

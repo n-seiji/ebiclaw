@@ -1,7 +1,7 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package main
 
@@ -11,8 +11,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	tuicfg "github.com/sipeed/picoclaw/cmd/picoclaw-launcher-tui/config"
-	"github.com/sipeed/picoclaw/cmd/picoclaw-launcher-tui/ui"
+	tuicfg "github.com/n-seiji/ebiclaw/cmd/ebiclaw-launcher-tui/config"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw-launcher-tui/ui"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 
 	configDir := filepath.Dir(configPath)
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
-		cmd := exec.Command("picoclaw", "onboard")
+		cmd := exec.Command("ebiclaw", "onboard")
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -32,7 +32,7 @@ func main() {
 
 	cfg, err := tuicfg.Load(configPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "picoclaw-launcher-tui: %v\n", err)
+		fmt.Fprintf(os.Stderr, "ebiclaw-launcher-tui: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -42,7 +42,7 @@ func main() {
 		_ = tuicfg.SyncSelectedModelToMainConfig(scheme, user, modelID)
 	}
 	if err := app.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "picoclaw-launcher-tui: %v\n", err)
+		fmt.Fprintf(os.Stderr, "ebiclaw-launcher-tui: %v\n", err)
 		os.Exit(1)
 	}
 }

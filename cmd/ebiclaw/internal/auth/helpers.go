@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal"
-	"github.com/sipeed/picoclaw/pkg/auth"
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal"
+	"github.com/n-seiji/ebiclaw/pkg/auth"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 const (
@@ -278,7 +278,7 @@ func authStatusCmd() error {
 
 	if len(store.Credentials) == 0 {
 		fmt.Println("No authenticated providers.")
-		fmt.Println("Run: picoclaw auth login --provider <name>")
+		fmt.Println("Run: ebiclaw auth login --provider <name>")
 		return nil
 	}
 

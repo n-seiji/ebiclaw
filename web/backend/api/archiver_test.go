@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/archiver"
+	"github.com/n-seiji/ebiclaw/pkg/archiver"
 )
 
 type fakeStore struct {
@@ -32,7 +32,7 @@ func (r *fakeRunner) RunOnce(ctx context.Context) error { return r.runErr }
 func (r *fakeRunner) Status() ArchiverStatusSnapshot    { return r.status }
 
 func TestArchiver_GetConfig(t *testing.T) {
-	h := NewArchiverHandler(newFakeStore(), nil)
+	h := NewArchiverHandler(newFakeStore(), nil, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/archiver/config", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -50,7 +50,7 @@ func TestArchiver_GetConfig(t *testing.T) {
 
 func TestArchiver_PutConfig(t *testing.T) {
 	store := &fakeStore{}
-	h := NewArchiverHandler(store, nil)
+	h := NewArchiverHandler(store, nil, nil)
 	body, _ := json.Marshal(map[string]any{
 		"enabled":         true,
 		"repository_path": "/tmp/x",
@@ -68,7 +68,7 @@ func TestArchiver_PutConfig(t *testing.T) {
 }
 
 func TestArchiver_PutConfig_BadJSON(t *testing.T) {
-	h := NewArchiverHandler(newFakeStore(), nil)
+	h := NewArchiverHandler(newFakeStore(), nil, nil)
 	req := httptest.NewRequest(http.MethodPut, "/api/archiver/config", bytes.NewReader([]byte("not json")))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -78,7 +78,7 @@ func TestArchiver_PutConfig_BadJSON(t *testing.T) {
 }
 
 func TestArchiver_Status_NoRunner(t *testing.T) {
-	h := NewArchiverHandler(newFakeStore(), nil)
+	h := NewArchiverHandler(newFakeStore(), nil, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/archiver/status", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -96,7 +96,7 @@ func TestArchiver_Status_NoRunner(t *testing.T) {
 
 func TestArchiver_Status_WithRunner(t *testing.T) {
 	runner := &fakeRunner{status: ArchiverStatusSnapshot{Running: true, ConsecutivePushFailures: 3}}
-	h := NewArchiverHandler(newFakeStore(), runner)
+	h := NewArchiverHandler(newFakeStore(), runner, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/archiver/status", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -111,7 +111,7 @@ func TestArchiver_Status_WithRunner(t *testing.T) {
 }
 
 func TestArchiver_Run_NoRunner(t *testing.T) {
-	h := NewArchiverHandler(newFakeStore(), nil)
+	h := NewArchiverHandler(newFakeStore(), nil, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/archiver/run", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -121,7 +121,7 @@ func TestArchiver_Run_NoRunner(t *testing.T) {
 }
 
 func TestArchiver_Run_OK(t *testing.T) {
-	h := NewArchiverHandler(newFakeStore(), &fakeRunner{})
+	h := NewArchiverHandler(newFakeStore(), &fakeRunner{}, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/archiver/run", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -131,7 +131,7 @@ func TestArchiver_Run_OK(t *testing.T) {
 }
 
 func TestArchiver_Run_Busy(t *testing.T) {
-	h := NewArchiverHandler(newFakeStore(), &fakeRunner{runErr: archiver.ErrBusy})
+	h := NewArchiverHandler(newFakeStore(), &fakeRunner{runErr: archiver.ErrBusy}, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/archiver/run", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -141,7 +141,7 @@ func TestArchiver_Run_Busy(t *testing.T) {
 }
 
 func TestArchiver_Run_OtherError(t *testing.T) {
-	h := NewArchiverHandler(newFakeStore(), &fakeRunner{runErr: errors.New("boom")})
+	h := NewArchiverHandler(newFakeStore(), &fakeRunner{runErr: errors.New("boom")}, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/archiver/run", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)

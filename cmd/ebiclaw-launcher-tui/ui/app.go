@@ -1,7 +1,7 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package ui
 
@@ -12,7 +12,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
-	tuicfg "github.com/sipeed/picoclaw/cmd/picoclaw-launcher-tui/config"
+	tuicfg "github.com/n-seiji/ebiclaw/cmd/ebiclaw-launcher-tui/config"
 )
 
 // App is the root TUI application.
@@ -271,7 +271,7 @@ func (a *App) buildShell(pageID string, content tview.Primitive, hint string) tv
 	}
 
 	headerLeft := tview.NewTextView().
-		SetText(" [#ff00ff::b]///[#00f0ff] PICOCLAW LAUNCHER [#ff00ff]///").
+		SetText(" [#ff00ff::b]///[#00f0ff] EBICLAW LAUNCHER [#ff00ff]///").
 		SetDynamicColors(true).
 		SetBackgroundColor(tcell.NewHexColor(0x050510))
 

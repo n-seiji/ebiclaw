@@ -1,4 +1,4 @@
-.PHONY: dev dev-frontend dev-backend build build-frontend build-dev-picoclaw test lint clean
+.PHONY: dev dev-frontend dev-backend build build-frontend build-dev-ebiclaw test lint clean
 
 # Go variables
 GO?=CGO_ENABLED=0 go
@@ -8,12 +8,12 @@ GOFLAGS?=-v -tags $(GO_BUILD_TAGS)
 
 # Build variables
 BUILD_DIR=build
-OUTPUT?=$(BUILD_DIR)/picoclaw-launcher
+OUTPUT?=$(BUILD_DIR)/ebiclaw-launcher
 FRONTEND_DIR=frontend
 BACKEND_DIR=backend
 BACKEND_DIST=$(BACKEND_DIR)/dist
-PICOCLAW_BINARY_NAME=picoclaw
-PICOCLAW_BINARY?=$(abspath ../build/$(PICOCLAW_BINARY_NAME))
+EBICLAW_BINARY_NAME=ebiclaw
+EBICLAW_BINARY?=$(abspath ../build/$(EBICLAW_BINARY_NAME))
 LAUNCHER_GUI_LDFLAG=
 
 # Version
@@ -21,7 +21,7 @@ VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 GIT_COMMIT=$(shell git rev-parse --short=8 HEAD 2>/dev/null || echo "dev")
 BUILD_TIME=$(shell date +%FT%T%z)
 GO_VERSION=$(shell $(WEB_GO) version | awk '{print $$3}')
-CONFIG_PKG=github.com/sipeed/picoclaw/pkg/config
+CONFIG_PKG=github.com/n-seiji/ebiclaw/pkg/config
 LDFLAGS=-X $(CONFIG_PKG).Version=$(VERSION) -X $(CONFIG_PKG).GitCommit=$(GIT_COMMIT) -X $(CONFIG_PKG).BuildTime=$(BUILD_TIME) -X $(CONFIG_PKG).GoVersion=$(GO_VERSION) -s -w
 
 
@@ -60,7 +60,7 @@ else ifeq ($(UNAME_S),Darwin)
 else ifeq ($(UNAME_S),Windows)
 	PLATFORM=windows
 	ARCH=$(UNAME_M)
-	PICOCLAW_BINARY_NAME=picoclaw.exe
+	EBICLAW_BINARY_NAME=ebiclaw.exe
 	LAUNCHER_GUI_LDFLAG=-H=windowsgui
 else
 	PLATFORM=$(UNAME_S)
@@ -70,7 +70,7 @@ endif
 LAUNCHER_LDFLAGS=$(strip $(LAUNCHER_GUI_LDFLAG) $(LDFLAGS))
 
 # Run both frontend and backend dev servers
-dev: build-dev-picoclaw
+dev: build-dev-ebiclaw
 	@if [ ! -f "$(BACKEND_DIST)/index.html" ]; then \
 		echo "Embedded frontend not found, building..."; \
 		$(MAKE) build-frontend; \
@@ -84,7 +84,7 @@ dev-frontend:
 
 # Start backend dev server
 dev-backend:
-	cd $(BACKEND_DIR) && PICOCLAW_BINARY="$(PICOCLAW_BINARY)" ${WEB_GO} run -ldflags "$(LAUNCHER_LDFLAGS)" . $(BACKEND_ARGS)
+	cd $(BACKEND_DIR) && EBICLAW_BINARY="$(EBICLAW_BINARY)" ${WEB_GO} run -ldflags "$(LAUNCHER_LDFLAGS)" . $(BACKEND_ARGS)
 
 # Build frontend and embed into Go binary
 build: build-frontend
@@ -101,10 +101,10 @@ build-frontend:
 	@echo "Building frontend..."
 	@cd $(FRONTEND_DIR) && pnpm build:backend
 
-build-dev-picoclaw:
-	@echo "Building picoclaw for launcher development..."
-	@mkdir -p "$$(dirname "$(PICOCLAW_BINARY)")"
-	@$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o "$(PICOCLAW_BINARY)" ../cmd/picoclaw
+build-dev-ebiclaw:
+	@echo "Building ebiclaw for launcher development..."
+	@mkdir -p "$$(dirname "$(EBICLAW_BINARY)")"
+	@$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o "$(EBICLAW_BINARY)" ../cmd/ebiclaw
 
 # Run all tests
 test:

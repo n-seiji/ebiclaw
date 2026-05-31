@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/sipeed/picoclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 )
 
 const DefaultGatewayLogLevel = "warn"
 
 type GatewayConfig struct {
-	Host      string `json:"host"                env:"PICOCLAW_GATEWAY_HOST"`
-	Port      int    `json:"port"                env:"PICOCLAW_GATEWAY_PORT"`
-	HotReload bool   `json:"hot_reload"          env:"PICOCLAW_GATEWAY_HOT_RELOAD"`
-	LogLevel  string `json:"log_level,omitempty" env:"PICOCLAW_LOG_LEVEL"`
+	Host      string `json:"host"                env:"EBICLAW_GATEWAY_HOST"`
+	Port      int    `json:"port"                env:"EBICLAW_GATEWAY_PORT"`
+	HotReload bool   `json:"hot_reload"          env:"EBICLAW_GATEWAY_HOT_RELOAD"`
+	LogLevel  string `json:"log_level,omitempty" env:"EBICLAW_LOG_LEVEL"`
 }
 
 func canonicalGatewayLogLevel(level logger.LogLevel) string {
@@ -51,7 +51,7 @@ func EffectiveGatewayLogLevel(cfg *Config) string {
 
 // ResolveGatewayLogLevel reads the configured gateway log level without triggering
 // the full config loader, so startup code can apply logging before config load logs run.
-// The PICOCLAW_LOG_LEVEL environment variable overrides the file value.
+// The EBICLAW_LOG_LEVEL environment variable overrides the file value.
 func ResolveGatewayLogLevel(path string) string {
 	cfg := struct {
 		Gateway GatewayConfig `json:"gateway"`
@@ -64,7 +64,7 @@ func ResolveGatewayLogLevel(path string) string {
 		_ = json.Unmarshal(data, &cfg)
 	}
 
-	if envLevel := os.Getenv("PICOCLAW_LOG_LEVEL"); envLevel != "" {
+	if envLevel := os.Getenv("EBICLAW_LOG_LEVEL"); envLevel != "" {
 		cfg.Gateway.LogLevel = envLevel
 	}
 

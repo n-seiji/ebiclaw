@@ -16,13 +16,13 @@ func setupVersionTestIsolation(t *testing.T) {
 	t.Helper()
 
 	originalGatewayState := currentGatewayVersionState
-	originalFinder := findPicoclawBinaryForInfo
-	originalRunner := runPicoclawVersionOutput
+	originalFinder := findEbiclawBinaryForInfo
+	originalRunner := runEbiclawVersionOutput
 	originalFallback := launcherBuildInfoForVersion
 	t.Cleanup(func() {
 		currentGatewayVersionState = originalGatewayState
-		findPicoclawBinaryForInfo = originalFinder
-		runPicoclawVersionOutput = originalRunner
+		findEbiclawBinaryForInfo = originalFinder
+		runEbiclawVersionOutput = originalRunner
 		launcherBuildInfoForVersion = originalFallback
 		versionInfoCache.resetForTest()
 	})
@@ -31,16 +31,16 @@ func setupVersionTestIsolation(t *testing.T) {
 	versionInfoCache.resetForTest()
 }
 
-func TestGetSystemVersionUsesPicoclawBinaryInfo(t *testing.T) {
+func TestGetSystemVersionUsesEbiclawBinaryInfo(t *testing.T) {
 	setupVersionTestIsolation(t)
 
 	launcherBuildInfoForVersion = func() systemVersionResponse {
 		return systemVersionResponse{Version: "fallback", GoVersion: "go-fallback"}
 	}
 
-	findPicoclawBinaryForInfo = func() string { return "picoclaw" }
-	runPicoclawVersionOutput = func(_ context.Context, _ string) (string, error) {
-		return "🦞 picoclaw v1.2.3 (git: deadbeef)\n  Build: 2026-03-27T12:34:56Z\n  Go: go1.25.8\n", nil
+	findEbiclawBinaryForInfo = func() string { return "ebiclaw" }
+	runEbiclawVersionOutput = func(_ context.Context, _ string) (string, error) {
+		return "🦞 ebiclaw v1.2.3 (git: deadbeef)\n  Build: 2026-03-27T12:34:56Z\n  Go: go1.25.8\n", nil
 	}
 
 	h := NewHandler("")
@@ -85,8 +85,8 @@ func TestGetSystemVersionFallsBackToLauncherInfoWhenCommandFails(t *testing.T) {
 	}
 	launcherBuildInfoForVersion = func() systemVersionResponse { return expected }
 
-	findPicoclawBinaryForInfo = func() string { return "picoclaw" }
-	runPicoclawVersionOutput = func(_ context.Context, _ string) (string, error) {
+	findEbiclawBinaryForInfo = func() string { return "ebiclaw" }
+	runEbiclawVersionOutput = func(_ context.Context, _ string) (string, error) {
 		return "", errors.New("binary unavailable")
 	}
 
@@ -121,13 +121,13 @@ func TestGetSystemVersionFallsBackToLauncherInfoWhenCommandFails(t *testing.T) {
 	}
 }
 
-func TestParsePicoclawVersionOutput(t *testing.T) {
+func TestParseEbiclawVersionOutput(t *testing.T) {
 	setupVersionTestIsolation(t)
 
-	raw := "\u001b[1;31m████\u001b[0m\n🦞 picoclaw 18ec263 (git: 18ec2631)\n  Build: 2026-03-27T10:43:34+0000\n  Go: go1.25.8\n"
-	got, ok := parsePicoclawVersionOutput(raw)
+	raw := "\u001b[1;31m████\u001b[0m\n🦞 ebiclaw 18ec263 (git: 18ec2631)\n  Build: 2026-03-27T10:43:34+0000\n  Go: go1.25.8\n"
+	got, ok := parseEbiclawVersionOutput(raw)
 	if !ok {
-		t.Fatal("parsePicoclawVersionOutput() should parse valid output")
+		t.Fatal("parseEbiclawVersionOutput() should parse valid output")
 	}
 	if got.Version != "18ec263" {
 		t.Fatalf("version = %q, want %q", got.Version, "18ec263")
@@ -143,23 +143,23 @@ func TestParsePicoclawVersionOutput(t *testing.T) {
 	}
 }
 
-func TestParsePicoclawVersionOutputIgnoresUsageLine(t *testing.T) {
+func TestParseEbiclawVersionOutputIgnoresUsageLine(t *testing.T) {
 	setupVersionTestIsolation(t)
 
-	raw := "Usage: picoclaw version [flags]\n"
-	got, ok := parsePicoclawVersionOutput(raw)
+	raw := "Usage: ebiclaw version [flags]\n"
+	got, ok := parseEbiclawVersionOutput(raw)
 	if ok {
-		t.Fatalf("parsePicoclawVersionOutput() parsed usage line unexpectedly: %#v", got)
+		t.Fatalf("parseEbiclawVersionOutput() parsed usage line unexpectedly: %#v", got)
 	}
 }
 
-func TestParsePicoclawVersionOutputAcceptsLetterOnlyHashVersion(t *testing.T) {
+func TestParseEbiclawVersionOutputAcceptsLetterOnlyHashVersion(t *testing.T) {
 	setupVersionTestIsolation(t)
 
-	raw := "picoclaw abcdefa (git: abcdefabcdefabcdefabcdefabcdefabcdefabcd)\n"
-	got, ok := parsePicoclawVersionOutput(raw)
+	raw := "ebiclaw abcdefa (git: abcdefabcdefabcdefabcdefabcdefabcdefabcd)\n"
+	got, ok := parseEbiclawVersionOutput(raw)
 	if !ok {
-		t.Fatal("parsePicoclawVersionOutput() should parse letter-only hash version")
+		t.Fatal("parseEbiclawVersionOutput() should parse letter-only hash version")
 	}
 	if got.Version != "abcdefa" {
 		t.Fatalf("version = %q, want %q", got.Version, "abcdefa")
@@ -176,9 +176,9 @@ func TestResolveSystemVersionInfoFallsBackRuntimeGoVersion(t *testing.T) {
 		return systemVersionResponse{Version: "dev", GoVersion: ""}
 	}
 
-	findPicoclawBinaryForInfo = func() string { return "picoclaw" }
-	runPicoclawVersionOutput = func(_ context.Context, _ string) (string, error) {
-		return "picoclaw v1.0.0\n", nil
+	findEbiclawBinaryForInfo = func() string { return "ebiclaw" }
+	runEbiclawVersionOutput = func(_ context.Context, _ string) (string, error) {
+		return "ebiclaw v1.0.0\n", nil
 	}
 
 	h := NewHandler("")
@@ -194,15 +194,15 @@ func TestResolveSystemVersionInfoCachesWhileGatewayAlive(t *testing.T) {
 	launcherBuildInfoForVersion = func() systemVersionResponse {
 		return systemVersionResponse{Version: "dev", GoVersion: "go-fallback"}
 	}
-	findPicoclawBinaryForInfo = func() string { return "picoclaw" }
+	findEbiclawBinaryForInfo = func() string { return "ebiclaw" }
 
 	pid := 4321
 	currentGatewayVersionState = func() (int, bool) { return pid, true }
 
 	runCount := 0
-	runPicoclawVersionOutput = func(_ context.Context, _ string) (string, error) {
+	runEbiclawVersionOutput = func(_ context.Context, _ string) (string, error) {
 		runCount++
-		return fmt.Sprintf("picoclaw v1.2.%d\n", runCount), nil
+		return fmt.Sprintf("ebiclaw v1.2.%d\n", runCount), nil
 	}
 
 	h := NewHandler("")
@@ -226,7 +226,7 @@ func TestResolveSystemVersionInfoInvalidatesCacheWhenGatewayStops(t *testing.T) 
 	launcherBuildInfoForVersion = func() systemVersionResponse {
 		return systemVersionResponse{Version: "dev", GoVersion: "go-fallback"}
 	}
-	findPicoclawBinaryForInfo = func() string { return "picoclaw" }
+	findEbiclawBinaryForInfo = func() string { return "ebiclaw" }
 
 	alive := true
 	pid := 9876
@@ -238,9 +238,9 @@ func TestResolveSystemVersionInfoInvalidatesCacheWhenGatewayStops(t *testing.T) 
 	}
 
 	runCount := 0
-	runPicoclawVersionOutput = func(_ context.Context, _ string) (string, error) {
+	runEbiclawVersionOutput = func(_ context.Context, _ string) (string, error) {
 		runCount++
-		return fmt.Sprintf("picoclaw v2.0.%d\n", runCount), nil
+		return fmt.Sprintf("ebiclaw v2.0.%d\n", runCount), nil
 	}
 
 	h := NewHandler("")
@@ -270,12 +270,12 @@ func TestResolveSystemVersionInfoSkipsCommandWhenContextCanceled(t *testing.T) {
 	launcherBuildInfoForVersion = func() systemVersionResponse {
 		return systemVersionResponse{Version: "v3.0.0", GoVersion: "go-fallback"}
 	}
-	findPicoclawBinaryForInfo = func() string { return "picoclaw" }
+	findEbiclawBinaryForInfo = func() string { return "ebiclaw" }
 
 	runCount := 0
-	runPicoclawVersionOutput = func(_ context.Context, _ string) (string, error) {
+	runEbiclawVersionOutput = func(_ context.Context, _ string) (string, error) {
 		runCount++
-		return "picoclaw v9.9.9\n", nil
+		return "ebiclaw v9.9.9\n", nil
 	}
 
 	canceledCtx, cancel := context.WithCancel(context.Background())
@@ -295,14 +295,14 @@ func TestResolveSystemVersionInfoSkipsCommandWhenContextCanceled(t *testing.T) {
 func TestResolveGatewayBinaryForVersionInfoPrefersGatewayCommandPath(t *testing.T) {
 	setupVersionTestIsolation(t)
 
-	originalFinder := findPicoclawBinaryForInfo
+	originalFinder := findEbiclawBinaryForInfo
 	t.Cleanup(func() {
-		findPicoclawBinaryForInfo = originalFinder
+		findEbiclawBinaryForInfo = originalFinder
 	})
 
 	gateway.mu.Lock()
 	originalCmd := gateway.cmd
-	gateway.cmd = &exec.Cmd{Path: "/tmp/picoclaw-from-gateway"}
+	gateway.cmd = &exec.Cmd{Path: "/tmp/ebiclaw-from-gateway"}
 	gateway.mu.Unlock()
 	t.Cleanup(func() {
 		gateway.mu.Lock()
@@ -311,7 +311,7 @@ func TestResolveGatewayBinaryForVersionInfoPrefersGatewayCommandPath(t *testing.
 	})
 
 	got := resolveGatewayBinaryForVersionInfo()
-	if got != "/tmp/picoclaw-from-gateway" {
-		t.Fatalf("exec path = %q, want %q", got, "/tmp/picoclaw-from-gateway")
+	if got != "/tmp/ebiclaw-from-gateway" {
+		t.Fatalf("exec path = %q, want %q", got, "/tmp/ebiclaw-from-gateway")
 	}
 }

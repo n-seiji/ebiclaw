@@ -189,6 +189,61 @@ func TestMessageTool_Execute_NotConfigured(t *testing.T) {
 	}
 }
 
+func TestMessageTool_Execute_ReplyToMessageIDFromContext(t *testing.T) {
+	tool := NewMessageTool()
+
+	var sentReplyTo string
+	tool.SetSendCallback(func(channel, chatID, content, replyToMessageID string) error {
+		sentReplyTo = replyToMessageID
+		return nil
+	})
+
+	ctx := WithToolInboundContext(
+		context.Background(),
+		"slack",
+		"C123/1700000001.000200",
+		"1700000001.000200",
+		"1700000001.000200",
+	)
+	args := map[string]any{
+		"content": "Hello",
+	}
+
+	tool.Execute(ctx, args)
+
+	if sentReplyTo != "1700000001.000200" {
+		t.Errorf("Expected replyToMessageID to fall back to ctx '1700000001.000200', got '%s'", sentReplyTo)
+	}
+}
+
+func TestMessageTool_Execute_ReplyToMessageIDArgWins(t *testing.T) {
+	tool := NewMessageTool()
+
+	var sentReplyTo string
+	tool.SetSendCallback(func(channel, chatID, content, replyToMessageID string) error {
+		sentReplyTo = replyToMessageID
+		return nil
+	})
+
+	ctx := WithToolInboundContext(
+		context.Background(),
+		"slack",
+		"C123/1700000001.000200",
+		"1700000001.000200",
+		"1700000001.000200",
+	)
+	args := map[string]any{
+		"content":             "Hello",
+		"reply_to_message_id": "1700000099.000999",
+	}
+
+	tool.Execute(ctx, args)
+
+	if sentReplyTo != "1700000099.000999" {
+		t.Errorf("Expected explicit arg replyToMessageID to win over ctx, got '%s'", sentReplyTo)
+	}
+}
+
 func TestMessageTool_Name(t *testing.T) {
 	tool := NewMessageTool()
 	if tool.Name() != "message" {

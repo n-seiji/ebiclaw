@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/n-seiji/ebiclaw/pkg/providers"
 )
 
 const (

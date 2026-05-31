@@ -1,9 +1,9 @@
 //go:build bedrock
 
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package bedrock
 
@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sipeed/picoclaw/pkg/providers/protocoltypes"
+	"github.com/n-seiji/ebiclaw/pkg/providers/protocoltypes"
 )
 
 func TestConvertMessages_SystemPrompts(t *testing.T) {

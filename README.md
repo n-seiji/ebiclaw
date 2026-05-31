@@ -1,9 +1,9 @@
 <div align="center">
-<img src="assets/logo.webp" alt="PicoClaw" width="512">
+<img src="assets/logo.webp" alt="EbiClaw" width="512">
 
-<h1>PicoClaw: Ultra-Efficient AI Assistant in Go</h1>
+<h1>EbiClaw: Ultra-Efficient AI Assistant in Go</h1>
 
-<h3>$10 Hardware · 10MB RAM · ms Boot · Let's Go, PicoClaw!</h3>
+<h3>$10 Hardware · 10MB RAM · ms Boot · Let's Go, EbiClaw!</h3>
   <p>
     <img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go&logoColor=white" alt="Go">
     <img src="https://img.shields.io/badge/Arch-x86__64%2C%20ARM64%2C%20MIPS%2C%20RISC--V%2C%20LoongArch-blue" alt="Hardware">
@@ -16,7 +16,7 @@
 
 ---
 
-**PicoClaw** is an ultra-lightweight personal AI assistant written in **Go**. It runs on $10 hardware with <10MB RAM.
+**EbiClaw** is an ultra-lightweight personal AI assistant written in **Go**. It runs on $10 hardware with <10MB RAM.
 
 ## ✨ Features
 
@@ -77,14 +77,14 @@ The WebUI Launcher provides a browser-based interface for configuration and chat
 **Command line:**
 
 ```bash
-picoclaw-launcher
+ebiclaw-launcher
 # Open http://localhost:18800 in your browser
 ```
 
 > [!TIP]
 > **Remote access / Docker / VM:** Add the `-public` flag to listen on all interfaces:
 > ```bash
-> picoclaw-launcher -public
+> ebiclaw-launcher -public
 > ```
 
 <p align="center">
@@ -116,7 +116,7 @@ docker compose -f docker/docker-compose.yml --profile launcher up -d
 # Open http://localhost:18800
 ```
 
-> **Docker / VM users:** The Gateway listens on `127.0.0.1` by default. Set `PICOCLAW_GATEWAY_HOST=0.0.0.0` or use the `-public` flag to make it accessible from the host.
+> **Docker / VM users:** The Gateway listens on `127.0.0.1` by default. Set `EBICLAW_GATEWAY_HOST=0.0.0.0` or use the `-public` flag to make it accessible from the host.
 
 ```bash
 # Check logs
@@ -135,15 +135,15 @@ docker compose -f docker/docker-compose.yml --profile launcher up -d
 <details>
 <summary><b>macOS — First Launch Security Warning</b></summary>
 
-macOS may block `picoclaw-launcher` on first launch because it is downloaded from the internet and not notarized through the Mac App Store.
+macOS may block `ebiclaw-launcher` on first launch because it is downloaded from the internet and not notarized through the Mac App Store.
 
-**Step 1:** Double-click `picoclaw-launcher`. You will see a security warning:
+**Step 1:** Double-click `ebiclaw-launcher`. You will see a security warning:
 
 <p align="center">
 <img src="assets/macos-gatekeeper-warning.jpg" alt="macOS Gatekeeper warning" width="400">
 </p>
 
-> *"picoclaw-launcher" Not Opened — Apple could not verify "picoclaw-launcher" is free of malware that may harm your Mac or compromise your privacy.*
+> *"ebiclaw-launcher" Not Opened — Apple could not verify "ebiclaw-launcher" is free of malware that may harm your Mac or compromise your privacy.*
 
 **Step 2:** Open **System Settings** → **Privacy & Security** → scroll down to the **Security** section → click **Open Anyway** → confirm by clicking **Open Anyway** in the dialog.
 
@@ -151,7 +151,7 @@ macOS may block `picoclaw-launcher` on first launch because it is downloaded fro
 <img src="assets/macos-gatekeeper-allow.jpg" alt="macOS Privacy & Security — Open Anyway" width="600">
 </p>
 
-After this one-time step, `picoclaw-launcher` will open normally on subsequent launches.
+After this one-time step, `ebiclaw-launcher` will open normally on subsequent launches.
 
 </details>
 
@@ -160,7 +160,7 @@ After this one-time step, `picoclaw-launcher` will open normally on subsequent l
 The TUI (Terminal UI) Launcher provides a full-featured terminal interface for configuration and management. Ideal for servers, Raspberry Pi, and other headless environments.
 
 ```bash
-picoclaw-launcher-tui
+ebiclaw-launcher-tui
 ```
 
 <p align="center">
@@ -173,17 +173,17 @@ Use the TUI menus to: **1)** Configure a Provider -> **2)** Configure a Channel 
 
 ### 💻 Terminal Launcher
 
-For minimal environments where only the `picoclaw` core binary is available (no Launcher UI), you can configure everything via the command line and a JSON config file.
+For minimal environments where only the `ebiclaw` core binary is available (no Launcher UI), you can configure everything via the command line and a JSON config file.
 
 **1. Initialize**
 
 ```bash
-picoclaw onboard
+ebiclaw onboard
 ```
 
-This creates `~/.picoclaw/config.json` and the workspace directory.
+This creates `~/.ebiclaw/config.json` and the workspace directory.
 
-**2. Configure** (`~/.picoclaw/config.json`)
+**2. Configure** (`~/.ebiclaw/config.json`)
 
 ```json
 {
@@ -211,18 +211,18 @@ This creates `~/.picoclaw/config.json` and the workspace directory.
 
 ```bash
 # One-shot question
-picoclaw agent -m "What is 2+2?"
+ebiclaw agent -m "What is 2+2?"
 
 # Interactive mode
-picoclaw agent
+ebiclaw agent
 
 # Start gateway for chat app integration
-picoclaw gateway
+ebiclaw gateway
 ```
 
 ## 🔌 Providers (LLM)
 
-PicoClaw supports multiple LLM providers through the `model_list` configuration. Use the `protocol/model` format:
+EbiClaw supports multiple LLM providers through the `model_list` configuration. Use the `protocol/model` format:
 
 | Provider | Protocol | API Key | Notes |
 |----------|----------|---------|-------|
@@ -276,7 +276,7 @@ For full provider configuration details, see [Providers & Models](docs/providers
 
 ## 💬 Channels (Chat Apps)
 
-Talk to your PicoClaw through messaging platforms:
+Talk to your EbiClaw through messaging platforms:
 
 | Channel | Setup | Protocol | Docs |
 |---------|-------|----------|------|
@@ -285,7 +285,7 @@ Talk to your PicoClaw through messaging platforms:
 | **Pico** | Easy (enable) | Native protocol | Built-in |
 | **Pico Client** | Easy (WebSocket URL) | WebSocket | Built-in |
 
-> Log verbosity is controlled by `gateway.log_level` (default: `warn`). Supported values: `debug`, `info`, `warn`, `error`, `fatal`. Can also be set via `PICOCLAW_LOG_LEVEL`. See [Configuration](docs/configuration.md#gateway-log-level) for details.
+> Log verbosity is controlled by `gateway.log_level` (default: `warn`). Supported values: `debug`, `info`, `warn`, `error`, `fatal`. Can also be set via `EBICLAW_LOG_LEVEL`. See [Configuration](docs/configuration.md#gateway-log-level) for details.
 
 For detailed channel setup instructions, see [Chat Apps Configuration](docs/chat-apps.md).
 
@@ -293,7 +293,7 @@ For detailed channel setup instructions, see [Chat Apps Configuration](docs/chat
 
 ### 🔍 Web Search
 
-PicoClaw can search the web to provide up-to-date information. Configure in `tools.web`:
+EbiClaw can search the web to provide up-to-date information. Configure in `tools.web`:
 
 | Search Engine | API Key | Free Tier | Link |
 |--------------|---------|-----------|------|
@@ -305,7 +305,7 @@ PicoClaw can search the web to provide up-to-date information. Configure in `too
 
 ### ⚙️ Other Tools
 
-PicoClaw includes built-in tools for file operations, code execution, scheduling, and more. See [Tools Configuration](docs/tools_configuration.md) for details.
+EbiClaw includes built-in tools for file operations, code execution, scheduling, and more. See [Tools Configuration](docs/tools_configuration.md) for details.
 
 ## 🎯 Skills
 
@@ -313,7 +313,7 @@ Skills are modular capabilities that extend your Agent. They are loaded from `SK
 
 ## 🔗 MCP (Model Context Protocol)
 
-PicoClaw natively supports [MCP](https://modelcontextprotocol.io/) — connect any MCP server to extend your Agent's capabilities with external tools and data sources.
+EbiClaw natively supports [MCP](https://modelcontextprotocol.io/) — connect any MCP server to extend your Agent's capabilities with external tools and data sources.
 
 ```json
 {
@@ -338,25 +338,25 @@ For full MCP configuration (stdio, SSE, HTTP transports, Tool Discovery), see [T
 
 | Command                   | Description                      |
 | ------------------------- | -------------------------------- |
-| `picoclaw onboard`        | Initialize config & workspace    |
-| `picoclaw agent -m "..."` | Chat with the agent              |
-| `picoclaw agent`          | Interactive chat mode            |
-| `picoclaw gateway`        | Start the gateway                |
-| `picoclaw status`         | Show status                      |
-| `picoclaw version`        | Show version info                |
-| `picoclaw model`          | View or switch the default model |
-| `picoclaw cron list`      | List all scheduled jobs          |
-| `picoclaw cron add ...`   | Add a scheduled job              |
-| `picoclaw cron disable`   | Disable a scheduled job          |
-| `picoclaw cron remove`    | Remove a scheduled job           |
-| `picoclaw skills list`    | List installed skills            |
-| `picoclaw skills install` | Install a skill                  |
-| `picoclaw migrate`        | Migrate data from older versions |
-| `picoclaw auth login`     | Authenticate with providers      |
+| `ebiclaw onboard`        | Initialize config & workspace    |
+| `ebiclaw agent -m "..."` | Chat with the agent              |
+| `ebiclaw agent`          | Interactive chat mode            |
+| `ebiclaw gateway`        | Start the gateway                |
+| `ebiclaw status`         | Show status                      |
+| `ebiclaw version`        | Show version info                |
+| `ebiclaw model`          | View or switch the default model |
+| `ebiclaw cron list`      | List all scheduled jobs          |
+| `ebiclaw cron add ...`   | Add a scheduled job              |
+| `ebiclaw cron disable`   | Disable a scheduled job          |
+| `ebiclaw cron remove`    | Remove a scheduled job           |
+| `ebiclaw skills list`    | List installed skills            |
+| `ebiclaw skills install` | Install a skill                  |
+| `ebiclaw migrate`        | Migrate data from older versions |
+| `ebiclaw auth login`     | Authenticate with providers      |
 
 ### ⏰ Scheduled Tasks / Reminders
 
-PicoClaw supports scheduled reminders and recurring tasks through the `cron` tool:
+EbiClaw supports scheduled reminders and recurring tasks through the `cron` tool:
 
 * **One-time reminders**: "Remind me in 10 minutes" -> triggers once after 10min
 * **Recurring tasks**: "Remind me every 2 hours" -> triggers every 2 hours

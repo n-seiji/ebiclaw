@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 )
 
-const pidFileName = ".picoclaw.pid"
+const pidFileName = ".ebiclaw.pid"
 
 var errInvalidPidFile = errors.New("invalid pid file")
 

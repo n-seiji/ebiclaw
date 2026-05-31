@@ -16,7 +16,7 @@ before:
     - go-winres make --in web/backend/winres/winres.json --out web/backend/rsrc --product-version={{ .Version }} --file-version={{ .Version }}
 
 builds:
-  - id: picoclaw
+  - id: ebiclaw
     env:
       - CGO_ENABLED=0
     tags:
@@ -24,10 +24,10 @@ builds:
       - stdjson
     ldflags:
       - -s -w
-      - -X github.com/sipeed/picoclaw/pkg/config.Version={{ .Version }}
-      - -X github.com/sipeed/picoclaw/pkg/config.GitCommit={{ .ShortCommit }}
-      - -X github.com/sipeed/picoclaw/pkg/config.BuildTime={{ .Date }}
-      - -X github.com/sipeed/picoclaw/pkg/config.GoVersion={{ .Env.GOVERSION }}
+      - -X github.com/n-seiji/ebiclaw/pkg/config.Version={{ .Version }}
+      - -X github.com/n-seiji/ebiclaw/pkg/config.GitCommit={{ .ShortCommit }}
+      - -X github.com/n-seiji/ebiclaw/pkg/config.BuildTime={{ .Date }}
+      - -X github.com/n-seiji/ebiclaw/pkg/config.GoVersion={{ .Env.GOVERSION }}
     goos:
       - linux
       - windows
@@ -47,7 +47,7 @@ builds:
       - "7"
     gomips:
       - softfloat
-    main: ./cmd/picoclaw
+    main: ./cmd/ebiclaw
     ignore:
       - goos: windows
         goarch: arm
@@ -58,8 +58,8 @@ builds:
       - goos: netbsd
         goarch: arm
 
-  - id: picoclaw-launcher
-    binary: picoclaw-launcher
+  - id: ebiclaw-launcher
+    binary: ebiclaw-launcher
     env:
       - CGO_ENABLED=0
     tags:
@@ -97,8 +97,8 @@ builds:
       - goos: netbsd
         goarch: arm
 
-  - id: picoclaw-launcher-tui
-    binary: picoclaw-launcher-tui
+  - id: ebiclaw-launcher-tui
+    binary: ebiclaw-launcher-tui
     env:
       - CGO_ENABLED=0
     tags:
@@ -125,7 +125,7 @@ builds:
       - "7"
     gomips:
       - softfloat
-    main: ./cmd/picoclaw-launcher-tui
+    main: ./cmd/ebiclaw-launcher-tui
     ignore:
       - goos: windows
         goarch: arm
@@ -137,14 +137,14 @@ builds:
         goarch: arm
 
 dockers_v2:
-  - id: picoclaw
+  - id: ebiclaw
     dockerfile: docker/Dockerfile.goreleaser
     extra_files:
       - docker/entrypoint.sh
     ids:
-      - picoclaw
+      - ebiclaw
     images:
-      - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/picoclaw"
+      - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/ebiclaw"
       - 'docker.io/{{ .Env.DOCKERHUB_IMAGE_NAME }}'
     tags:
       - '{{ if isEnvSet "NIGHTLY_BUILD" }}nightly{{ else }}{{ .Tag }}{{ end }}'
@@ -154,14 +154,14 @@ dockers_v2:
       - linux/arm64
       - linux/riscv64
 
-  - id: picoclaw-launcher
+  - id: ebiclaw-launcher
     dockerfile: docker/Dockerfile.goreleaser.launcher
     ids:
-      - picoclaw
-      - picoclaw-launcher
-      - picoclaw-launcher-tui
+      - ebiclaw
+      - ebiclaw-launcher
+      - ebiclaw-launcher-tui
     images:
-      - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/picoclaw"
+      - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/ebiclaw"
       - 'docker.io/{{ .Env.DOCKERHUB_IMAGE_NAME }}'
     tags:
       - '{{ if isEnvSet "NIGHTLY_BUILD" }}nightly-launcher{{ else }}{{ .Tag }}-launcher{{ end }}'
@@ -175,9 +175,9 @@ notarize:
   macos:
     - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
       ids:
-        - picoclaw
-        - picoclaw-launcher
-        - picoclaw-launcher-tui
+        - ebiclaw
+        - ebiclaw-launcher
+        - ebiclaw-launcher-tui
       sign:
         certificate: "{{.Env.MACOS_SIGN_P12}}"
         password: "{{.Env.MACOS_SIGN_PASSWORD}}"
@@ -204,32 +204,32 @@ archives:
         formats: [zip]
 
 nfpms:
-  - id: picoclaw
+  - id: ebiclaw
     ids:
-      - picoclaw
-      - picoclaw-launcher
-      - picoclaw-launcher-tui
-    package_name: picoclaw
+      - ebiclaw
+      - ebiclaw-launcher
+      - ebiclaw-launcher-tui
+    package_name: ebiclaw
     file_name_template: >-
       {{ .PackageName }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "arm64" }}aarch64
       {{- else if eq .Arch "arm" }}armv{{ .Arm }}
       {{- else }}{{ .Arch }}{{ end }}
-    vendor: picoclaw
-    homepage: https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/picoclaw
-    maintainer: picoclaw contributors
-    description: picoclaw - a tool for managing and running tasks
+    vendor: ebiclaw
+    homepage: https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/ebiclaw
+    maintainer: ebiclaw contributors
+    description: ebiclaw - a tool for managing and running tasks
     license: MIT
     formats:
       - rpm
       - deb
     bindir: /usr/bin
     contents:
-      - src: web/picoclaw-launcher.desktop
-        dst: /usr/share/applications/picoclaw-launcher.desktop
-      - src: web/picoclaw-launcher.png
-        dst: /usr/share/icons/hicolor/512x512/apps/picoclaw-launcher.png
+      - src: web/ebiclaw-launcher.desktop
+        dst: /usr/share/applications/ebiclaw-launcher.desktop
+      - src: web/ebiclaw-launcher.png
+        dst: /usr/share/icons/hicolor/512x512/apps/ebiclaw-launcher.png
 
 changelog:
   sort: asc

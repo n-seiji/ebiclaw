@@ -8,9 +8,9 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/credential"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/credential"
 )
 
 func onboard(encrypt bool) {
@@ -79,12 +79,12 @@ func onboard(encrypt bool) {
 	workspace := cfg.WorkspacePath()
 	createWorkspaceTemplates(workspace)
 
-	fmt.Printf("\n%s picoclaw is ready!\n", internal.Logo)
+	fmt.Printf("\n%s ebiclaw is ready!\n", internal.Logo)
 	fmt.Println("\nNext steps:")
 	if encrypt {
-		fmt.Println("  1. Set your encryption passphrase before starting picoclaw:")
-		fmt.Println("       export PICOCLAW_KEY_PASSPHRASE=<your-passphrase>   # Linux/macOS")
-		fmt.Println("       set PICOCLAW_KEY_PASSPHRASE=<your-passphrase>      # Windows cmd")
+		fmt.Println("  1. Set your encryption passphrase before starting ebiclaw:")
+		fmt.Println("       export EBICLAW_KEY_PASSPHRASE=<your-passphrase>   # Linux/macOS")
+		fmt.Println("       set EBICLAW_KEY_PASSPHRASE=<your-passphrase>      # Windows cmd")
 		fmt.Println("")
 		fmt.Println("  2. Add your API key to", configPath)
 	} else {
@@ -98,9 +98,9 @@ func onboard(encrypt bool) {
 	fmt.Println("     See README.md for 17+ supported providers.")
 	fmt.Println("")
 	if encrypt {
-		fmt.Println("  3. Chat: picoclaw agent -m \"Hello!\"")
+		fmt.Println("  3. Chat: ebiclaw agent -m \"Hello!\"")
 	} else {
-		fmt.Println("  2. Chat: picoclaw agent -m \"Hello!\"")
+		fmt.Println("  2. Chat: ebiclaw agent -m \"Hello!\"")
 	}
 }
 
@@ -131,7 +131,7 @@ func promptPassphrase() (string, error) {
 	return string(p1), nil
 }
 
-// setupSSHKey generates the picoclaw-specific SSH key at ~/.ssh/picoclaw_ed25519.key.
+// setupSSHKey generates the ebiclaw-specific SSH key at ~/.ssh/ebiclaw_ed25519.key.
 // If the key already exists the user is warned and asked to confirm overwrite.
 // Answering anything other than "y" keeps the existing key (not an error).
 func setupSSHKey() error {

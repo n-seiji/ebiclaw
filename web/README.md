@@ -1,16 +1,16 @@
-# PicoClaw Web
+# EbiClaw Web
 
-`web/` contains the standalone WebUI launcher for PicoClaw.
-It is not just a frontend: it is a small launcher service that bundles a React dashboard, exposes a backend API, manages launcher authentication, and starts or attaches to the `picoclaw gateway` process.
+`web/` contains the standalone WebUI launcher for EbiClaw.
+It is not just a frontend: it is a small launcher service that bundles a React dashboard, exposes a backend API, manages launcher authentication, and starts or attaches to the `ebiclaw gateway` process.
 
-![PicoClaw Launcher](./picoclaw-launcher.png)
+![EbiClaw Launcher](./ebiclaw-launcher.png)
 
 ## What This Directory Provides
 
 - A browser-based chat UI backed by the Pico channel WebSocket proxy.
 - A dashboard for models, credentials, channels, agent tools, skills, logs, and runtime settings.
 - A launcher process that can auto-open the browser, show a system tray menu, and persist launcher-specific settings.
-- A controlled way to start, stop, restart, and inspect the `picoclaw gateway` subprocess.
+- A controlled way to start, stop, restart, and inspect the `ebiclaw gateway` subprocess.
 - A single-binary deployment target where the frontend is embedded into the Go backend.
 
 ## Architecture
@@ -25,11 +25,11 @@ This directory is a small monorepo:
   - Vite + React 19 + TanStack Router SPA.
   - Provides the launcher dashboard and chat UI.
 
-At runtime the launcher and the main PicoClaw engine are separate processes:
+At runtime the launcher and the main EbiClaw engine are separate processes:
 
 1. The launcher starts the web backend on port `18800` by default.
 2. The launcher serves the dashboard and handles dashboard authentication.
-3. When allowed, it starts or attaches to `picoclaw gateway -E`.
+3. When allowed, it starts or attaches to `ebiclaw gateway -E`.
 4. The frontend talks only to the launcher backend.
 5. The launcher proxies chat traffic to the gateway through `/pico/ws`.
 
@@ -65,16 +65,16 @@ The UI currently supports English and Simplified Chinese, plus light and dark th
 
 ### Config Resolution
 
-The launcher uses the same PicoClaw config file as the main binary.
+The launcher uses the same EbiClaw config file as the main binary.
 
-- Default app config path: `~/.picoclaw/config.json`
-- Override with environment variable: `PICOCLAW_CONFIG`
-- Override with a positional CLI argument: `picoclaw-launcher /path/to/config.json`
+- Default app config path: `~/.ebiclaw/config.json`
+- Override with environment variable: `EBICLAW_CONFIG`
+- Override with a positional CLI argument: `ebiclaw-launcher /path/to/config.json`
 
 Launcher-only settings are stored beside that app config:
 
 - File name: `launcher-config.json`
-- Default location: `~/.picoclaw/launcher-config.json`
+- Default location: `~/.ebiclaw/launcher-config.json`
 
 That file currently stores:
 
@@ -90,20 +90,20 @@ If they are omitted, stored launcher settings are used.
 If the target config file does not exist, the launcher tries to bootstrap it automatically by running:
 
 ```bash
-picoclaw onboard
+ebiclaw onboard
 ```
 
-The launcher looks for the main PicoClaw binary in this order:
+The launcher looks for the main EbiClaw binary in this order:
 
-1. `PICOCLAW_BINARY`
-2. A `picoclaw` binary in the same directory as the launcher
-3. `picoclaw` from `PATH`
+1. `EBICLAW_BINARY`
+2. A `ebiclaw` binary in the same directory as the launcher
+3. `ebiclaw` from `PATH`
 
-If onboarding or gateway startup cannot find the main binary, set `PICOCLAW_BINARY` explicitly.
+If onboarding or gateway startup cannot find the main binary, set `EBICLAW_BINARY` explicitly.
 
 ### Gateway Management
 
-The launcher manages `picoclaw gateway -E`.
+The launcher manages `ebiclaw gateway -E`.
 
 On startup it tries to auto-start or attach to the gateway, but only when startup preconditions pass. In the current code, the main checks are:
 
@@ -123,7 +123,7 @@ When a gateway process is started by the launcher, the launcher:
 
 The dashboard is protected by a launcher access token.
 
-- If `PICOCLAW_LAUNCHER_TOKEN` is set, that token is used.
+- If `EBICLAW_LAUNCHER_TOKEN` is set, that token is used.
 - Otherwise a random token is generated for each launcher process.
 - The browser auto-open URL includes `?token=...` so local launches can sign in automatically.
 - Manual login uses `/launcher-login`.
@@ -135,9 +135,9 @@ Where users can retrieve the token depends on launch mode:
 - GUI mode: available through the tray menu on supported builds
 - GUI mode without stdout:
   - random per-run tokens are written to the launcher log
-  - default log path: `~/.picoclaw/logs/launcher.log`
-  - if `PICOCLAW_HOME` is set, use `$PICOCLAW_HOME/logs/launcher.log`
-  - env-pinned tokens are not reprinted there; the log only notes that `PICOCLAW_LAUNCHER_TOKEN` is in use
+  - default log path: `~/.ebiclaw/logs/launcher.log`
+  - if `EBICLAW_HOME` is set, use `$EBICLAW_HOME/logs/launcher.log`
+  - env-pinned tokens are not reprinted there; the log only notes that `EBICLAW_LAUNCHER_TOKEN` is in use
 
 ### Network Exposure
 
@@ -187,8 +187,8 @@ make dev
 
 This does three things:
 
-1. Builds `../build/picoclaw` for launcher development.
-2. Starts the Go backend with `PICOCLAW_BINARY` pointing at that binary.
+1. Builds `../build/ebiclaw` for launcher development.
+2. Starts the Go backend with `EBICLAW_BINARY` pointing at that binary.
 3. Starts the Vite frontend dev server.
 
 Use this when you want the full launcher flow during development.
@@ -221,12 +221,12 @@ This:
 1. Installs frontend dependencies when needed.
 2. Builds the frontend into `backend/dist`.
 3. Embeds those assets into the Go backend.
-4. Produces `build/picoclaw-launcher`.
+4. Produces `build/ebiclaw-launcher`.
 
 Override the output path if needed:
 
 ```bash
-make build OUTPUT=/tmp/picoclaw-launcher
+make build OUTPUT=/tmp/ebiclaw-launcher
 ```
 
 From the repository root you can also use:
@@ -238,10 +238,10 @@ make build-launcher
 That writes the platform-specific launcher to:
 
 ```text
-build/picoclaw-launcher-<platform>-<arch>
+build/ebiclaw-launcher-<platform>-<arch>
 ```
 
-and refreshes the `build/picoclaw-launcher` symlink.
+and refreshes the `build/ebiclaw-launcher` symlink.
 
 ### Frontend-Only Builds
 
@@ -261,10 +261,10 @@ pnpm build:backend
 Examples:
 
 ```bash
-./build/picoclaw-launcher
-./build/picoclaw-launcher -console
-./build/picoclaw-launcher -public
-./build/picoclaw-launcher -port 19999 /path/to/config.json
+./build/ebiclaw-launcher
+./build/ebiclaw-launcher -console
+./build/ebiclaw-launcher -public
+./build/ebiclaw-launcher -port 19999 /path/to/config.json
 ```
 
 Current launcher flags:
@@ -341,7 +341,7 @@ That is expected: each launcher process generates a new signed session value, so
 To make re-login easier, set a stable token:
 
 ```bash
-export PICOCLAW_LAUNCHER_TOKEN="replace-with-a-long-random-token"
+export EBICLAW_LAUNCHER_TOKEN="replace-with-a-long-random-token"
 ```
 
 Notes:
@@ -359,12 +359,12 @@ Check these in the dashboard:
 - the model has credentials or OAuth state
 - local models such as Ollama or vLLM are reachable
 
-### The launcher cannot find `picoclaw`
+### The launcher cannot find `ebiclaw`
 
 Set the main binary explicitly:
 
 ```bash
-export PICOCLAW_BINARY=/absolute/path/to/picoclaw
+export EBICLAW_BINARY=/absolute/path/to/ebiclaw
 ```
 
 This affects onboarding and gateway subprocess startup.
@@ -380,4 +380,4 @@ If you run only `make dev-backend`, either run `make dev-frontend` alongside it 
 - Configuration guide: [`../docs/configuration.md`](../docs/configuration.md)
 - Providers: [`../docs/providers.md`](../docs/providers.md)
 - Troubleshooting: [`../docs/troubleshooting.md`](../docs/troubleshooting.md)
-- Official docs site: [docs.picoclaw.io](https://docs.picoclaw.io)
+- Official docs site: [docs.ebiclaw.io](https://docs.ebiclaw.io)

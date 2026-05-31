@@ -5,10 +5,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal"
-	"github.com/sipeed/picoclaw/pkg/gateway"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/utils"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal"
+	"github.com/n-seiji/ebiclaw/pkg/gateway"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/utils"
 )
 
 func NewGatewayCommand() *cobra.Command {
@@ -19,7 +19,7 @@ func NewGatewayCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "gateway",
 		Aliases: []string{"g"},
-		Short:   "Start picoclaw gateway",
+		Short:   "Start ebiclaw gateway",
 		Args:    cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			if noTruncate && !debug {
@@ -34,7 +34,7 @@ func NewGatewayCommand() *cobra.Command {
 			return nil
 		},
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return gateway.Run(debug, internal.GetPicoclawHome(), internal.GetConfigPath(), allowEmpty)
+			return gateway.Run(debug, internal.GetEbiclawHome(), internal.GetConfigPath(), allowEmpty)
 		},
 	}
 

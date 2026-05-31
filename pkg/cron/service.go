@@ -12,7 +12,7 @@ import (
 
 	"github.com/adhocore/gronx"
 
-	"github.com/sipeed/picoclaw/pkg/fileutil"
+	"github.com/n-seiji/ebiclaw/pkg/fileutil"
 )
 
 // Payload kinds. AgentTurn re-runs the agent at trigger time so the message

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 var configPath = ""
@@ -18,7 +18,7 @@ var configPath = ""
 func initTest(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath = filepath.Join(tmpDir, "config.json")
-	_ = os.Setenv("PICOCLAW_CONFIG", configPath)
+	_ = os.Setenv("EBICLAW_CONFIG", configPath)
 }
 
 // captureStdout captures stdout during the execution of fn and returns the captured output

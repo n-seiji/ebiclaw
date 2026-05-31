@@ -1,7 +1,7 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package ui
 
@@ -16,8 +16,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	ppid "github.com/sipeed/picoclaw/pkg/pid"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	ppid "github.com/n-seiji/ebiclaw/pkg/pid"
 )
 
 type gatewayStatus struct {
@@ -51,9 +51,9 @@ func startGateway() error {
 	var cmd *exec.Cmd
 
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/C", "start /B picoclaw gateway > NUL 2>&1")
+		cmd = exec.Command("cmd", "/C", "start /B ebiclaw gateway > NUL 2>&1")
 	} else {
-		cmd = exec.Command("sh", "-c", "nohup picoclaw gateway > /dev/null 2>&1 &")
+		cmd = exec.Command("sh", "-c", "nohup ebiclaw gateway > /dev/null 2>&1 &")
 	}
 
 	err := cmd.Start()
@@ -68,7 +68,7 @@ func startGateway() error {
 			"wmic",
 			"process",
 			"where",
-			"name='picoclaw.exe' and commandline like '%gateway%'",
+			"name='ebiclaw.exe' and commandline like '%gateway%'",
 			"get",
 			"processid",
 		)

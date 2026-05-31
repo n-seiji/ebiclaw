@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 func TestHandleListSkills(t *testing.T) {
@@ -58,15 +58,15 @@ func TestHandleListSkills(t *testing.T) {
 	}
 
 	builtinRoot := filepath.Join(t.TempDir(), "builtin-skills")
-	oldBuiltin := os.Getenv("PICOCLAW_BUILTIN_SKILLS")
-	if err := os.Setenv("PICOCLAW_BUILTIN_SKILLS", builtinRoot); err != nil {
-		t.Fatalf("Setenv(PICOCLAW_BUILTIN_SKILLS) error = %v", err)
+	oldBuiltin := os.Getenv("EBICLAW_BUILTIN_SKILLS")
+	if err := os.Setenv("EBICLAW_BUILTIN_SKILLS", builtinRoot); err != nil {
+		t.Fatalf("Setenv(EBICLAW_BUILTIN_SKILLS) error = %v", err)
 	}
 	defer func() {
 		if oldBuiltin == "" {
-			_ = os.Unsetenv("PICOCLAW_BUILTIN_SKILLS")
+			_ = os.Unsetenv("EBICLAW_BUILTIN_SKILLS")
 		} else {
-			_ = os.Setenv("PICOCLAW_BUILTIN_SKILLS", oldBuiltin)
+			_ = os.Setenv("EBICLAW_BUILTIN_SKILLS", oldBuiltin)
 		}
 	}()
 

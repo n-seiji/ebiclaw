@@ -56,8 +56,10 @@ async function runNow(): Promise<void> {
 
 export function ArchiverPage() {
   const [cfg, setCfg] = useState<ArchiverConfig | null>(null)
+  const [allowlistText, setAllowlistText] = useState("")
   const [status, setStatus] = useState<ArchiverStatus | null>(null)
   const [saving, setSaving] = useState(false)
+  const [runningNow, setRunningNow] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
 
@@ -77,6 +79,7 @@ export function ArchiverPage() {
           push: c.push,
           tools_readonly_enabled: c.tools_readonly_enabled ?? false,
         })
+        setAllowlistText((c.allowlist ?? []).join("\n"))
       })
       .catch((e) => setError(String(e)))
 
@@ -118,13 +121,22 @@ export function ArchiverPage() {
   const handleRun = async () => {
     setError(null)
     setInfo(null)
+    setRunningNow(true)
     try {
       await runNow()
       setInfo("Triggered. Watch the status panel.")
     } catch (e) {
       setError(String(e))
+    } finally {
+      setRunningNow(false)
     }
   }
+
+  const parseAllowlist = (text: string): string[] =>
+    text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
 
   return (
     <div className="flex h-full flex-col">
@@ -191,16 +203,18 @@ export function ArchiverPage() {
             </Label>
             <Textarea
               id="allow"
-              value={cfg.allowlist.join("\n")}
+              value={allowlistText}
               rows={5}
               placeholder="slack/C0123ABC&#10;pico/main"
-              onChange={(e) =>
-                setCfg({
+              onChange={(e) => setAllowlistText(e.target.value)}
+              onBlur={() => {
+                const next = {
                   ...cfg,
-                  allowlist: e.target.value.split("\n").filter(Boolean),
-                })
-              }
-              onBlur={() => save(cfg)}
+                  allowlist: parseAllowlist(allowlistText),
+                }
+                setCfg(next)
+                void save(next)
+              }}
             />
           </CardContent>
         </Card>
@@ -298,9 +312,12 @@ export function ArchiverPage() {
               <div className="text-muted-foreground text-sm">No status yet.</div>
             )}
             <div className="flex gap-2">
-              <Button onClick={handleRun} disabled={status?.running}>
+              <Button onClick={handleRun} disabled={runningNow}>
                 Run now
               </Button>
+              {runningNow && (
+                <span className="text-muted-foreground text-sm">Running…</span>
+              )}
               {saving && (
                 <span className="text-muted-foreground text-sm">Saving…</span>
               )}

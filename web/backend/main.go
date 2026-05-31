@@ -1,13 +1,13 @@
-// PicoClaw Web Console - Web-based chat and management interface
+// EbiClaw Web Console - Web-based chat and management interface
 //
-// Provides a web UI for chatting with PicoClaw via the Pico Channel WebSocket,
+// Provides a web UI for chatting with EbiClaw via the Pico Channel WebSocket,
 // with configuration management and gateway process control.
 //
 // Usage:
 //
-//	go build -o picoclaw-web ./web/backend/
-//	./picoclaw-web [config.json]
-//	./picoclaw-web -public config.json
+//	go build -o ebiclaw-web ./web/backend/
+//	./ebiclaw-web [config.json]
+//	./ebiclaw-web -public config.json
 
 package main
 
@@ -24,17 +24,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/web/backend/api"
-	"github.com/sipeed/picoclaw/web/backend/dashboardauth"
-	"github.com/sipeed/picoclaw/web/backend/launcherconfig"
-	"github.com/sipeed/picoclaw/web/backend/middleware"
-	"github.com/sipeed/picoclaw/web/backend/utils"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/web/backend/api"
+	"github.com/n-seiji/ebiclaw/web/backend/dashboardauth"
+	"github.com/n-seiji/ebiclaw/web/backend/launcherconfig"
+	"github.com/n-seiji/ebiclaw/web/backend/middleware"
+	"github.com/n-seiji/ebiclaw/web/backend/utils"
 )
 
 const (
-	appName = "PicoClaw"
+	appName = "EbiClaw"
 
 	logPath   = "logs"
 	panicFile = "launcher_panic.log"
@@ -98,7 +98,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%s Launcher - Web console and gateway manager\n\n", appName)
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] [config.json]\n\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Arguments:\n")
-		fmt.Fprintf(os.Stderr, "  config.json    Path to the configuration file (default: ~/.picoclaw/config.json)\n\n")
+		fmt.Fprintf(os.Stderr, "  config.json    Path to the configuration file (default: ~/.ebiclaw/config.json)\n\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\nExamples:\n")
@@ -118,7 +118,7 @@ func main() {
 	flag.Parse()
 
 	// Initialize logger
-	picoHome := utils.GetPicoclawHome()
+	picoHome := utils.GetEbiclawHome()
 
 	f := filepath.Join(picoHome, logPath, panicFile)
 	panicFunc, err := logger.InitPanic(f)
@@ -312,7 +312,7 @@ func main() {
 		case launcherconfig.DashboardTokenSourceRandom:
 			fmt.Printf("  Dashboard password (this run): %s\n", maskSecret(dashboardToken))
 		case launcherconfig.DashboardTokenSourceEnv:
-			fmt.Printf("  Dashboard password: from environment variable PICOCLAW_LAUNCHER_TOKEN\n")
+			fmt.Printf("  Dashboard password: from environment variable EBICLAW_LAUNCHER_TOKEN\n")
 		case launcherconfig.DashboardTokenSourceConfig:
 			fmt.Printf("  Dashboard password: configured in %s\n", launcherPath)
 		}
@@ -321,7 +321,7 @@ func main() {
 
 	switch dashboardTokenSource {
 	case launcherconfig.DashboardTokenSourceEnv:
-		logger.InfoC("web", "Dashboard password: environment PICOCLAW_LAUNCHER_TOKEN")
+		logger.InfoC("web", "Dashboard password: environment EBICLAW_LAUNCHER_TOKEN")
 	case launcherconfig.DashboardTokenSourceConfig:
 		logger.InfoC("web", fmt.Sprintf("Dashboard password: configured in %s", launcherPath))
 	case launcherconfig.DashboardTokenSourceRandom:

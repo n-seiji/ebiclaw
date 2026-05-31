@@ -7,7 +7,7 @@ BUILD_DIR = "build"
 # ---------- dev ----------
 [tasks.dev]
 description = "Run both frontend and backend dev servers"
-depends = ["build-dev-picoclaw"]
+depends = ["build-dev-ebiclaw"]
 run = """
 source ../.mise/lib/platform.sh
 if [ ! -f "$BACKEND_DIST/index.html" ]; then
@@ -29,12 +29,12 @@ run = "cd frontend && pnpm dev"
 description = "Start backend dev server"
 run = """
 source ../.mise/lib/platform.sh
-PICOCLAW_BINARY="${PICOCLAW_BINARY:-$(cd .. && pwd)/build/picoclaw}"
+EBICLAW_BINARY="${EBICLAW_BINARY:-$(cd .. && pwd)/build/ebiclaw}"
 LAUNCHER_LDFLAGS="$LDFLAGS"
 if [ "$PLATFORM" = "windows" ]; then
   LAUNCHER_LDFLAGS="-H=windowsgui $LDFLAGS"
 fi
-cd backend && PICOCLAW_BINARY="$PICOCLAW_BINARY" web_go run -ldflags "$LAUNCHER_LDFLAGS" . "$@"
+cd backend && EBICLAW_BINARY="$EBICLAW_BINARY" web_go run -ldflags "$LAUNCHER_LDFLAGS" . "$@"
 """
 
 # ---------- build ----------
@@ -43,7 +43,7 @@ description = "Build frontend and embed into Go binary"
 depends = ["build-frontend"]
 run = """
 source ../.mise/lib/platform.sh
-OUTPUT="${OUTPUT:-build/picoclaw-launcher}"
+OUTPUT="${OUTPUT:-build/ebiclaw-launcher}"
 LAUNCHER_LDFLAGS="$LDFLAGS"
 if [ "$PLATFORM" = "windows" ]; then
   LAUNCHER_LDFLAGS="-H=windowsgui $LDFLAGS"
@@ -67,15 +67,15 @@ echo "Building frontend..."
 pnpm build:backend
 """
 
-# ---------- build-dev-picoclaw ----------
-[tasks.build-dev-picoclaw]
-description = "Build picoclaw for launcher development"
+# ---------- build-dev-ebiclaw ----------
+[tasks.build-dev-ebiclaw]
+description = "Build ebiclaw for launcher development"
 run = """
 source ../.mise/lib/platform.sh
-PICOCLAW_BINARY="${PICOCLAW_BINARY:-$(cd .. && pwd)/build/picoclaw}"
-echo "Building picoclaw for launcher development..."
-mkdir -p "$(dirname "$PICOCLAW_BINARY")"
-go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "$PICOCLAW_BINARY" ../cmd/picoclaw
+EBICLAW_BINARY="${EBICLAW_BINARY:-$(cd .. && pwd)/build/ebiclaw}"
+echo "Building ebiclaw for launcher development..."
+mkdir -p "$(dirname "$EBICLAW_BINARY")"
+go build $GOFLAGS_CUSTOM -ldflags "$LDFLAGS" -o "$EBICLAW_BINARY" ../cmd/ebiclaw
 """
 
 # ---------- test ----------

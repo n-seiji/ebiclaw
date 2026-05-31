@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sipeed/picoclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 )
 
 var (
@@ -27,7 +27,7 @@ func main() {
 
 	rootCmd := &cobra.Command{
 		Use:   "membench",
-		Short: "Memory benchmark tool for picoclaw",
+		Short: "Memory benchmark tool for ebiclaw",
 	}
 
 	ingestCmd := &cobra.Command{

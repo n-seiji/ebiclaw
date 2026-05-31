@@ -116,7 +116,7 @@ If your first goal is simply to prove that the hook flow works and observe real 
 
 1. Enable `hooks.enabled`
 2. Save the Python example from this document to a local file, for example `/tmp/review_gate.py`
-3. Set `PICOCLAW_HOOK_LOG_FILE`
+3. Set `EBICLAW_HOOK_LOG_FILE`
 4. Restart the gateway
 5. Watch the log file with `tail -f`
 
@@ -145,7 +145,7 @@ Example:
           "approve_tool"
         ],
         "env": {
-          "PICOCLAW_HOOK_LOG_FILE": "/tmp/picoclaw-hook-review-gate.log"
+          "EBICLAW_HOOK_LOG_FILE": "/tmp/ebiclaw-hook-review-gate.log"
         }
       }
     }
@@ -156,17 +156,17 @@ Example:
 Watch it with:
 
 ```bash
-tail -f /tmp/picoclaw-hook-review-gate.log
+tail -f /tmp/ebiclaw-hook-review-gate.log
 ```
 
-If you are developing PicoClaw itself rather than only validating the protocol, continue with the Go in-process example as well.
+If you are developing EbiClaw itself rather than only validating the protocol, continue with the Go in-process example as well.
 
 ## What The Two Examples Are For
 
 - Go in-process example
   Best for validating the host-side hook chain and understanding `MountHook()` plus the synchronous stages
 - Python process example
-  Best for understanding the `JSON-RPC over stdio` protocol and verifying the message flow between PicoClaw and an external process
+  Best for understanding the `JSON-RPC over stdio` protocol and verifying the message flow between EbiClaw and an external process
 
 Both examples are intentionally safe: they only log, never rewrite, and never deny.
 
@@ -195,8 +195,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/agent"
-	"github.com/sipeed/picoclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/agent"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 )
 
 type ExampleLoggerHookOptions struct {
@@ -341,7 +341,7 @@ If code mounting is enough, call this after `AgentLoop` is initialized:
 
 ```go
 hook := myhooks.NewExampleLoggerHook(myhooks.ExampleLoggerHookOptions{
-    LogFile:   "/tmp/picoclaw-hook-example-logger.log",
+    LogFile:   "/tmp/ebiclaw-hook-example-logger.log",
     LogEvents: true,
 })
 
@@ -362,8 +362,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/sipeed/picoclaw/pkg/agent"
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/agent"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 func init() {
@@ -397,7 +397,7 @@ Only after you register that builtin will the following config work:
         "enabled": true,
         "priority": 10,
         "config": {
-          "log_file": "/tmp/picoclaw-hook-example-logger.log",
+          "log_file": "/tmp/ebiclaw-hook-example-logger.log",
           "log_events": true
         }
       }
@@ -447,8 +447,8 @@ import sys
 from datetime import datetime, timezone
 from typing import Any
 
-LOG_EVENTS = os.getenv("PICOCLAW_HOOK_LOG_EVENTS", "1").lower() not in {"0", "false", "no"}
-LOG_FILE = os.getenv("PICOCLAW_HOOK_LOG_FILE", "").strip()
+LOG_EVENTS = os.getenv("EBICLAW_HOOK_LOG_EVENTS", "1").lower() not in {"0", "false", "no"}
+LOG_FILE = os.getenv("EBICLAW_HOOK_LOG_FILE", "").strip()
 
 
 def append_log(entry: dict[str, Any]) -> None:
@@ -615,7 +615,7 @@ if __name__ == "__main__":
           "approve_tool"
         ],
         "env": {
-          "PICOCLAW_HOOK_LOG_FILE": "/tmp/picoclaw-hook-review-gate.log"
+          "EBICLAW_HOOK_LOG_FILE": "/tmp/ebiclaw-hook-review-gate.log"
         }
       }
     }
@@ -625,12 +625,12 @@ if __name__ == "__main__":
 
 ### Environment Variables
 
-- `PICOCLAW_HOOK_LOG_EVENTS`
+- `EBICLAW_HOOK_LOG_EVENTS`
   Whether to write `hook.event` summaries to `stderr`, enabled by default
-- `PICOCLAW_HOOK_LOG_FILE`
+- `EBICLAW_HOOK_LOG_FILE`
   Path to an external log file. When set, the script appends inbound hook requests, notifications, and outbound responses as JSON Lines
 
-Note: `PICOCLAW_HOOK_LOG_FILE` has no default. If you do not set it, the script does not write any file logs.
+Note: `EBICLAW_HOOK_LOG_FILE` has no default. If you do not set it, the script does not write any file logs.
 
 ### How To Confirm It Received Hooks
 
@@ -638,7 +638,7 @@ Watch two places:
 
 - Gateway logs
   Useful for confirming that the host successfully started the process and for seeing event summaries written to `stderr`
-- `PICOCLAW_HOOK_LOG_FILE`
+- `EBICLAW_HOOK_LOG_FILE`
   Useful for seeing the exact requests the script received and the exact responses it returned
 
 Typical interpretation:
@@ -679,12 +679,12 @@ Additional notes:
 
 Current process hooks use `JSON-RPC over stdio`:
 
-- PicoClaw starts the external process
+- EbiClaw starts the external process
 - Requests and responses are exchanged as one JSON message per line
 - `hook.event` is a notification and does not need a response
 - `hook.before_llm`, `hook.after_llm`, `hook.before_tool`, `hook.after_tool`, and `hook.approve_tool` are request/response calls
 
-The host does not currently accept new RPCs initiated by the process hook. In practice, that means an external hook can only respond to PicoClaw calls; it cannot call back into the host to send channel messages.
+The host does not currently accept new RPCs initiated by the process hook. In practice, that means an external hook can only respond to EbiClaw calls; it cannot call back into the host to send channel messages.
 
 ## Configuration Fields
 

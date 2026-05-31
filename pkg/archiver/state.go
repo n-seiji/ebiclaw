@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const stateRelDir = ".picoclaw-archive"
+const stateRelDir = ".ebiclaw-archive"
 const stateFileName = "state.json"
 
 type TopicIndexEntry struct {

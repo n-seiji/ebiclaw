@@ -11,11 +11,11 @@ import (
 
 	"github.com/ergochat/readline"
 
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal"
-	"github.com/sipeed/picoclaw/pkg/agent"
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal"
+	"github.com/n-seiji/ebiclaw/pkg/agent"
+	"github.com/n-seiji/ebiclaw/pkg/bus"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/providers"
 )
 
 func agentCmd(message, sessionKey, model string, debug bool) error {
@@ -84,7 +84,7 @@ func interactiveMode(agentLoop *agent.AgentLoop, sessionKey string) {
 
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:          prompt,
-		HistoryFile:     filepath.Join(os.TempDir(), ".picoclaw_history"),
+		HistoryFile:     filepath.Join(os.TempDir(), ".ebiclaw_history"),
 		HistoryLimit:    100,
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",

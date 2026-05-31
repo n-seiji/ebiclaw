@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal"
-	"github.com/sipeed/picoclaw/pkg/skills"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal"
+	"github.com/n-seiji/ebiclaw/pkg/skills"
 )
 
 func newInstallCommand(installerFn func() (*skills.SkillInstaller, error)) *cobra.Command {
@@ -16,8 +16,8 @@ func newInstallCommand(installerFn func() (*skills.SkillInstaller, error)) *cobr
 		Use:   "install",
 		Short: "Install skill from GitHub",
 		Example: `
-picoclaw skills install sipeed/picoclaw-skills/weather
-picoclaw skills install --registry clawhub github
+ebiclaw skills install n-seiji/ebiclaw-skills/weather
+ebiclaw skills install --registry clawhub github
 `,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if registry != "" {

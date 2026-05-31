@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal"
-	"github.com/sipeed/picoclaw/pkg/skills"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal"
+	"github.com/n-seiji/ebiclaw/pkg/skills"
 )
 
 type deps struct {
@@ -42,7 +42,7 @@ func NewSkillsCommand() *cobra.Command {
 			// get global config directory and builtin skills directory
 			globalDir := filepath.Dir(internal.GetConfigPath())
 			globalSkillsDir := filepath.Join(globalDir, "skills")
-			builtinSkillsDir := filepath.Join(globalDir, "picoclaw", "skills")
+			builtinSkillsDir := filepath.Join(globalDir, "ebiclaw", "skills")
 			d.skillsLoader = skills.NewSkillsLoader(d.workspace, globalSkillsDir, builtinSkillsDir)
 
 			return nil

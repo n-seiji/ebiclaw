@@ -1,7 +1,7 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package ui
 
@@ -41,19 +41,19 @@ func (a *App) newHomePage() tview.Primitive {
 				a.navigateTo("channels", a.newChannelsPage())
 			},
 		)
-		list.AddItem("GATEWAY MANAGEMENT", "Manage PicoClaw gateway daemon", 'g', func() {
+		list.AddItem("GATEWAY MANAGEMENT", "Manage EbiClaw gateway daemon", 'g', func() {
 			a.navigateTo("gateway", a.newGatewayPage())
 		})
 		list.AddItem("CHAT: Start AI agent chat", "Launch interactive chat session", 'c', func() {
 			a.tapp.Suspend(func() {
-				cmd := exec.Command("picoclaw", "agent")
+				cmd := exec.Command("ebiclaw", "agent")
 				cmd.Stdin = os.Stdin
 				cmd.Stdout = os.Stdout
 				cmd.Stderr = os.Stderr
 				_ = cmd.Run()
 			})
 		})
-		list.AddItem("QUIT SYSTEM", "Exit PicoClaw Launcher", 'q', func() { a.tapp.Stop() })
+		list.AddItem("QUIT SYSTEM", "Exit EbiClaw Launcher", 'q', func() { a.tapp.Stop() })
 		if sel >= 0 && sel < list.GetItemCount() {
 			list.SetCurrentItem(sel)
 		}

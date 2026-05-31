@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/utils"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/providers"
+	"github.com/n-seiji/ebiclaw/pkg/utils"
 )
 
 // registerSessionRoutes binds session list and detail endpoints to the ServeMux.
@@ -397,7 +397,7 @@ func visibleAssistantToolMessages(toolCalls []providers.ToolCall) []sessionChatM
 }
 
 // sessionsDir resolves the path to the gateway's session storage directory.
-// It reads the workspace from config, falling back to ~/.picoclaw/workspace.
+// It reads the workspace from config, falling back to ~/.ebiclaw/workspace.
 func (h *Handler) sessionsDir() (string, error) {
 	cfg, err := config.LoadConfig(h.configPath)
 	if err != nil {
@@ -419,7 +419,7 @@ func (h *Handler) sessionRuntimeSettings() (string, int, error) {
 func resolveSessionsDir(workspace string) string {
 	if workspace == "" {
 		home, _ := os.UserHomeDir()
-		workspace = filepath.Join(home, ".picoclaw", "workspace")
+		workspace = filepath.Join(home, ".ebiclaw", "workspace")
 	}
 
 	// Expand ~ prefix

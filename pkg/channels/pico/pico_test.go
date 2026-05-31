@@ -7,9 +7,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/channels"
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/bus"
+	"github.com/n-seiji/ebiclaw/pkg/channels"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 func newTestPicoChannel(t *testing.T) *PicoChannel {

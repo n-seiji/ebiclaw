@@ -59,7 +59,7 @@ func Validate(cfg Config) error {
 
 // EnsureDashboardSecrets returns signing key bytes and the effective dashboard token for this
 // process. The signing key is freshly random each call; the token comes from
-// PICOCLAW_LAUNCHER_TOKEN when set, otherwise launcher-config.json launcher_token,
+// EBICLAW_LAUNCHER_TOKEN when set, otherwise launcher-config.json launcher_token,
 // otherwise a new random token.
 func EnsureDashboardSecrets(
 	cfg Config,
@@ -69,7 +69,7 @@ func EnsureDashboardSecrets(
 		return "", nil, "", err
 	}
 
-	effectiveToken = strings.TrimSpace(os.Getenv("PICOCLAW_LAUNCHER_TOKEN"))
+	effectiveToken = strings.TrimSpace(os.Getenv("EBICLAW_LAUNCHER_TOKEN"))
 	if effectiveToken != "" {
 		return effectiveToken, signingKey, DashboardTokenSourceEnv, nil
 	}

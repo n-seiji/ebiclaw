@@ -1,7 +1,7 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package providers
 
@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	anthropicmessages "github.com/sipeed/picoclaw/pkg/providers/anthropic_messages"
-	"github.com/sipeed/picoclaw/pkg/providers/bedrock"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	anthropicmessages "github.com/n-seiji/ebiclaw/pkg/providers/anthropic_messages"
+	"github.com/n-seiji/ebiclaw/pkg/providers/bedrock"
 )
 
 type protocolMeta struct {
@@ -66,7 +66,7 @@ func createClaudeAuthProvider() (LLMProvider, error) {
 		return nil, fmt.Errorf("loading auth credentials: %w", err)
 	}
 	if cred == nil {
-		return nil, fmt.Errorf("no credentials for anthropic. Run: picoclaw auth login --provider anthropic")
+		return nil, fmt.Errorf("no credentials for anthropic. Run: ebiclaw auth login --provider anthropic")
 	}
 	return NewClaudeProviderWithTokenSource(cred.AccessToken, createClaudeTokenSource()), nil
 }
@@ -78,7 +78,7 @@ func createCodexAuthProvider() (LLMProvider, error) {
 		return nil, fmt.Errorf("loading auth credentials: %w", err)
 	}
 	if cred == nil {
-		return nil, fmt.Errorf("no credentials for openai. Run: picoclaw auth login --provider openai")
+		return nil, fmt.Errorf("no credentials for openai. Run: ebiclaw auth login --provider openai")
 	}
 	return NewCodexProviderWithTokenSource(cred.AccessToken, cred.AccountID, createCodexTokenSource()), nil
 }
@@ -130,7 +130,7 @@ func CreateProviderFromConfig(cfg *config.ModelConfig) (LLMProvider, string, err
 
 	userAgent := cfg.UserAgent
 	if userAgent == "" {
-		userAgent = fmt.Sprintf("PicoClaw/%s", config.Version)
+		userAgent = fmt.Sprintf("EbiClaw/%s", config.Version)
 	}
 
 	switch protocol {

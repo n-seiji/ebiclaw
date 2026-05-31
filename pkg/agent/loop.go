@@ -1,8 +1,8 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // Inspired by and based on nanobot: https://github.com/HKUDS/nanobot
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package agent
 
@@ -18,21 +18,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/audio/asr"
-	"github.com/sipeed/picoclaw/pkg/audio/tts"
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/channels"
-	"github.com/sipeed/picoclaw/pkg/commands"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/constants"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/media"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/routing"
-	"github.com/sipeed/picoclaw/pkg/skills"
-	"github.com/sipeed/picoclaw/pkg/state"
-	"github.com/sipeed/picoclaw/pkg/tools"
-	"github.com/sipeed/picoclaw/pkg/utils"
+	"github.com/n-seiji/ebiclaw/pkg/audio/asr"
+	"github.com/n-seiji/ebiclaw/pkg/audio/tts"
+	"github.com/n-seiji/ebiclaw/pkg/bus"
+	"github.com/n-seiji/ebiclaw/pkg/channels"
+	"github.com/n-seiji/ebiclaw/pkg/commands"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/constants"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
+	"github.com/n-seiji/ebiclaw/pkg/media"
+	"github.com/n-seiji/ebiclaw/pkg/providers"
+	"github.com/n-seiji/ebiclaw/pkg/routing"
+	"github.com/n-seiji/ebiclaw/pkg/skills"
+	"github.com/n-seiji/ebiclaw/pkg/state"
+	"github.com/n-seiji/ebiclaw/pkg/tools"
+	"github.com/n-seiji/ebiclaw/pkg/utils"
 )
 
 type AgentLoop struct {
@@ -111,6 +111,11 @@ const (
 	metadataKeyReplyToMessage  = "reply_to_message_id"
 	metadataKeyParentPeerKind  = "parent_peer_kind"
 	metadataKeyParentPeerID    = "parent_peer_id"
+	// metadataKeyObserveOnly marks an inbound message as observation-only:
+	// it is published to the bus so observers (e.g. the archiver) can ingest
+	// it for downstream summarization, but the agent loop must not run a turn
+	// on it. Used for unaddressed channel chatter that should still be archived.
+	metadataKeyObserveOnly = "observe_only"
 )
 
 func NewAgentLoop(
@@ -1340,6 +1345,18 @@ func (al *AgentLoop) ProcessHeartbeat(
 }
 
 func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage) (string, error) {
+	// Observation-only short-circuit: the channel layer publishes unaddressed
+	// chatter so observers (archiver) can ingest it, but we must not run a
+	// turn for it — no LLM call, no response.
+	if inboundMetadata(msg, metadataKeyObserveOnly) == "true" {
+		logger.DebugCF("agent", "Skipping observe-only message",
+			map[string]any{
+				"channel": msg.Channel,
+				"chat_id": msg.ChatID,
+			})
+		return "", nil
+	}
+
 	// Add message preview to log (show full content for error messages)
 	var logContent string
 	if strings.Contains(msg.Content, "Error:") || strings.Contains(msg.Content, "error") {
@@ -1592,9 +1609,10 @@ func (al *AgentLoop) runAgentLoop(
 
 	if opts.SendResponse && result.finalContent != "" {
 		al.bus.PublishOutbound(ctx, bus.OutboundMessage{
-			Channel: opts.Channel,
-			ChatID:  opts.ChatID,
-			Content: result.finalContent,
+			Channel:          opts.Channel,
+			ChatID:           opts.ChatID,
+			Content:          result.finalContent,
+			ReplyToMessageID: opts.ReplyToMessageID,
 		})
 	}
 

@@ -3,7 +3,7 @@ package migrate
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/sipeed/picoclaw/pkg/migrate"
+	"github.com/n-seiji/ebiclaw/pkg/migrate"
 )
 
 func NewMigrateCommand() *cobra.Command {
@@ -11,13 +11,13 @@ func NewMigrateCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "migrate",
-		Short: "Migrate from xxxclaw(openclaw, etc.) to picoclaw",
+		Short: "Migrate from xxxclaw(openclaw, etc.) to ebiclaw",
 		Args:  cobra.NoArgs,
-		Example: `  picoclaw migrate
-  picoclaw migrate --from openclaw
-  picoclaw migrate --dry-run
-  picoclaw migrate --refresh
-  picoclaw migrate --force`,
+		Example: `  ebiclaw migrate
+  ebiclaw migrate --from openclaw
+  ebiclaw migrate --dry-run
+  ebiclaw migrate --refresh
+  ebiclaw migrate --force`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			m := migrate.NewMigrateInstance(opts)
 			result, err := m.Run(opts)
@@ -46,7 +46,7 @@ func NewMigrateCommand() *cobra.Command {
 	cmd.Flags().StringVar(&opts.SourceHome, "source-home", "",
 		"Override source home directory (default: ~/.openclaw)")
 	cmd.Flags().StringVar(&opts.TargetHome, "target-home", "",
-		"Override target home directory (default: ~/.picoclaw)")
+		"Override target home directory (default: ~/.ebiclaw)")
 
 	return cmd
 }

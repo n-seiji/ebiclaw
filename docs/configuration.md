@@ -4,33 +4,33 @@
 
 ## ⚙️ Configuration
 
-Config file: `~/.picoclaw/config.json`
+Config file: `~/.ebiclaw/config.json`
 
 > **Security Configuration:** For storing API keys, tokens, and other sensitive data, see the [Security Configuration Guide](security_configuration.md).
 
 ### Environment Variables
 
-You can override default paths using environment variables. This is useful for portable installations, containerized deployments, or running picoclaw as a system service. These variables are independent and control different paths.
+You can override default paths using environment variables. This is useful for portable installations, containerized deployments, or running ebiclaw as a system service. These variables are independent and control different paths.
 
 | Variable          | Description                                                                                                                             | Default Path              |
 |-------------------|-----------------------------------------------------------------------------------------------------------------------------------------|---------------------------|
-| `PICOCLAW_CONFIG` | Overrides the path to the configuration file. This directly tells picoclaw which `config.json` to load, ignoring all other locations. | `~/.picoclaw/config.json` |
-| `PICOCLAW_HOME`   | Overrides the root directory for picoclaw data. This changes the default location of the `workspace` and other data directories.          | `~/.picoclaw`             |
+| `EBICLAW_CONFIG` | Overrides the path to the configuration file. This directly tells ebiclaw which `config.json` to load, ignoring all other locations. | `~/.ebiclaw/config.json` |
+| `EBICLAW_HOME`   | Overrides the root directory for ebiclaw data. This changes the default location of the `workspace` and other data directories.          | `~/.ebiclaw`             |
 
 **Examples:**
 
 ```bash
-# Run picoclaw using a specific config file
+# Run ebiclaw using a specific config file
 # The workspace path will be read from within that config file
-PICOCLAW_CONFIG=/etc/picoclaw/production.json picoclaw gateway
+EBICLAW_CONFIG=/etc/ebiclaw/production.json ebiclaw gateway
 
-# Run picoclaw with all its data stored in /opt/picoclaw
-# Config will be loaded from the default ~/.picoclaw/config.json
-# Workspace will be created at /opt/picoclaw/workspace
-PICOCLAW_HOME=/opt/picoclaw picoclaw agent
+# Run ebiclaw with all its data stored in /opt/ebiclaw
+# Config will be loaded from the default ~/.ebiclaw/config.json
+# Workspace will be created at /opt/ebiclaw/workspace
+EBICLAW_HOME=/opt/ebiclaw ebiclaw agent
 
 # Use both for a fully customized setup
-PICOCLAW_HOME=/srv/picoclaw PICOCLAW_CONFIG=/srv/picoclaw/main.json picoclaw gateway
+EBICLAW_HOME=/srv/ebiclaw EBICLAW_CONFIG=/srv/ebiclaw/main.json ebiclaw gateway
 ```
 
 ### Gateway Log Level
@@ -47,14 +47,14 @@ PICOCLAW_HOME=/srv/picoclaw PICOCLAW_CONFIG=/srv/picoclaw/main.json picoclaw gat
 
 When omitted, the default is `warn`. Supported values: `debug`, `info`, `warn`, `error`, `fatal`.
 
-You can also override this with the environment variable `PICOCLAW_LOG_LEVEL`.
+You can also override this with the environment variable `EBICLAW_LOG_LEVEL`.
 
 ### Workspace Layout
 
-PicoClaw stores data in your configured workspace (default: `~/.picoclaw/workspace`):
+EbiClaw stores data in your configured workspace (default: `~/.ebiclaw/workspace`):
 
 ```
-~/.picoclaw/workspace/
+~/.ebiclaw/workspace/
 ├── sessions/          # Conversation sessions and history
 ├── memory/           # Long-term memory (MEMORY.md)
 ├── state/            # Persistent state (last channel, etc.)
@@ -71,11 +71,11 @@ PicoClaw stores data in your configured workspace (default: `~/.picoclaw/workspa
 
 ### Web launcher dashboard
 
-**picoclaw-launcher** serves a browser UI that requires sign-in first. By default, the **dashboard token** and **session signing key** are **generated in memory on each start** (a new random token after every restart). Set **`PICOCLAW_LAUNCHER_TOKEN`** to pin a fixed token for that process (startup logs do not print the secret when this env var is used).
+**ebiclaw-launcher** serves a browser UI that requires sign-in first. By default, the **dashboard token** and **session signing key** are **generated in memory on each start** (a new random token after every restart). Set **`EBICLAW_LAUNCHER_TOKEN`** to pin a fixed token for that process (startup logs do not print the secret when this env var is used).
 
-**Where to read the token**: In **console mode** (`-console`), it is printed at startup. In **tray / GUI mode**, use the tray action **Copy dashboard token**, and check **`$PICOCLAW_HOME/logs/launcher.log`** (typically `~/.picoclaw/logs/launcher.log` if `PICOCLAW_HOME` is unset) for the random token logged on startup. The login page shows hints that match how the launcher is running (including the absolute log path); **responses do not include the token itself**.
+**Where to read the token**: In **console mode** (`-console`), it is printed at startup. In **tray / GUI mode**, use the tray action **Copy dashboard token**, and check **`$EBICLAW_HOME/logs/launcher.log`** (typically `~/.ebiclaw/logs/launcher.log` if `EBICLAW_HOME` is unset) for the random token logged on startup. The login page shows hints that match how the launcher is running (including the absolute log path); **responses do not include the token itself**.
 
-- **Config file**: Same directory as `config.json` (or the file pointed to by `PICOCLAW_CONFIG`). The launcher-specific file is `launcher-config.json`.
+- **Config file**: Same directory as `config.json` (or the file pointed to by `EBICLAW_CONFIG`). The launcher-specific file is `launcher-config.json`.
 - **Sign-in and links**: Enter the token on the login page, or open with `?token=` when the browser is launched automatically. All responses include **`Referrer-Policy: no-referrer`** to reduce leakage of `token` via the `Referer` header.
 - **Sign-out**: Use **`POST /api/auth/logout`** with **`Content-Type: application/json`** (body may be `{}`). Do not rely on a GET URL for logout (CSRF-safe pattern).
 - **Brute-force**: **`POST /api/auth/login`** is **rate-limited per client IP per minute** (HTTP 429 when exceeded).
@@ -85,14 +85,14 @@ PicoClaw stores data in your configured workspace (default: `~/.picoclaw/workspa
 
 By default, skills are loaded from:
 
-1. `~/.picoclaw/workspace/skills` (workspace)
-2. `~/.picoclaw/skills` (global)
+1. `~/.ebiclaw/workspace/skills` (workspace)
+2. `~/.ebiclaw/skills` (global)
 3. `<binary-embedded-path>/skills` (builtin, set at build time)
 
 For advanced/test setups, you can override the builtin skills root with:
 
 ```bash
-export PICOCLAW_BUILTIN_SKILLS=/path/to/skills
+export EBICLAW_BUILTIN_SKILLS=/path/to/skills
 ```
 
 ### Using Skills From Chat Channels
@@ -128,7 +128,7 @@ Use `bindings` in `config.json` to route incoming messages to different agents b
 {
   "agents": {
     "defaults": {
-      "workspace": "~/.picoclaw/workspace",
+      "workspace": "~/.ebiclaw/workspace",
       "model_name": "gpt-4o-mini"
     },
     "list": [
@@ -171,7 +171,7 @@ Use `bindings` in `config.json` to route incoming messages to different agents b
 
 #### Matching priority
 
-When multiple bindings exist, PicoClaw resolves in this order:
+When multiple bindings exist, EbiClaw resolves in this order:
 
 1. `peer`
 2. `parent_peer` (for thread/topic parent contexts)
@@ -181,11 +181,11 @@ When multiple bindings exist, PicoClaw resolves in this order:
 6. channel wildcard (`account_id: "*"`)
 7. default agent
 
-If a binding points to a missing `agent_id`, PicoClaw falls back to the default agent.
+If a binding points to a missing `agent_id`, EbiClaw falls back to the default agent.
 
 #### How matching works (step-by-step)
 
-1. PicoClaw first filters bindings by `match.channel` (must equal current channel).
+1. EbiClaw first filters bindings by `match.channel` (must equal current channel).
 2. It then filters by `match.account_id`:
    - omitted: match only the channel's default account
    - `"*"`: match all accounts on this channel
@@ -250,7 +250,7 @@ In other words: **channel + account form the candidate set; peer/guild/team then
 
 ### 🔒 Security Sandbox
 
-PicoClaw runs in a sandboxed environment by default. The agent can only access files and execute commands within the configured workspace.
+EbiClaw runs in a sandboxed environment by default. The agent can only access files and execute commands within the configured workspace.
 
 #### Default Configuration
 
@@ -258,7 +258,7 @@ PicoClaw runs in a sandboxed environment by default. The agent can only access f
 {
   "agents": {
     "defaults": {
-      "workspace": "~/.picoclaw/workspace",
+      "workspace": "~/.ebiclaw/workspace",
       "restrict_to_workspace": true
     }
   }
@@ -267,7 +267,7 @@ PicoClaw runs in a sandboxed environment by default. The agent can only access f
 
 | Option                  | Default                 | Description                               |
 | ----------------------- | ----------------------- | ----------------------------------------- |
-| `workspace`             | `~/.picoclaw/workspace` | Working directory for the agent           |
+| `workspace`             | `~/.ebiclaw/workspace` | Working directory for the agent           |
 | `restrict_to_workspace` | `true`                  | Restrict file/command access to workspace |
 
 #### Protected Tools
@@ -303,7 +303,7 @@ Even with `restrict_to_workspace: false`, the `exec` tool blocks these dangerous
 
 ### Read File Mode
 
-`read_file` has two mutually exclusive implementations selected by config. PicoClaw registers exactly one of them at startup:
+`read_file` has two mutually exclusive implementations selected by config. EbiClaw registers exactly one of them at startup:
 
 | Config Key | Type | Default | Description |
 |------------|------|---------|-------------|
@@ -374,7 +374,7 @@ Use `mode = lines` when:
 
 #### Known Limitation: Child Processes From Build Tools
 
-The exec safety guard only inspects the command line PicoClaw launches directly. It does not recursively inspect child
+The exec safety guard only inspects the command line EbiClaw launches directly. It does not recursively inspect child
 processes spawned by allowed developer tools such as `make`, `go run`, `cargo`, `npm run`, or custom build scripts.
 
 That means a top-level command can still compile or launch other binaries after it passes the initial guard check. In
@@ -385,7 +385,7 @@ For higher-risk environments:
 
 * Review build scripts before execution.
 * Prefer approval/manual review for compile-and-run workflows.
-* Run PicoClaw inside a container or VM if you need stronger isolation than the built-in guard provides.
+* Run EbiClaw inside a container or VM if you need stronger isolation than the built-in guard provides.
 
 #### Error Examples
 
@@ -418,7 +418,7 @@ If you need the agent to access paths outside the workspace:
 **Method 2: Environment variable**
 
 ```bash
-export PICOCLAW_AGENTS_DEFAULTS_RESTRICT_TO_WORKSPACE=false
+export EBICLAW_AGENTS_DEFAULTS_RESTRICT_TO_WORKSPACE=false
 ```
 
 > ⚠️ **Warning**: Disabling this restriction allows the agent to access any path on your system. Use with caution in controlled environments only.
@@ -437,7 +437,7 @@ All paths share the same workspace restriction — there's no way to bypass the 
 
 ### Heartbeat (Periodic Tasks)
 
-PicoClaw can perform periodic tasks automatically. Create a `HEARTBEAT.md` file in your workspace:
+EbiClaw can perform periodic tasks automatically. Create a `HEARTBEAT.md` file in your workspace:
 
 ```markdown
 # Periodic Tasks
@@ -511,8 +511,8 @@ The subagent has access to tools (message, web_search, etc.) and can communicate
 
 **Environment variables:**
 
-* `PICOCLAW_HEARTBEAT_ENABLED=false` to disable
-* `PICOCLAW_HEARTBEAT_INTERVAL=60` to change interval
+* `EBICLAW_HEARTBEAT_ENABLED=false` to disable
+* `EBICLAW_HEARTBEAT_INTERVAL=60` to change interval
 
 ### Providers
 
@@ -523,7 +523,7 @@ The subagent has access to tools (message, web_search, etc.) and can communicate
 | ------------ | --------------------------------------- | ------------------------------------------------------------ |
 | `gemini`     | LLM (Gemini direct)                     | [aistudio.google.com](https://aistudio.google.com)           |
 | `zhipu`      | LLM (Zhipu direct)                      | [bigmodel.cn](https://bigmodel.cn)                           |
-| `volcengine` | LLM (Volcengine direct)                 | [volcengine.com](https://www.volcengine.com/activity/codingplan?utm_campaign=PicoClaw&utm_content=PicoClaw&utm_medium=devrel&utm_source=OWO&utm_term=PicoClaw) |
+| `volcengine` | LLM (Volcengine direct)                 | [volcengine.com](https://www.volcengine.com/activity/codingplan?utm_campaign=EbiClaw&utm_content=EbiClaw&utm_medium=devrel&utm_source=OWO&utm_term=EbiClaw) |
 | `openrouter` | LLM (recommended, access to all models) | [openrouter.ai](https://openrouter.ai)                       |
 | `anthropic`  | LLM (Claude direct)                     | [console.anthropic.com](https://console.anthropic.com)       |
 | `openai`     | LLM (GPT direct)                        | [platform.openai.com](https://platform.openai.com)           |
@@ -535,7 +535,7 @@ The subagent has access to tools (message, web_search, etc.) and can communicate
 
 ### Model Configuration (model_list)
 
-> **What's New?** PicoClaw now uses a **model-centric** configuration approach. Simply specify `vendor/model` format (e.g., `zhipu/glm-4.7`) to add new providers — **zero code changes required!**
+> **What's New?** EbiClaw now uses a **model-centric** configuration approach. Simply specify `vendor/model` format (e.g., `zhipu/glm-4.7`) to add new providers — **zero code changes required!**
 
 This design also enables **multi-agent support** with flexible provider selection:
 
@@ -547,7 +547,7 @@ This design also enables **multi-agent support** with flexible provider selectio
 
 #### 🔒 Security Configuration (Recommended)
 
-PicoClaw supports separating sensitive data (API keys, tokens, secrets) from your main configuration by storing them in a `.security.yml` file.
+EbiClaw supports separating sensitive data (API keys, tokens, secrets) from your main configuration by storing them in a `.security.yml` file.
 
 **Key Benefits:**
 - **Security**: Sensitive data is never in your main config file
@@ -557,7 +557,7 @@ PicoClaw supports separating sensitive data (API keys, tokens, secrets) from you
 
 **Quick Setup:**
 
-1. Create `~/.picoclaw/.security.yml` with your API keys:
+1. Create `~/.ebiclaw/.security.yml` with your API keys:
 ```yaml
 model_list:
   gpt-5.4:
@@ -579,7 +579,7 @@ web:
 
 2. Set proper permissions:
 ```bash
-chmod 600 ~/.picoclaw/.security.yml
+chmod 600 ~/.ebiclaw/.security.yml
 ```
 
 3. Remove sensitive fields from `config.json` (recommended):
@@ -628,7 +628,7 @@ For complete documentation, see [`security_configuration.md`](security_configura
 | **LiteLLM Proxy**       | `litellm/`        | `http://localhost:4000/v1`                          | OpenAI    | Your LiteLLM proxy key                                           |
 | **VLLM**                | `vllm/`           | `http://localhost:8000/v1`                          | OpenAI    | Local                                                            |
 | **Cerebras**            | `cerebras/`       | `https://api.cerebras.ai/v1`                        | OpenAI    | [Get Key](https://cerebras.ai)                                   |
-| **VolcEngine (Doubao)** | `volcengine/`     | `https://ark.cn-beijing.volces.com/api/v3`          | OpenAI    | [Get Key](https://www.volcengine.com/activity/codingplan?utm_campaign=PicoClaw&utm_content=PicoClaw&utm_medium=devrel&utm_source=OWO&utm_term=PicoClaw) |
+| **VolcEngine (Doubao)** | `volcengine/`     | `https://ark.cn-beijing.volces.com/api/v3`          | OpenAI    | [Get Key](https://www.volcengine.com/activity/codingplan?utm_campaign=EbiClaw&utm_content=EbiClaw&utm_medium=devrel&utm_source=OWO&utm_term=EbiClaw) |
 | **神算云**              | `shengsuanyun/`   | `https://router.shengsuanyun.com/api/v1`            | OpenAI    | —                                                                |
 | **BytePlus**            | `byteplus/`       | `https://ark.ap-southeast.bytepluses.com/api/v3`    | OpenAI    | [Get Key](https://www.byteplus.com)                              |
 | **Vivgrid**             | `vivgrid/`        | `https://api.vivgrid.com/v1`                        | OpenAI    | [Get Key](https://vivgrid.com)                                   |
@@ -742,7 +742,7 @@ For complete documentation, see [`security_configuration.md`](security_configura
 }
 ```
 
-> Run `picoclaw auth login --provider anthropic` to paste your API token.
+> Run `ebiclaw auth login --provider anthropic` to paste your API token.
 
 For direct Anthropic API access or custom endpoints that only support Anthropic's native message format:
 
@@ -782,7 +782,7 @@ For direct Anthropic API access or custom endpoints that only support Anthropic'
 ```
 
 `api_base` defaults to `http://localhost:1234/v1`. API key is optional unless your LM Studio server enables authentication.<br/>
-PicoClaw sends OpenAI-compatible requests to LM Studio, and strips the `lmstudio/` prefix before sending requests, so `lmstudio/openai/gpt-oss-20b` sends `openai/gpt-oss-20b` to the LM Studio server.
+EbiClaw sends OpenAI-compatible requests to LM Studio, and strips the `lmstudio/` prefix before sending requests, so `lmstudio/openai/gpt-oss-20b` sends `openai/gpt-oss-20b` to the LM Studio server.
 
 </details>
 
@@ -798,13 +798,13 @@ PicoClaw sends OpenAI-compatible requests to LM Studio, and strips the `lmstudio
 }
 ```
 
-PicoClaw strips only the outer `litellm/` prefix before sending the request, so `litellm/lite-gpt4` sends `lite-gpt4`, while `litellm/openai/gpt-4o` sends `openai/gpt-4o`.
+EbiClaw strips only the outer `litellm/` prefix before sending the request, so `litellm/lite-gpt4` sends `lite-gpt4`, while `litellm/openai/gpt-4o` sends `openai/gpt-4o`.
 
 </details>
 
 #### Load Balancing
 
-Configure multiple endpoints for the same model name — PicoClaw will automatically round-robin between them:
+Configure multiple endpoints for the same model name — EbiClaw will automatically round-robin between them:
 
 **Option 1: Multiple API Keys in .security.yml (Recommended)**
 
@@ -858,7 +858,7 @@ The old `providers` configuration is **deprecated** and has been removed in V2. 
 
 ### Provider Architecture
 
-PicoClaw routes providers by protocol family:
+EbiClaw routes providers by protocol family:
 
 - **OpenAI-compatible**: OpenRouter, Groq, Zhipu, vLLM-style endpoints, and most others.
 - **Anthropic**: Claude-native API behavior.
@@ -873,7 +873,7 @@ This keeps the runtime lightweight while making new OpenAI-compatible backends m
 {
   "agents": {
     "defaults": {
-      "workspace": "~/.picoclaw/workspace",
+      "workspace": "~/.ebiclaw/workspace",
       "model": "glm-4.7",
       "max_tokens": 8192,
       "temperature": 0.7,
@@ -935,7 +935,7 @@ This keeps the runtime lightweight while making new OpenAI-compatible backends m
 
 ### Scheduled Tasks / Reminders
 
-PicoClaw supports cron-style scheduled tasks via the `cron` tool. The agent can set, list, and cancel reminders or recurring jobs that trigger at specified times.
+EbiClaw supports cron-style scheduled tasks via the `cron` tool. The agent can set, list, and cancel reminders or recurring jobs that trigger at specified times.
 
 ```json
 {
@@ -948,7 +948,7 @@ PicoClaw supports cron-style scheduled tasks via the `cron` tool. The agent can 
 }
 ```
 
-Scheduled tasks persist across restarts and are stored in `~/.picoclaw/workspace/cron/`.
+Scheduled tasks persist across restarts and are stored in `~/.ebiclaw/workspace/cron/`.
 
 ### Advanced Topics
 

@@ -1,5 +1,6 @@
 import { IconChevronRight } from "@tabler/icons-react"
 import {
+  IconArchive,
   IconAtom,
   IconChevronsDown,
   IconChevronsUp,
@@ -155,6 +156,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         ...baseNavGroups[3],
         items: [
+          {
+            title: "Archiver",
+            url: "/archiver",
+            icon: IconArchive,
+            translateTitle: false,
+          },
           {
             title: "navigation.config",
             url: "/config",

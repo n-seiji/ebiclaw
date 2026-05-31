@@ -1,17 +1,17 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package config
 
 import (
 	"path/filepath"
 
-	"github.com/sipeed/picoclaw/pkg"
+	"github.com/n-seiji/ebiclaw/pkg"
 )
 
-// DefaultConfig returns the default configuration for PicoClaw.
+// DefaultConfig returns the default configuration for EbiClaw.
 func DefaultConfig() *Config {
 	workspacePath := filepath.Join(GetHome(), pkg.WorkspaceName)
 

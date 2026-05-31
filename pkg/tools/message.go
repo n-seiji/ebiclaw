@@ -106,6 +106,9 @@ func (t *MessageTool) Execute(ctx context.Context, args map[string]any) *ToolRes
 	if chatID == "" {
 		chatID = ToolChatID(ctx)
 	}
+	if replyToMessageID == "" {
+		replyToMessageID = ToolReplyToMessageID(ctx)
+	}
 
 	if channel == "" || chatID == "" {
 		return &ToolResult{ForLLM: "No target channel/chat specified", IsError: true}

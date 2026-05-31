@@ -4,20 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"net"
 	"net/http"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/archiver"
-	"github.com/sipeed/picoclaw/web/backend/launcherconfig"
+	"github.com/n-seiji/ebiclaw/pkg/archiver"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	ppid "github.com/n-seiji/ebiclaw/pkg/pid"
+	"github.com/n-seiji/ebiclaw/web/backend/launcherconfig"
 )
 
-// registerArchiverRoutes mounts the conversation-archiver endpoints. The
-// concrete archiver.Service runs inside the gateway process, so the launcher
-// can read/write the config block but cannot drive runs directly; runner is
-// nil here and the run/status endpoints behave accordingly.
 func (h *Handler) registerArchiverRoutes(mux *http.ServeMux) {
 	store := launcherconfig.NewArchiverStore(h.configPath)
-	ah := NewArchiverHandler(store, nil)
+	ah := NewArchiverHandler(store, nil, h)
 	mux.Handle("/api/archiver/config", ah)
 	mux.Handle("/api/archiver/status", ah)
 	mux.Handle("/api/archiver/run", ah)
@@ -47,10 +51,11 @@ type ArchiverStatusSnapshot struct {
 type ArchiverHandler struct {
 	store  ArchiverConfigStore
 	runner ArchiverRunner
+	server *Handler
 }
 
-func NewArchiverHandler(store ArchiverConfigStore, runner ArchiverRunner) *ArchiverHandler {
-	return &ArchiverHandler{store: store, runner: runner}
+func NewArchiverHandler(store ArchiverConfigStore, runner ArchiverRunner, server *Handler) *ArchiverHandler {
+	return &ArchiverHandler{store: store, runner: runner, server: server}
 }
 
 func (h *ArchiverHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -86,9 +91,16 @@ func (h *ArchiverHandler) putConfig(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *ArchiverHandler) status(w http.ResponseWriter, _ *http.Request) {
+func (h *ArchiverHandler) status(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if h.runner == nil {
+		if h.server != nil {
+			if proxied, err := h.server.proxyGatewayArchiverStatus(r.Context()); err == nil {
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(proxied)
+				return
+			}
+		}
 		_ = json.NewEncoder(w).Encode(ArchiverStatusSnapshot{Running: false})
 		return
 	}
@@ -97,6 +109,17 @@ func (h *ArchiverHandler) status(w http.ResponseWriter, _ *http.Request) {
 
 func (h *ArchiverHandler) run(w http.ResponseWriter, r *http.Request) {
 	if h.runner == nil {
+		if h.server != nil {
+			statusCode, body, err := h.server.proxyGatewayArchiverRun(r.Context())
+			if err == nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(statusCode)
+				if len(body) > 0 {
+					_, _ = w.Write(body)
+				}
+				return
+			}
+		}
 		http.Error(w, "archiver not bound", http.StatusServiceUnavailable)
 		return
 	}
@@ -109,4 +132,81 @@ func (h *ArchiverHandler) run(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func (h *Handler) proxyGatewayArchiverStatus(ctx context.Context) (ArchiverStatusSnapshot, error) {
+	_, body, err := h.doGatewayArchiverRequest(ctx, http.MethodGet, "/archiver/status")
+	if err != nil {
+		return ArchiverStatusSnapshot{}, err
+	}
+	var status ArchiverStatusSnapshot
+	if err := json.Unmarshal(body, &status); err != nil {
+		return ArchiverStatusSnapshot{}, err
+	}
+	return status, nil
+}
+
+func (h *Handler) proxyGatewayArchiverRun(ctx context.Context) (int, []byte, error) {
+	return h.doGatewayArchiverRequest(ctx, http.MethodPost, "/archiver/run")
+}
+
+func (h *Handler) doGatewayArchiverRequest(ctx context.Context, method, path string) (int, []byte, error) {
+	cfg, err := config.LoadConfig(h.configPath)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	gateway.mu.Lock()
+	pidData := gateway.pidData
+	gateway.mu.Unlock()
+	if pidData == nil {
+		pidData = gatewayPidDataByConfig(h.configPath)
+		if pidData == nil {
+			return 0, nil, fmt.Errorf("gateway pid data unavailable")
+		}
+	}
+
+	host := gatewayProbeHost(stringsTrimSpaceOr(pidData.Host, h.effectiveGatewayBindHost(cfg)))
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	port := pidData.Port
+	if port == 0 {
+		port = cfg.Gateway.Port
+	}
+	if port == 0 {
+		port = 18790
+	}
+
+	url := "http://" + net.JoinHostPort(host, strconv.Itoa(port)) + path
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
+	if err != nil {
+		return 0, nil, err
+	}
+	if pidData.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+pidData.Token)
+	}
+
+	resp, err := (&http.Client{Timeout: 15 * time.Second}).Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, err
+	}
+	return resp.StatusCode, body, nil
+}
+
+func gatewayPidDataByConfig(configPath string) *ppid.PidFileData {
+	return ppid.ReadPidFileWithCheck(filepath.Dir(configPath))
+}
+
+func stringsTrimSpaceOr(v, fallback string) string {
+	if s := strings.TrimSpace(v); s != "" {
+		return s
+	}
+	return strings.TrimSpace(fallback)
 }

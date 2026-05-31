@@ -14,13 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/channels"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/media"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/routing"
-	"github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/n-seiji/ebiclaw/pkg/bus"
+	"github.com/n-seiji/ebiclaw/pkg/channels"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/media"
+	"github.com/n-seiji/ebiclaw/pkg/providers"
+	"github.com/n-seiji/ebiclaw/pkg/routing"
+	"github.com/n-seiji/ebiclaw/pkg/tools"
 )
 
 type fakeChannel struct{ id string }
@@ -1399,6 +1399,62 @@ func (h testHelper) executeAndGetResponse(tb testing.TB, ctx context.Context, ms
 }
 
 const responseTimeout = 3 * time.Second
+
+// TestProcessMessage_ObserveOnlySkipsTurn verifies that an inbound message
+// carrying observe_only=true short-circuits before any LLM call and produces
+// no session history — observers (archiver) still see it via the bus, but the
+// agent must not run a turn.
+func TestProcessMessage_ObserveOnlySkipsTurn(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "agent-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         tmpDir,
+				ModelName:         "test-model",
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+	}
+
+	msgBus := bus.NewMessageBus()
+	provider := &simpleMockProvider{response: "should-not-be-returned"}
+	al := NewAgentLoop(cfg, msgBus, provider)
+
+	msg := bus.InboundMessage{
+		Channel:  "slack",
+		SenderID: "user1",
+		ChatID:   "C123",
+		Content:  "ambient channel chatter",
+		Peer:     bus.Peer{Kind: "channel", ID: "C123"},
+		Metadata: map[string]string{
+			"observe_only": "true",
+		},
+	}
+
+	response, err := al.processMessage(context.Background(), msg)
+	if err != nil {
+		t.Fatalf("processMessage error: %v", err)
+	}
+	if response != "" {
+		t.Errorf("expected empty response for observe-only message, got %q", response)
+	}
+
+	defaultAgent := al.registry.GetDefaultAgent()
+	if defaultAgent == nil {
+		t.Fatal("no default agent")
+	}
+	for _, sk := range []string{"slack:channel:C123", "slack:C123", "default"} {
+		if h := defaultAgent.Sessions.GetHistory(sk); len(h) > 0 {
+			t.Errorf("session %q got history len=%d, want 0 (observe-only must not persist)", sk, len(h))
+		}
+	}
+}
 
 func TestProcessMessage_UsesRouteSessionKey(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "agent-test-*")

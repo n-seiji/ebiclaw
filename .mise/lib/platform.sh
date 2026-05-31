@@ -25,7 +25,7 @@ case "$UNAME_M" in
 esac
 
 # Binary settings
-BINARY_NAME=picoclaw
+BINARY_NAME=ebiclaw
 BUILD_DIR=build
 CMD_DIR="cmd/${BINARY_NAME}"
 EXT=""
@@ -53,7 +53,7 @@ VERSION="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo "
 GIT_COMMIT=$(git rev-parse --short=8 HEAD 2>/dev/null || echo "dev")
 BUILD_TIME=$(date +%FT%T%z)
 GO_VERSION=$(go version | awk '{print $3}')
-CONFIG_PKG=github.com/sipeed/picoclaw/pkg/config
+CONFIG_PKG=github.com/n-seiji/ebiclaw/pkg/config
 LDFLAGS="-X ${CONFIG_PKG}.Version=${VERSION} -X ${CONFIG_PKG}.GitCommit=${GIT_COMMIT} -X ${CONFIG_PKG}.BuildTime=${BUILD_TIME} -X ${CONFIG_PKG}.GoVersion=${GO_VERSION} -s -w"
 
 # Installation
@@ -62,8 +62,8 @@ INSTALL_BIN_DIR="${INSTALL_PREFIX}/bin"
 INSTALL_TMP_SUFFIX=".new"
 
 # Workspace
-PICOCLAW_HOME="${PICOCLAW_HOME:-$HOME/.picoclaw}"
-WORKSPACE_DIR="${WORKSPACE_DIR:-$PICOCLAW_HOME/workspace}"
+EBICLAW_HOME="${EBICLAW_HOME:-$HOME/.ebiclaw}"
+WORKSPACE_DIR="${WORKSPACE_DIR:-$EBICLAW_HOME/workspace}"
 
 # Golangci-lint
 GOLANGCI_LINT="${GOLANGCI_LINT:-golangci-lint}"

@@ -1,7 +1,7 @@
-// PicoClaw - Ultra-lightweight personal AI agent
+// EbiClaw - Ultra-lightweight personal AI agent
 // License: MIT
 //
-// Copyright (c) 2026 PicoClaw contributors
+// Copyright (c) 2026 EbiClaw contributors
 
 package providers
 
@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 func TestExtractProtocol(t *testing.T) {
@@ -806,7 +806,7 @@ const openaiCompatResponse = `{"choices":[{"message":{"content":"ok"},"finish_re
 const anthropicResponse = `{"content":[{"type":"text","text":"ok"}],"stop_reason":"end_turn","model":"claude-sonnet-4-20250514","usage":{"input_tokens":10,"output_tokens":5}}`
 
 func TestCreateProviderFromConfig_UserAgent(t *testing.T) {
-	defaultUA := "PicoClaw/" + config.Version
+	defaultUA := "EbiClaw/" + config.Version
 
 	tests := []struct {
 		name      string

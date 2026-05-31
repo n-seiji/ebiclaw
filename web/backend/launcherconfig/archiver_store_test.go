@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/archiver"
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/archiver"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 func newInMemStore(initial *config.Config) *ArchiverStore {

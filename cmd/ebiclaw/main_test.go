@@ -8,18 +8,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sipeed/picoclaw/cmd/picoclaw/internal"
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
-func TestNewPicoclawCommand(t *testing.T) {
-	cmd := NewPicoclawCommand()
+func TestNewEbiclawCommand(t *testing.T) {
+	cmd := NewEbiclawCommand()
 
 	require.NotNil(t, cmd)
 
-	short := fmt.Sprintf("%s picoclaw - Personal AI Assistant %s\n\n", internal.Logo, config.GetVersion())
+	short := fmt.Sprintf("%s ebiclaw - Personal AI Assistant %s\n\n", internal.Logo, config.GetVersion())
 
-	assert.Equal(t, "picoclaw", cmd.Use)
+	assert.Equal(t, "ebiclaw", cmd.Use)
 	assert.Equal(t, short, cmd.Short)
 
 	assert.True(t, cmd.HasSubCommands())
