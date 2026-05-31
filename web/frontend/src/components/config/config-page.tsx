@@ -28,6 +28,7 @@ import {
   EMPTY_LAUNCHER_FORM,
   type LauncherForm,
   buildFormFromConfig,
+  parseAllowedPathList,
   parseCIDRText,
   parseIntField,
   parseMultilineList,
@@ -235,6 +236,7 @@ export function ConfigPage() {
             dm_scope: dmScope,
           },
           tools: {
+            allow_read_paths: parseAllowedPathList(form.allowReadPathsText),
             cron: {
               allow_command: form.allowCommand,
               exec_timeout_minutes: cronExecTimeoutMinutes,

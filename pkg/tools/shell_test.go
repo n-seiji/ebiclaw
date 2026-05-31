@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -12,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/config"
 )
 
 // TestShellTool_Success verifies successful command execution
@@ -504,6 +505,35 @@ func TestShellTool_SafePathsInWorkspaceRestriction(t *testing.T) {
 	}
 }
 
+func TestShellTool_AllowReadPathsPermitAbsoluteExternalReads(t *testing.T) {
+	workspace := t.TempDir()
+	externalDir := t.TempDir()
+	externalFile := filepath.Join(externalDir, "outside.txt")
+	if err := os.WriteFile(externalFile, []byte("outside content"), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	sep := regexp.QuoteMeta(string(os.PathSeparator))
+	allowPattern := regexp.MustCompile("^" + regexp.QuoteMeta(externalDir) + "(?:" + sep + "|$)")
+
+	tool, err := NewExecTool(workspace, true, []*regexp.Regexp{allowPattern})
+	if err != nil {
+		t.Fatalf("unable to configure exec tool: %s", err)
+	}
+
+	result := tool.Execute(context.Background(), map[string]any{
+		"action":  "run",
+		"command": "cat " + externalFile,
+	})
+
+	if result.IsError {
+		t.Fatalf("expected configured external path to be allowed, got: %s", result.ForLLM)
+	}
+	if !strings.Contains(result.ForLLM, "outside content") {
+		t.Fatalf("expected output to contain external file content, got: %s", result.ForLLM)
+	}
+}
+
 // TestShellTool_ExitCodeDetails verifies that exit codes are captured with details
 func TestShellTool_ExitCodeDetails(t *testing.T) {
 	tool, err := NewExecTool("", false)
@@ -621,7 +651,7 @@ func TestShellTool_URLsNotBlocked(t *testing.T) {
 		"wget http://example.com/file",
 		"browser open https://github.com/user/repo",
 		"fetch ftp://ftp.example.com/file.txt",
-		"git clone https://github.com/sipeed/picoclaw.git",
+		"git clone https://github.com/n-seiji/ebiclaw.git",
 	}
 
 	for _, cmd := range commands {

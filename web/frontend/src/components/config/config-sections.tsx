@@ -81,7 +81,7 @@ export function AgentDefaultsSection({
         <Input
           value={form.workspace}
           onChange={(e) => onFieldChange("workspace", e.target.value)}
-          placeholder="~/.picoclaw/workspace"
+          placeholder="~/.ebiclaw/workspace"
         />
       </Field>
 
@@ -94,6 +94,19 @@ export function AgentDefaultsSection({
           onFieldChange("restrictToWorkspace", checked)
         }
       />
+
+      <Field
+        label={t("pages.config.allow_read_paths")}
+        hint={t("pages.config.allow_read_paths_hint")}
+        layout="setting-row"
+      >
+        <Textarea
+          value={form.allowReadPathsText}
+          onChange={(e) => onFieldChange("allowReadPathsText", e.target.value)}
+          placeholder={t("pages.config.allow_read_paths_placeholder")}
+          rows={4}
+        />
+      </Field>
 
       <SwitchCardField
         label={t("pages.config.split_on_marker")}

@@ -4,13 +4,14 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/archiver"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/media"
-	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/n-seiji/ebiclaw/pkg/archiver"
+	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/media"
+	"github.com/n-seiji/ebiclaw/pkg/providers"
 )
 
 func TestNewAgentInstance_UsesDefaultsTemperatureAndMaxTokens(t *testing.T) {
@@ -312,6 +313,73 @@ func TestPopulateCandidateProviders_NilCfgIsNoop(t *testing.T) {
 	}
 }
 
+func TestNewAgentInstance_AllowReadPathsPermitExternalReads(t *testing.T) {
+	workspace := t.TempDir()
+	externalDir := t.TempDir()
+	externalFile := filepath.Join(externalDir, "outside.go")
+	if err := os.WriteFile(externalFile, []byte("package outside\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	sep := regexp.QuoteMeta(string(os.PathSeparator))
+	allowPattern := "^" + regexp.QuoteMeta(externalDir) + "(?:" + sep + "|$)"
+
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:                 workspace,
+				ModelName:                 "test-model",
+				RestrictToWorkspace:       true,
+				AllowReadOutsideWorkspace: false,
+				MaxToolIterations:         5,
+			},
+		},
+		Tools: config.ToolsConfig{
+			AllowReadPaths: []string{allowPattern},
+			ReadFile:       config.ReadFileToolConfig{Enabled: true},
+			ListDir:        config.ToolConfig{Enabled: true},
+			Exec: config.ExecConfig{
+				ToolConfig:         config.ToolConfig{Enabled: true},
+				EnableDenyPatterns: true,
+				AllowRemote:        true,
+			},
+		},
+	}
+
+	agent := NewAgentInstance(nil, &cfg.Agents.Defaults, cfg, &mockProvider{})
+
+	readTool, ok := agent.Tools.Get("read_file")
+	if !ok {
+		t.Fatal("read_file tool not registered")
+	}
+	if result := readTool.Execute(context.Background(), map[string]any{"path": externalFile}); result.IsError {
+		t.Fatalf("read_file should allow configured external path, got: %s", result.ForLLM)
+	}
+
+	listTool, ok := agent.Tools.Get("list_dir")
+	if !ok {
+		t.Fatal("list_dir tool not registered")
+	}
+	if result := listTool.Execute(context.Background(), map[string]any{"path": externalDir}); result.IsError {
+		t.Fatalf("list_dir should allow configured external path, got: %s", result.ForLLM)
+	}
+
+	execTool, ok := agent.Tools.Get("exec")
+	if !ok {
+		t.Fatal("exec tool not registered")
+	}
+	result := execTool.Execute(context.Background(), map[string]any{
+		"action":  "run",
+		"command": "cat " + externalFile,
+	})
+	if result.IsError {
+		t.Fatalf("exec should allow configured external path, got: %s", result.ForLLM)
+	}
+	if !strings.Contains(result.ForLLM, "package outside") {
+		t.Fatalf("exec output missing external file content: %s", result.ForLLM)
+	}
+}
+
 // TestPopulateCandidateProviders_SkipsExistingKeys verifies that a key already
 // present in the output map is not overwritten.
 func TestPopulateCandidateProviders_SkipsExistingKeys(t *testing.T) {
@@ -575,9 +643,9 @@ func TestNewAgentInstance_InvalidExecConfigDoesNotExit(t *testing.T) {
 // operator has explicitly enabled read-only tool exposure.
 func TestNewAgentInstance_ArchiveToolsGatedByConfig(t *testing.T) {
 	tests := []struct {
-		name       string
-		archiver   archiver.Config
-		wantTools  bool
+		name      string
+		archiver  archiver.Config
+		wantTools bool
 	}{
 		{
 			name:      "disabled archiver does not register tools",

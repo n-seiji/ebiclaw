@@ -450,6 +450,9 @@
       "workspace_hint": "Base directory for agent file operations.",
       "restrict_workspace": "Restrict to Workspace",
       "restrict_workspace_hint": "Only allow file operations inside workspace.",
+      "allow_read_paths": "Additional Read Paths",
+      "allow_read_paths_hint": "One absolute path per line. These paths remain readable outside the workspace for read_file, list_dir, and commands that reference them via exec.",
+      "allow_read_paths_placeholder": "/Users/you/src/other-repo\n/Users/you/docs",
       "split_on_marker": "Chatty Mode",
       "split_on_marker_hint": "Split long messages into short ones like real human chatting.",
       "tool_feedback_enabled": "Tool Feedback",
@@ -509,11 +512,11 @@
       "monitor_usb": "Monitor USB",
       "monitor_usb_hint": "Watch USB plug/unplug events when devices are enabled.",
       "autostart_label": "Launch at Login",
-      "autostart_hint": "Start PicoClaw Web automatically when you log in.",
+      "autostart_hint": "Start EbiClaw Web automatically when you log in.",
       "autostart_unsupported": "Launch at login is not supported on this platform.",
       "autostart_load_error": "Failed to load launch-at-login status.",
       "server_port": "Service Port",
-      "server_port_hint": "HTTP port used by PicoClaw Web.",
+      "server_port_hint": "HTTP port used by EbiClaw Web.",
       "launcher_token": "Login Token",
       "launcher_token_section_hint": "Changes in this section take effect after the launcher restarts.",
       "launcher_token_hint": "Used to sign in on the launcher login page.",
@@ -558,8 +561,8 @@
     "next": "Next",
     "finish": "Finish",
     "welcome": {
-      "title": "Welcome to PicoClaw",
-      "description": "PicoClaw is a powerful AI assistant platform. Let's take a few seconds to help you complete the basic setup."
+      "title": "Welcome to EbiClaw",
+      "description": "EbiClaw is a powerful AI assistant platform. Let's take a few seconds to help you complete the basic setup."
     },
     "models": {
       "title": "Configure Models",

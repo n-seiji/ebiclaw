@@ -450,6 +450,9 @@
       "workspace_hint": "エージェントのファイル操作のベースディレクトリ。",
       "restrict_workspace": "ワークスペース内に制限",
       "restrict_workspace_hint": "ファイル操作をワークスペース内のみに制限します。",
+      "allow_read_paths": "追加の読取許可パス",
+      "allow_read_paths_hint": "1行に1つ、ワークスペース外でも読取を許可する絶対パスを指定します。read_file・list_dir・exec の読取で使われます。",
+      "allow_read_paths_placeholder": "/Users/you/src/other-repo\n/Users/you/docs",
       "split_on_marker": "おしゃべりモード",
       "split_on_marker_hint": "長いメッセージを人間のチャットのように短く分割します。",
       "tool_feedback_enabled": "ツールフィードバック",
@@ -509,11 +512,11 @@
       "monitor_usb": "USBを監視",
       "monitor_usb_hint": "デバイス有効時にUSBの接続/切断イベントを監視します。",
       "autostart_label": "ログイン時に起動",
-      "autostart_hint": "ログイン時にPicoClaw Webを自動起動します。",
+      "autostart_hint": "ログイン時にEbiClaw Webを自動起動します。",
       "autostart_unsupported": "このプラットフォームではログイン時起動はサポートされていません。",
       "autostart_load_error": "ログイン時起動の状態取得に失敗しました。",
       "server_port": "サービスポート",
-      "server_port_hint": "PicoClaw Webが使用するHTTPポート。",
+      "server_port_hint": "EbiClaw Webが使用するHTTPポート。",
       "launcher_token": "ログイントークン",
       "launcher_token_section_hint": "このセクションの変更はランチャーの再起動後に反映されます。",
       "launcher_token_hint": "ランチャーログイン画面でのサインインに使用します。",
@@ -558,8 +561,8 @@
     "next": "次へ",
     "finish": "完了",
     "welcome": {
-      "title": "PicoClawへようこそ",
-      "description": "PicoClawは強力なAIアシスタントプラットフォームです。基本セットアップを数秒で完了しましょう。"
+      "title": "EbiClawへようこそ",
+      "description": "EbiClawは強力なAIアシスタントプラットフォームです。基本セットアップを数秒で完了しましょう。"
     },
     "models": {
       "title": "モデルを設定",

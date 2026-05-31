@@ -3,6 +3,7 @@ export type JsonRecord = Record<string, unknown>
 export interface CoreConfigForm {
   workspace: string
   restrictToWorkspace: boolean
+  allowReadPathsText: string
   splitOnMarker: boolean
   toolFeedbackEnabled: boolean
   toolFeedbackMaxArgsLength: string
@@ -67,6 +68,7 @@ export const DM_SCOPE_OPTIONS = [
 export const EMPTY_FORM: CoreConfigForm = {
   workspace: "",
   restrictToWorkspace: true,
+  allowReadPathsText: "",
   splitOnMarker: false,
   toolFeedbackEnabled: false,
   toolFeedbackMaxArgsLength: "300",
@@ -140,6 +142,12 @@ export function buildFormFromConfig(config: unknown): CoreConfigForm {
       defaults.restrict_to_workspace === undefined
         ? EMPTY_FORM.restrictToWorkspace
         : asBool(defaults.restrict_to_workspace),
+    allowReadPathsText: Array.isArray(tools.allow_read_paths)
+      ? tools.allow_read_paths
+          .filter((value): value is string => typeof value === "string")
+          .map(formatAllowedPathPatternForDisplay)
+          .join("\n")
+      : EMPTY_FORM.allowReadPathsText,
     splitOnMarker:
       defaults.split_on_marker === undefined
         ? EMPTY_FORM.splitOnMarker
@@ -259,4 +267,36 @@ export function parseMultilineList(raw: string): string[] {
     .split("\n")
     .map((value) => value.trim())
     .filter((value) => value.length > 0)
+}
+
+export function parseAllowedPathList(raw: string): string[] {
+  return parseMultilineList(raw).map((value) => {
+    if (value.startsWith("^")) {
+      return value
+    }
+    return `^${escapeRegExp(value)}(?:${escapePathSeparator()}|$)`
+  })
+}
+
+function formatAllowedPathPatternForDisplay(value: string): string {
+  const suffixes = ["(?:[\\\\/]|$)", "(?:/|$)", String.raw`(?:\\|$)`]
+  for (const suffix of suffixes) {
+    if (value.startsWith("^") && value.endsWith(suffix)) {
+      return unescapeRegExp(value.slice(1, -suffix.length))
+    }
+  }
+
+  return value
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function unescapeRegExp(value: string): string {
+  return value.replace(/\\([.*+?^${}()|[\]\\])/g, "$1")
+}
+
+function escapePathSeparator(): string {
+  return String.raw`[\\/]`
 }
