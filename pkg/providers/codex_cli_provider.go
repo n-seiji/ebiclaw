@@ -169,6 +169,7 @@ func (p *CodexCliProvider) parseJSONLEvents(output string) (*LLMResponse, error)
 	var lastError string
 
 	scanner := bufio.NewScanner(strings.NewReader(output))
+	scanner.Buffer(make([]byte, 0, 64*1024), 16*1024*1024)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
@@ -201,6 +202,9 @@ func (p *CodexCliProvider) parseJSONLEvents(output string) (*LLMResponse, error)
 				lastError = event.Error.Message
 			}
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("codex cli: parse jsonl output: %w", err)
 	}
 
 	if lastError != "" && len(contentParts) == 0 {

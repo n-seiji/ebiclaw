@@ -18,9 +18,9 @@ func TestHandleGetChannelConfig_ReturnsSecretPresenceWithoutLeakingSecrets(t *te
 	if err != nil {
 		t.Fatalf("LoadConfig() error = %v", err)
 	}
-	cfg.Channels.Feishu.Enabled = true
-	cfg.Channels.Feishu.AppID = "cli_test_app"
-	cfg.Channels.Feishu.AppSecret = *config.NewSecureString("discord-secret-from-security")
+	cfg.Channels.Slack.Enabled = true
+	cfg.Channels.Slack.BotToken = *config.NewSecureString("xoxb-secret-from-security")
+	cfg.Channels.Slack.AppToken = *config.NewSecureString("xapp-secret-from-security")
 	if err := config.SaveConfig(configPath, cfg); err != nil {
 		t.Fatalf("SaveConfig() error = %v", err)
 	}
@@ -29,19 +29,20 @@ func TestHandleGetChannelConfig_ReturnsSecretPresenceWithoutLeakingSecrets(t *te
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/channels/discord/config", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/channels/slack/config", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf(
-			"GET /api/channels/discord/config status = %d, want %d, body=%s",
+			"GET /api/channels/slack/config status = %d, want %d, body=%s",
 			rec.Code,
 			http.StatusOK,
 			rec.Body.String(),
 		)
 	}
-	if strings.Contains(rec.Body.String(), "discord-secret-from-security") {
+	if strings.Contains(rec.Body.String(), "xoxb-secret-from-security") ||
+		strings.Contains(rec.Body.String(), "xapp-secret-from-security") {
 		t.Fatalf("response leaked secret value: %s", rec.Body.String())
 	}
 
@@ -55,17 +56,22 @@ func TestHandleGetChannelConfig_ReturnsSecretPresenceWithoutLeakingSecrets(t *te
 		t.Fatalf("json.Unmarshal() error = %v", err)
 	}
 
-	if got := resp.ConfigKey; got != "discord" {
-		t.Fatalf("config_key = %q, want %q", got, "discord")
+	if got := resp.ConfigKey; got != "slack" {
+		t.Fatalf("config_key = %q, want %q", got, "slack")
 	}
-	if got := resp.Config["app_id"]; got != "cli_test_app" {
-		t.Fatalf("config.app_id = %#v, want %q", got, "cli_test_app")
+	if enabled, ok := resp.Config["enabled"].(bool); !ok || !enabled {
+		t.Fatalf("config.enabled = %#v, want true", resp.Config["enabled"])
 	}
-	if _, exists := resp.Config["app_secret"]; exists {
-		t.Fatalf("config should omit app_secret, got %#v", resp.Config["app_secret"])
+	if _, exists := resp.Config["bot_token"]; exists {
+		t.Fatalf("config should omit bot_token, got %#v", resp.Config["bot_token"])
 	}
-	if len(resp.ConfiguredSecrets) != 1 || resp.ConfiguredSecrets[0] != "app_secret" {
-		t.Fatalf("configured_secrets = %#v, want [\"app_secret\"]", resp.ConfiguredSecrets)
+	if _, exists := resp.Config["app_token"]; exists {
+		t.Fatalf("config should omit app_token, got %#v", resp.Config["app_token"])
+	}
+	if len(resp.ConfiguredSecrets) != 2 ||
+		resp.ConfiguredSecrets[0] != "bot_token" ||
+		resp.ConfiguredSecrets[1] != "app_token" {
+		t.Fatalf("configured_secrets = %#v, want [\"bot_token\", \"app_token\"]", resp.ConfiguredSecrets)
 	}
 }
 

@@ -47,6 +47,27 @@ func TestParseJSONLEvents_AgentMessage(t *testing.T) {
 	}
 }
 
+func TestParseJSONLEvents_LongAgentMessage(t *testing.T) {
+	p := &CodexCliProvider{}
+	longText := strings.Repeat("x", 128*1024)
+	item := codexEvent{
+		Type: "item.completed",
+		Item: &codexEventItem{ID: "item_1", Type: "agent_message", Text: longText},
+	}
+	itemJSON, err := json.Marshal(item)
+	if err != nil {
+		t.Fatalf("marshal event: %v", err)
+	}
+
+	resp, err := p.parseJSONLEvents(string(itemJSON) + "\n")
+	if err != nil {
+		t.Fatalf("parseJSONLEvents() error: %v", err)
+	}
+	if resp.Content != longText {
+		t.Fatalf("Content length = %d, want %d", len(resp.Content), len(longText))
+	}
+}
+
 func TestParseJSONLEvents_ToolCallExtraction(t *testing.T) {
 	p := &CodexCliProvider{}
 	toolCallText := `Let me read that file.

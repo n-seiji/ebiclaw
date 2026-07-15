@@ -290,11 +290,6 @@ func validateConfig(cfg *config.Config) []string {
 		errs = append(errs, "channels.telegram.token is required when telegram channel is enabled")
 	}
 
-	// Discord: token required when enabled
-	if cfg.Channels.Discord.Enabled && cfg.Channels.Discord.Token.String() == "" {
-		errs = append(errs, "channels.discord.token is required when discord channel is enabled")
-	}
-
 	if cfg.Channels.WeCom.Enabled {
 		if cfg.Channels.WeCom.BotID == "" {
 			errs = append(errs, "channels.wecom.bot_id is required when wecom channel is enabled")

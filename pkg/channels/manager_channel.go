@@ -18,6 +18,9 @@ func toChannelHashes(cfg *config.Config) map[string]string {
 	_ = json.Unmarshal(marshal, &channelConfig)
 
 	for key, value := range channelConfig {
+		if key == "discord" {
+			continue
+		}
 		if !value["enabled"].(bool) {
 			continue
 		}
@@ -36,8 +39,6 @@ func hiddenValues(key string, value map[string]any, ch config.ChannelsConfig) {
 		value["token"] = ch.Pico.Token.String()
 	case "telegram":
 		value["token"] = ch.Telegram.Token.String()
-	case "discord":
-		value["token"] = ch.Discord.Token.String()
 	case "slack":
 		value["bot_token"] = ch.Slack.BotToken.String()
 		value["app_token"] = ch.Slack.AppToken.String()
@@ -101,6 +102,9 @@ func toChannelConfig(cfg *config.Config, list []string) (*config.ChannelsConfig,
 	temp := make(map[string]map[string]any, 0)
 
 	for key, value := range channelConfig {
+		if key == "discord" {
+			continue
+		}
 		found := false
 		for _, s := range list {
 			if key == s {
@@ -136,9 +140,6 @@ func updateKeys(newcfg, old *config.ChannelsConfig) {
 	}
 	if newcfg.Telegram.Enabled {
 		newcfg.Telegram.Token = old.Telegram.Token
-	}
-	if newcfg.Discord.Enabled {
-		newcfg.Discord.Token = old.Discord.Token
 	}
 	if newcfg.Slack.Enabled {
 		newcfg.Slack.BotToken = old.Slack.BotToken

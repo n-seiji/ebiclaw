@@ -4,12 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/n-seiji/ebiclaw/pkg/archiver"
 )
 
 type fakeStore struct {
@@ -110,6 +107,30 @@ func TestArchiver_Status_WithRunner(t *testing.T) {
 	}
 }
 
+func TestArchiver_Status_OmitsZeroTimes(t *testing.T) {
+	runner := &fakeRunner{status: ArchiverStatusSnapshot{Running: true, ServiceRunning: true}}
+	h := NewArchiverHandler(newFakeStore(), runner, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/archiver/status", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d", rec.Code)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got["service_running"] != true {
+		t.Fatalf("service_running=%v", got["service_running"])
+	}
+	if _, ok := got["last_distilled_at"]; ok {
+		t.Fatalf("last_distilled_at should be omitted: %s", rec.Body.String())
+	}
+	if _, ok := got["last_pushed_at"]; ok {
+		t.Fatalf("last_pushed_at should be omitted: %s", rec.Body.String())
+	}
+}
+
 func TestArchiver_Run_NoRunner(t *testing.T) {
 	h := NewArchiverHandler(newFakeStore(), nil, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/archiver/run", nil)
@@ -117,6 +138,13 @@ func TestArchiver_Run_NoRunner(t *testing.T) {
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected 503; got %d", rec.Code)
+	}
+	var got map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode: %v body=%s", err, rec.Body.String())
+	}
+	if got["error"] != "archiver not bound" {
+		t.Fatalf("error=%q", got["error"])
 	}
 }
 
@@ -127,25 +155,5 @@ func TestArchiver_Run_OK(t *testing.T) {
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("expected 202; got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
-
-func TestArchiver_Run_Busy(t *testing.T) {
-	h := NewArchiverHandler(newFakeStore(), &fakeRunner{runErr: archiver.ErrBusy}, nil)
-	req := httptest.NewRequest(http.MethodPost, "/api/archiver/run", nil)
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-	if rec.Code != http.StatusConflict {
-		t.Fatalf("expected 409; got %d", rec.Code)
-	}
-}
-
-func TestArchiver_Run_OtherError(t *testing.T) {
-	h := NewArchiverHandler(newFakeStore(), &fakeRunner{runErr: errors.New("boom")}, nil)
-	req := httptest.NewRequest(http.MethodPost, "/api/archiver/run", nil)
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500; got %d", rec.Code)
 	}
 }

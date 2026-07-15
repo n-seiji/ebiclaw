@@ -126,6 +126,29 @@ func (d *Distiller) Run(ctx context.Context, since time.Time) (DistillResult, er
 		return DistillResult{}, fmt.Errorf("llm: %w", err)
 	}
 	out = stripCodeFence(out)
+	if strings.TrimSpace(out) == "" {
+		logger.WarnCF("archiver", "Distill LLM returned empty output; retrying once", map[string]any{
+			"repository_path": d.repoRoot,
+			"raw_count":       len(rawRecords),
+		})
+		out, err = d.llm.Distill(ctx, prompt+"\n\nIMPORTANT: Your final answer must be a JSON array. If there are no useful actions, return exactly [] instead of an empty response.\n")
+		if err != nil {
+			logger.ErrorCF("archiver", "Distill LLM retry failed", map[string]any{
+				"error":           err.Error(),
+				"repository_path": d.repoRoot,
+				"raw_count":       len(rawRecords),
+			})
+			return DistillResult{}, fmt.Errorf("llm retry: %w", err)
+		}
+		out = stripCodeFence(out)
+		if strings.TrimSpace(out) == "" {
+			logger.ErrorCF("archiver", "Distill LLM returned empty output after retry", map[string]any{
+				"repository_path": d.repoRoot,
+				"raw_count":       len(rawRecords),
+			})
+			return DistillResult{}, errors.New("empty llm output")
+		}
+	}
 
 	var actions []distillAction
 	if err := json.Unmarshal([]byte(out), &actions); err != nil {

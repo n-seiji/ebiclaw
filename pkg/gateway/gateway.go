@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -15,23 +14,18 @@ import (
 
 	"github.com/n-seiji/ebiclaw/pkg/agent"
 	"github.com/n-seiji/ebiclaw/pkg/archiver"
-	"github.com/n-seiji/ebiclaw/pkg/audio/asr"
-	"github.com/n-seiji/ebiclaw/pkg/audio/tts"
 	"github.com/n-seiji/ebiclaw/pkg/bus"
 	"github.com/n-seiji/ebiclaw/pkg/channels"
-	_ "github.com/n-seiji/ebiclaw/pkg/channels/discord"
 	"github.com/n-seiji/ebiclaw/pkg/channels/pico"
 	_ "github.com/n-seiji/ebiclaw/pkg/channels/slack"
 	"github.com/n-seiji/ebiclaw/pkg/config"
 	"github.com/n-seiji/ebiclaw/pkg/cron"
-	"github.com/n-seiji/ebiclaw/pkg/devices"
 	"github.com/n-seiji/ebiclaw/pkg/health"
 	"github.com/n-seiji/ebiclaw/pkg/heartbeat"
 	"github.com/n-seiji/ebiclaw/pkg/logger"
 	"github.com/n-seiji/ebiclaw/pkg/media"
 	"github.com/n-seiji/ebiclaw/pkg/pid"
 	"github.com/n-seiji/ebiclaw/pkg/providers"
-	"github.com/n-seiji/ebiclaw/pkg/state"
 	"github.com/n-seiji/ebiclaw/pkg/tools"
 )
 
@@ -52,9 +46,7 @@ type services struct {
 	HeartbeatService       *heartbeat.HeartbeatService
 	MediaStore             media.MediaStore
 	ChannelManager         *channels.Manager
-	DeviceService          *devices.Service
 	HealthServer           *health.Server
-	VoiceAgentCancel       context.CancelFunc
 	manualReloadChan       chan struct{}
 	reloading              atomic.Bool
 	authToken              string
@@ -62,27 +54,6 @@ type services struct {
 
 type startupBlockedProvider struct {
 	reason string
-}
-
-func logChannelVoiceCapabilities(cm *channels.Manager, asrAvailable bool, ttsAvailable bool) {
-	if cm == nil {
-		return
-	}
-
-	names := cm.GetEnabledChannels()
-	sort.Strings(names)
-	for _, name := range names {
-		ch, ok := cm.GetChannel(name)
-		if !ok {
-			continue
-		}
-		caps := channels.DetectVoiceCapabilities(name, ch, asrAvailable, ttsAvailable)
-		logger.InfoCF("voice", "Channel voice capabilities", map[string]any{
-			"channel": name,
-			"asr":     caps.ASR,
-			"tts":     caps.TTS,
-		})
-	}
 }
 
 func (p *startupBlockedProvider) Chat(
@@ -375,14 +346,6 @@ func setupAndStartServices(
 	agentLoop.SetChannelManager(runningServices.ChannelManager)
 	agentLoop.SetMediaStore(runningServices.MediaStore)
 
-	transcriber := asr.DetectTranscriber(cfg)
-	if transcriber != nil {
-		agentLoop.SetTranscriber(transcriber)
-		logger.InfoCF("voice", "Transcription enabled (agent-level)", map[string]any{"provider": transcriber.Name()})
-	}
-
-	ttsAvailable := tts.DetectTTS(cfg) != nil
-
 	enabledChannels := runningServices.ChannelManager.GetEnabledChannels()
 	if len(enabledChannels) > 0 {
 		fmt.Printf("✓ Channels enabled: %s\n", enabledChannels)
@@ -411,33 +374,11 @@ func setupAndStartServices(
 		return nil, fmt.Errorf("error starting channels: %w", err)
 	}
 
-	logChannelVoiceCapabilities(runningServices.ChannelManager, transcriber != nil, ttsAvailable)
-
-	if transcriber != nil {
-		// Start Voice Agent Orchestrator after channels are ready.
-		vaCtx, vaCancel := context.WithCancel(context.Background())
-		runningServices.VoiceAgentCancel = vaCancel
-		voiceAgent := asr.NewAgent(msgBus, transcriber)
-		voiceAgent.Start(vaCtx)
-	}
-
 	fmt.Printf(
 		"✓ Health endpoints available at http://%s:%d/health, /ready and /reload (POST)\n",
 		cfg.Gateway.Host,
 		cfg.Gateway.Port,
 	)
-
-	stateManager := state.NewManager(cfg.WorkspacePath())
-	runningServices.DeviceService = devices.NewService(devices.Config{
-		Enabled:    cfg.Devices.Enabled,
-		MonitorUSB: cfg.Devices.MonitorUSB,
-	}, stateManager)
-	runningServices.DeviceService.SetBus(msgBus)
-	if err = runningServices.DeviceService.Start(context.Background()); err != nil {
-		logger.ErrorCF("device", "Error starting device service", map[string]any{"error": err.Error()})
-	} else if cfg.Devices.Enabled {
-		fmt.Println("✓ Device event service started")
-	}
 
 	return runningServices, nil
 }
@@ -449,12 +390,6 @@ func stopAndCleanupServices(runningServices *services, shutdownTimeout time.Dura
 	// reload should not stop channel manager
 	if !isReload && runningServices.ChannelManager != nil {
 		runningServices.ChannelManager.StopAll(shutdownCtx)
-	}
-	if runningServices.VoiceAgentCancel != nil {
-		runningServices.VoiceAgentCancel()
-	}
-	if runningServices.DeviceService != nil {
-		runningServices.DeviceService.Stop()
 	}
 	if runningServices.HeartbeatService != nil {
 		runningServices.HeartbeatService.Stop()
@@ -643,35 +578,6 @@ func restartServices(
 	} else {
 		fmt.Println("  ⚠ Warning: No channels enabled")
 	}
-
-	stateManager := state.NewManager(cfg.WorkspacePath())
-	runningServices.DeviceService = devices.NewService(devices.Config{
-		Enabled:    cfg.Devices.Enabled,
-		MonitorUSB: cfg.Devices.MonitorUSB,
-	}, stateManager)
-	runningServices.DeviceService.SetBus(msgBus)
-	if err := runningServices.DeviceService.Start(context.Background()); err != nil {
-		logger.WarnCF("device", "Failed to restart device service", map[string]any{"error": err.Error()})
-	} else if cfg.Devices.Enabled {
-		fmt.Println("  ✓ Device event service restarted")
-	}
-
-	transcriber := asr.DetectTranscriber(cfg)
-	al.SetTranscriber(transcriber)
-	if transcriber != nil {
-		logger.InfoCF("voice", "Transcription re-enabled (agent-level)", map[string]any{"provider": transcriber.Name()})
-
-		// Start Voice Agent Orchestrator on reload
-		vaCtx, vaCancel := context.WithCancel(context.Background())
-		runningServices.VoiceAgentCancel = vaCancel
-		voiceAgent := asr.NewAgent(msgBus, transcriber)
-		voiceAgent.Start(vaCtx)
-	} else {
-		logger.InfoCF("voice", "Transcription disabled", nil)
-	}
-
-	ttsAvailable := tts.DetectTTS(cfg) != nil
-	logChannelVoiceCapabilities(runningServices.ChannelManager, transcriber != nil, ttsAvailable)
 	// NOTE: PID file is written once at startup and not updated on reload.
 	// Changing the gateway listen address requires a full restart.
 
