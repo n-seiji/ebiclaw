@@ -206,7 +206,6 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 			Sandbox:   cfg.CodexPipe.GetSandbox(),
 		}
 		pipe := codexpipe.NewPipe(msgBus, runner, codexpipe.NewThreadStore(statePath), codexpipe.Options{
-			Sandbox:  cfg.CodexPipe.GetSandbox(),
 			TwoStage: cfg.CodexPipe.TwoStage,
 		})
 		logger.Info("Codex pipe mode enabled: bypassing agent loop")

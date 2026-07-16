@@ -3,6 +3,7 @@ package codexpipe
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,7 +18,6 @@ type Turner interface {
 
 // Options configures pipe behavior.
 type Options struct {
-	Sandbox  string
 	TwoStage bool
 }
 
@@ -88,10 +88,23 @@ func (p *Pipe) handle(ctx context.Context, msg bus.InboundMessage) {
 
 	threadID, _ := p.store.Get(key)
 
+	if strings.TrimSpace(msg.Content) == "" {
+		if len(msg.Media) > 0 {
+			p.reply(ctx, msg, "⚠️ 添付ファイルは codex pipe モードでは未対応です")
+		}
+		return
+	}
+
 	res, err := p.turn(ctx, threadID, msg.Content)
 	if err != nil {
 		logger.ErrorCF("codexpipe", "codex turn failed",
 			map[string]any{"session": key, "error": err.Error()})
+		if res != nil && res.ThreadID != "" && res.ThreadID != threadID {
+			if setErr := p.store.Set(key, res.ThreadID); setErr != nil {
+				logger.ErrorCF("codexpipe", "persist thread failed",
+					map[string]any{"session": key, "error": setErr.Error()})
+			}
+		}
 		p.reply(ctx, msg, fmt.Sprintf("⚠️ codex error: %v", err))
 		return
 	}
@@ -128,7 +141,7 @@ func (p *Pipe) turn(ctx context.Context, threadID, content string) (*Result, err
 	}
 	res, err := p.runner.Run(ctx, resumeID, "", executorPrompt)
 	if err != nil {
-		return nil, fmt.Errorf("execute stage: %w", err)
+		return &Result{ThreadID: resumeID}, fmt.Errorf("execute stage: %w", err)
 	}
 	if res.ThreadID == "" {
 		res.ThreadID = resumeID

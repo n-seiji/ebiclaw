@@ -10,21 +10,39 @@ import (
 	"github.com/n-seiji/ebiclaw/pkg/bus"
 )
 
+type turnerCallResult struct {
+	resp *Result
+	err  error
+}
+
 type fakeTurner struct {
 	mu               sync.Mutex
 	calls            []struct{ ThreadID, Sandbox, Prompt string }
 	resp             *Result
 	err              error
 	blockUntilCancel bool
+
+	// results, if non-empty, supplies per-call responses in order,
+	// overriding resp/err. The last entry repeats for extra calls.
+	results []turnerCallResult
 }
 
 func (f *fakeTurner) Run(ctx context.Context, threadID, sandbox, prompt string) (*Result, error) {
 	f.mu.Lock()
 	f.calls = append(f.calls, struct{ ThreadID, Sandbox, Prompt string }{threadID, sandbox, prompt})
 	blockUntilCancel := f.blockUntilCancel
+	callIndex := len(f.calls) - 1
 	f.mu.Unlock()
 	if blockUntilCancel {
 		<-ctx.Done()
+	}
+	if len(f.results) > 0 {
+		idx := callIndex
+		if idx >= len(f.results) {
+			idx = len(f.results) - 1
+		}
+		r := f.results[idx]
+		return r.resp, r.err
 	}
 	return f.resp, f.err
 }
@@ -44,7 +62,7 @@ func TestPipeRepliesAndPersistsThread(t *testing.T) {
 	b := bus.NewMessageBus()
 	store := NewThreadStore(filepath.Join(t.TempDir(), "threads.json"))
 	turner := &fakeTurner{resp: &Result{Text: "answer", ThreadID: "th-1"}}
-	p := NewPipe(b, turner, store, Options{Sandbox: "workspace-write"})
+	p := NewPipe(b, turner, store, Options{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -74,7 +92,7 @@ func TestPipeResumesExistingThread(t *testing.T) {
 		t.Fatalf("seed store: %v", err)
 	}
 	turner := &fakeTurner{resp: &Result{Text: "ok", ThreadID: "th-old"}}
-	p := NewPipe(b, turner, store, Options{Sandbox: "workspace-write"})
+	p := NewPipe(b, turner, store, Options{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -111,7 +129,7 @@ func TestPipeDeliversReplyComputedDuringShutdown(t *testing.T) {
 	b := bus.NewMessageBus()
 	store := NewThreadStore(filepath.Join(t.TempDir(), "threads.json"))
 	turner := &fakeTurner{resp: &Result{Text: "late answer", ThreadID: "th-1"}, blockUntilCancel: true}
-	p := NewPipe(b, turner, store, Options{Sandbox: "workspace-write"})
+	p := NewPipe(b, turner, store, Options{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -150,7 +168,7 @@ func TestPipeTwoStagePlansThenExecutes(t *testing.T) {
 	b := bus.NewMessageBus()
 	store := NewThreadStore(filepath.Join(t.TempDir(), "threads.json"))
 	turner := &fakeTurner{resp: &Result{Text: "done", ThreadID: "th-2"}}
-	p := NewPipe(b, turner, store, Options{Sandbox: "workspace-write", TwoStage: true})
+	p := NewPipe(b, turner, store, Options{TwoStage: true})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -176,5 +194,91 @@ func TestPipeTwoStagePlansThenExecutes(t *testing.T) {
 	// executor resumes the thread the planner created
 	if turner.calls[1].ThreadID != "th-2" {
 		t.Errorf("executor threadID = %q, want th-2", turner.calls[1].ThreadID)
+	}
+}
+
+func waitNoOutbound(t *testing.T, b *bus.MessageBus) {
+	t.Helper()
+	select {
+	case msg := <-b.OutboundChan():
+		t.Fatalf("unexpected outbound message: %+v", msg)
+	case <-time.After(200 * time.Millisecond):
+	}
+}
+
+func TestPipeSkipsEmptyContentWithMedia(t *testing.T) {
+	b := bus.NewMessageBus()
+	store := NewThreadStore(filepath.Join(t.TempDir(), "threads.json"))
+	turner := &fakeTurner{resp: &Result{Text: "answer", ThreadID: "th-1"}}
+	p := NewPipe(b, turner, store, Options{})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go p.Run(ctx)
+
+	in := bus.InboundMessage{Channel: "slack", ChatID: "C1", Content: "  ", Media: []string{"file1.png"}, MessageID: "m1"}
+	if err := b.PublishInbound(ctx, in); err != nil {
+		t.Fatalf("PublishInbound: %v", err)
+	}
+
+	out := waitOutbound(t, b)
+	if out.Content != "⚠️ 添付ファイルは codex pipe モードでは未対応です" {
+		t.Errorf("Content = %q, want warning message", out.Content)
+	}
+
+	turner.mu.Lock()
+	defer turner.mu.Unlock()
+	if len(turner.calls) != 0 {
+		t.Errorf("calls = %d, want 0 (turner should not be invoked)", len(turner.calls))
+	}
+}
+
+func TestPipeSkipsEmptyContentWithoutMedia(t *testing.T) {
+	b := bus.NewMessageBus()
+	store := NewThreadStore(filepath.Join(t.TempDir(), "threads.json"))
+	turner := &fakeTurner{resp: &Result{Text: "answer", ThreadID: "th-1"}}
+	p := NewPipe(b, turner, store, Options{})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go p.Run(ctx)
+
+	in := bus.InboundMessage{Channel: "slack", ChatID: "C1", Content: "", MessageID: "m1"}
+	if err := b.PublishInbound(ctx, in); err != nil {
+		t.Fatalf("PublishInbound: %v", err)
+	}
+
+	waitNoOutbound(t, b)
+
+	turner.mu.Lock()
+	defer turner.mu.Unlock()
+	if len(turner.calls) != 0 {
+		t.Errorf("calls = %d, want 0 (turner should not be invoked)", len(turner.calls))
+	}
+}
+
+func TestPipeTwoStageKeepsPlanThreadOnExecuteFailure(t *testing.T) {
+	b := bus.NewMessageBus()
+	store := NewThreadStore(filepath.Join(t.TempDir(), "threads.json"))
+	turner := &fakeTurner{
+		results: []turnerCallResult{
+			{resp: &Result{Text: "plan", ThreadID: "th-9"}},
+			{err: context.DeadlineExceeded},
+		},
+	}
+	p := NewPipe(b, turner, store, Options{TwoStage: true})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go p.Run(ctx)
+
+	_ = b.PublishInbound(ctx, bus.InboundMessage{Channel: "slack", ChatID: "C1", Content: "add feature X"})
+	out := waitOutbound(t, b)
+	if out.Content == "" {
+		t.Errorf("error reply is empty, want non-empty error message")
+	}
+
+	if id, ok := store.Get("slack:C1"); !ok || id != "th-9" {
+		t.Errorf("stored thread = %q,%v, want %q,true", id, ok, "th-9")
 	}
 }
