@@ -30,7 +30,6 @@ $LNCMD "${BINARY_NAME}-${PLATFORM}-${ARCH}${EXT}" "${BUILD_DIR}/${BINARY_NAME}${
 
 # ---------- build-launcher ----------
 [tasks.build-launcher]
-hide = true
 description = "Build ebiclaw-launcher (web console) binary"
 run = """
 source .mise/lib/platform.sh
