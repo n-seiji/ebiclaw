@@ -270,6 +270,15 @@ source .mise/lib/platform.sh
 "${BUILD_DIR}/${BINARY_NAME}" "$@"
 """
 
+# ---------- gateway ----------
+[tasks.gateway]
+description = "Build and start ebiclaw gateway"
+depends = ["build"]
+run = """
+source .mise/lib/platform.sh
+"${BUILD_DIR}/${BINARY_NAME}" gateway "$@"
+"""
+
 # ---------- docker-build ----------
 [tasks.docker-build]
 description = "Build Docker image (minimal Alpine-based)"
