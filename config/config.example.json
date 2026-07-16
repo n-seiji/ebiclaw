@@ -100,16 +100,6 @@
         "enabled": true
       }
     },
-    "discord": {
-      "enabled": false,
-      "token": "YOUR_DISCORD_BOT_TOKEN",
-      "proxy": "",
-      "allow_from": [],
-      "group_trigger": {
-        "mention_only": false
-      },
-      "reasoning_channel_id": ""
-    },
     "qq": {
       "enabled": false,
       "app_id": "YOUR_QQ_APP_ID",
@@ -408,9 +398,6 @@
     "find_skills": {
       "enabled": true
     },
-    "i2c": {
-      "enabled": false
-    },
     "install_skill": {
       "enabled": true
     },
@@ -424,14 +411,8 @@
       "enabled": true,
       "mode": "bytes"
     },
-    "send_tts": {
-      "enabled": false
-    },
     "spawn": {
       "enabled": true
-    },
-    "spi": {
-      "enabled": false
     },
     "subagent": {
       "enabled": true
@@ -447,14 +428,6 @@
     "enabled": true,
     "interval": 30
   },
-  "devices": {
-    "enabled": false,
-    "monitor_usb": true
-  },
-  "voice": {
-    "model_name": "",
-    "echo_transcription": false
-  },
   "hooks": {
     "enabled": true,
     "defaults": {
@@ -469,5 +442,11 @@
     "port": 18790,
     "hot_reload": false,
     "log_level": "fatal"
+  },
+  "codex_pipe": {
+    "enabled": false,
+    "model": "",
+    "workspace": "",
+    "sandbox": "workspace-write"
   }
 }

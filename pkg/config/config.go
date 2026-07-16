@@ -41,6 +41,7 @@ type Config struct {
 	Devices   DevicesConfig   `json:"devices"             yaml:"-"`
 	Voice     VoiceConfig     `json:"voice"               yaml:"-"`
 	Archiver  archiver.Config `json:"archiver,omitempty" yaml:"-"`
+	CodexPipe CodexPipeConfig `json:"codex_pipe,omitempty" yaml:"-"`
 	// BuildInfo contains build-time version information
 	BuildInfo BuildInfo `json:"build_info,omitempty" yaml:"-"`
 
@@ -612,6 +613,37 @@ type VoiceConfig struct {
 	ModelName         string `json:"model_name,omitempty"     env:"EBICLAW_VOICE_MODEL_NAME"`
 	TTSModelName      string `json:"tts_model_name,omitempty" env:"EBICLAW_VOICE_TTS_MODEL_NAME"`
 	EchoTranscription bool   `json:"echo_transcription"       env:"EBICLAW_VOICE_ECHO_TRANSCRIPTION"`
+}
+
+// CodexPipeConfig configures the Codex pipe mode: inbound messages are piped
+// directly to the Codex CLI instead of the built-in agent loop.
+type CodexPipeConfig struct {
+	Enabled   bool   `json:"enabled"              env:"EBICLAW_CODEX_PIPE_ENABLED"`
+	Command   string `json:"command,omitempty"    env:"EBICLAW_CODEX_PIPE_COMMAND"`
+	Model     string `json:"model,omitempty"      env:"EBICLAW_CODEX_PIPE_MODEL"`
+	Workspace string `json:"workspace,omitempty"  env:"EBICLAW_CODEX_PIPE_WORKSPACE"`
+	// Sandbox is the codex sandbox mode for execution:
+	// "read-only" | "workspace-write" | "danger-full-access".
+	Sandbox string `json:"sandbox,omitempty" env:"EBICLAW_CODEX_PIPE_SANDBOX"`
+	// StatePath is the JSON file storing sessionKey -> codex thread ID.
+	// Defaults to <config dir>/codex_threads.json.
+	StatePath string `json:"state_path,omitempty" env:"EBICLAW_CODEX_PIPE_STATE_PATH"`
+}
+
+// GetCommand returns the codex binary name, defaulting to "codex".
+func (c *CodexPipeConfig) GetCommand() string {
+	if c.Command == "" {
+		return "codex"
+	}
+	return c.Command
+}
+
+// GetSandbox returns the sandbox mode, defaulting to "workspace-write".
+func (c *CodexPipeConfig) GetSandbox() string {
+	if c.Sandbox == "" {
+		return "workspace-write"
+	}
+	return c.Sandbox
 }
 
 // ModelConfig represents a model-centric provider configuration.
@@ -1386,7 +1418,7 @@ func (t *ToolsConfig) IsToolEnabled(name string) bool {
 	case "find_skills":
 		return t.FindSkills.Enabled
 	case "i2c":
-		return t.I2C.Enabled
+		return false
 	case "install_skill":
 		return t.InstallSkill.Enabled
 	case "list_dir":
@@ -1400,7 +1432,7 @@ func (t *ToolsConfig) IsToolEnabled(name string) bool {
 	case "spawn_status":
 		return t.SpawnStatus.Enabled
 	case "spi":
-		return t.SPI.Enabled
+		return false
 	case "subagent":
 		return t.Subagent.Enabled
 	case "web_fetch":
@@ -1408,7 +1440,7 @@ func (t *ToolsConfig) IsToolEnabled(name string) bool {
 	case "send_file":
 		return t.SendFile.Enabled
 	case "send_tts":
-		return t.SendTTS.Enabled
+		return false
 	case "write_file":
 		return t.WriteFile.Enabled
 	case "mcp":

@@ -7,7 +7,6 @@ export const SECRET_FIELD_MAP = {
 } as const
 
 const CHANNEL_SECRET_FIELDS: Record<string, string[]> = {
-  discord: ["token"],
   slack: ["bot_token", "app_token"],
   pico: ["token"],
 }

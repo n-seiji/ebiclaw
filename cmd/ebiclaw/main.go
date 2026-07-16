@@ -25,7 +25,6 @@ import (
 	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/status"
 	"github.com/n-seiji/ebiclaw/cmd/ebiclaw/internal/version"
 	"github.com/n-seiji/ebiclaw/pkg/config"
-	"github.com/n-seiji/ebiclaw/pkg/updater"
 )
 
 func NewEbiclawCommand() *cobra.Command {
@@ -47,7 +46,6 @@ func NewEbiclawCommand() *cobra.Command {
 		migrate.NewMigrateCommand(),
 		skills.NewSkillsCommand(),
 		model.NewModelCommand(),
-		updater.NewUpdateCommand("ebiclaw"),
 		version.NewVersionCommand(),
 	)
 

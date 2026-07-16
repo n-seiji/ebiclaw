@@ -16,7 +16,6 @@ import {
   isSecretField,
 } from "@/components/channels/channel-config-fields"
 import { getChannelDisplayName } from "@/components/channels/channel-display-name"
-import { DiscordForm } from "@/components/channels/channel-forms/discord-form"
 import { GenericForm } from "@/components/channels/channel-forms/generic-form"
 import { SlackForm } from "@/components/channels/channel-forms/slack-form"
 import { PageHeader } from "@/components/page-header"
@@ -82,8 +81,6 @@ function buildSavePayload(
 
 function getRequiredFieldKeys(channelName: string): string[] {
   switch (channelName) {
-    case "discord":
-      return ["token"]
     case "slack":
       return ["bot_token"]
     case "pico":
@@ -285,15 +282,6 @@ export function ChannelConfigPage({ channelName }: ChannelConfigPageProps) {
     if (!channel) return null
 
     switch (channel.name) {
-      case "discord":
-        return (
-          <DiscordForm
-            config={editConfig}
-            onChange={handleChange}
-            configuredSecrets={configuredSecrets}
-            fieldErrors={fieldErrors}
-          />
-        )
       case "slack":
         return (
           <SlackForm

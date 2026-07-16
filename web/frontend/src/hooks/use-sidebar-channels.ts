@@ -1,6 +1,5 @@
 import {
   IconBrandChrome,
-  IconBrandDiscord,
   IconBrandSlack,
   IconPlug,
 } from "@tabler/icons-react"
@@ -25,8 +24,8 @@ const CHANNEL_IMPORTANCE_TAIL = [
 
 function getChannelImportanceOrder(language: string): string[] {
   const priority = language.startsWith("zh")
-    ? ["discord"]
-    : ["discord"]
+    ? ["slack"]
+    : ["slack"]
   return [...priority, ...CHANNEL_IMPORTANCE_TAIL]
 }
 
@@ -34,7 +33,6 @@ const CHANNEL_ICON_MAP: Record<
   string,
   React.ComponentType<{ className?: string }>
 > = {
-  discord: IconBrandDiscord,
   slack: IconBrandSlack,
   pico: IconBrandChrome,
 }

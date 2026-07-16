@@ -12,14 +12,11 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/n-seiji/ebiclaw/pkg/audio/asr"
-	"github.com/n-seiji/ebiclaw/pkg/audio/tts"
 	"github.com/n-seiji/ebiclaw/pkg/bus"
 	"github.com/n-seiji/ebiclaw/pkg/channels"
 	"github.com/n-seiji/ebiclaw/pkg/commands"
@@ -52,7 +49,6 @@ type AgentLoop struct {
 	fallback       *providers.FallbackChain
 	channelManager *channels.Manager
 	mediaStore     media.MediaStore
-	transcriber    asr.Transcriber
 	cmdRegistry    *commands.Registry
 	mcp            mcpRuntime
 	hookRuntime    hookRuntime
@@ -175,13 +171,7 @@ func registerSharedTools(
 	provider providers.LLMProvider,
 ) {
 	allowReadPaths := buildAllowReadPatterns(cfg)
-	var ttsProvider tts.TTSProvider
-	if cfg.Tools.IsToolEnabled("send_tts") {
-		ttsProvider = tts.DetectTTS(cfg)
-		if ttsProvider == nil {
-			logger.WarnCF("voice-tts", "send_tts enabled but no TTS provider configured", nil)
-		}
-	}
+	_ = allowReadPaths
 
 	for _, agentID := range registry.ListAgentIDs() {
 		agent, ok := registry.GetAgent(agentID)
@@ -237,14 +227,6 @@ func registerSharedTools(
 			}
 		}
 
-		// Hardware tools (I2C, SPI) - Linux only, returns error on other platforms
-		if cfg.Tools.IsToolEnabled("i2c") {
-			agent.Tools.Register(tools.NewI2CTool())
-		}
-		if cfg.Tools.IsToolEnabled("spi") {
-			agent.Tools.Register(tools.NewSPITool())
-		}
-
 		// Message tool
 		if cfg.Tools.IsToolEnabled("message") {
 			messageTool := tools.NewMessageTool()
@@ -290,10 +272,6 @@ func registerSharedTools(
 				allowReadPaths,
 			)
 			agent.Tools.Register(sendFileTool)
-		}
-
-		if ttsProvider != nil {
-			agent.Tools.Register(tools.NewSendTTSTool(ttsProvider, nil))
 		}
 
 		if cfg.Tools.IsToolEnabled("load_image") {
@@ -479,7 +457,7 @@ func (al *AgentLoop) Run(ctx context.Context) error {
 			if activeScope, activeAgentID, ok := al.resolveSteeringTarget(msg); ok {
 				drainCtx, cancel := context.WithCancel(ctx)
 				drainCancel = cancel
-				go al.drainBusToSteering(drainCtx, activeScope, activeAgentID)
+				go al.drainBusToSteering(drainCtx, activeScope, activeAgentID, msg.ChatID)
 			}
 
 			// Process message
@@ -598,10 +576,24 @@ func (al *AgentLoop) Run(ctx context.Context) error {
 }
 
 // drainBusToSteering consumes inbound messages and redirects messages from the
-// active scope into the steering queue. Messages from other scopes are requeued
-// so they can be processed normally after the active turn. It drains all
-// immediately available messages, blocking for the first one until ctx is done.
-func (al *AgentLoop) drainBusToSteering(ctx context.Context, activeScope, activeAgentID string) {
+// active scope and active chat into the steering queue. Messages from other
+// scopes/chats are requeued so they can be processed normally after the active
+// turn. It drains all immediately available messages, blocking for the first
+// one until ctx is done.
+func (al *AgentLoop) drainBusToSteering(ctx context.Context, activeScope, activeAgentID, activeChatID string) {
+	var delayed []bus.InboundMessage
+	defer func() {
+		for _, msg := range delayed {
+			if err := al.requeueInboundMessage(msg); err != nil {
+				logger.WarnCF("agent", "Failed to requeue non-steering inbound message", map[string]any{
+					"error":     err.Error(),
+					"channel":   msg.Channel,
+					"sender_id": msg.SenderID,
+				})
+			}
+		}
+	}()
+
 	blocking := true
 	for {
 		var msg bus.InboundMessage
@@ -632,14 +624,8 @@ func (al *AgentLoop) drainBusToSteering(ctx context.Context, activeScope, active
 		blocking = false
 
 		msgScope, _, scopeOK := al.resolveSteeringTarget(msg)
-		if !scopeOK || msgScope != activeScope {
-			if err := al.requeueInboundMessage(msg); err != nil {
-				logger.WarnCF("agent", "Failed to requeue non-steering inbound message", map[string]any{
-					"error":     err.Error(),
-					"channel":   msg.Channel,
-					"sender_id": msg.SenderID,
-				})
-			}
+		if !scopeOK || msgScope != activeScope || msg.ChatID != activeChatID {
+			delayed = append(delayed, msg)
 			continue
 		}
 
@@ -1113,16 +1099,6 @@ func (al *AgentLoop) SetMediaStore(s media.MediaStore) {
 			agent.Tools.SetMediaStore(s)
 		}
 	}
-	registry.ForEachTool("send_tts", func(t tools.Tool) {
-		if st, ok := t.(*tools.SendTTSTool); ok {
-			st.SetMediaStore(s)
-		}
-	})
-}
-
-// SetTranscriber injects a voice transcriber for agent-level audio transcription.
-func (al *AgentLoop) SetTranscriber(t asr.Transcriber) {
-	al.transcriber = t
 }
 
 // SetReloadFunc sets the callback function for triggering config reload.
@@ -1130,111 +1106,9 @@ func (al *AgentLoop) SetReloadFunc(fn func() error) {
 	al.reloadFunc = fn
 }
 
-var audioAnnotationRe = regexp.MustCompile(`\[(voice|audio)(?::[^\]]*)?\]`)
-
-// transcribeAudioInMessage resolves audio media refs, transcribes them, and
-// replaces audio annotations in msg.Content with the transcribed text.
-// Returns the (possibly modified) message and true if audio was transcribed.
 func (al *AgentLoop) transcribeAudioInMessage(ctx context.Context, msg bus.InboundMessage) (bus.InboundMessage, bool) {
-	if al.transcriber == nil || al.mediaStore == nil || len(msg.Media) == 0 {
-		return msg, false
-	}
-
-	// Transcribe each audio media ref in order.
-	var transcriptions []string
-	var keptMedia []string
-	for _, ref := range msg.Media {
-		path, meta, err := al.mediaStore.ResolveWithMeta(ref)
-		if err != nil {
-			logger.WarnCF("voice", "Failed to resolve media ref", map[string]any{"ref": ref, "error": err})
-			keptMedia = append(keptMedia, ref)
-			continue
-		}
-		if !utils.IsAudioFile(meta.Filename, meta.ContentType) {
-			keptMedia = append(keptMedia, ref)
-			continue
-		}
-		result, err := al.transcriber.Transcribe(ctx, path)
-		if err != nil {
-			logger.WarnCF("voice", "Transcription failed", map[string]any{"ref": ref, "error": err})
-			transcriptions = append(transcriptions, "")
-			keptMedia = append(keptMedia, ref)
-			continue
-		}
-		transcriptions = append(transcriptions, result.Text)
-	}
-
-	if len(transcriptions) == 0 {
-		return msg, false
-	}
-
-	al.sendTranscriptionFeedback(ctx, msg.Channel, msg.ChatID, msg.MessageID, transcriptions)
-
-	// Replace audio annotations sequentially with transcriptions.
-	idx := 0
-	newContent := audioAnnotationRe.ReplaceAllStringFunc(msg.Content, func(match string) string {
-		if idx >= len(transcriptions) {
-			return match
-		}
-		text := transcriptions[idx]
-		idx++
-		if text == "" {
-			return match
-		}
-		return "[voice: " + text + "]"
-	})
-
-	// Append any remaining transcriptions not matched by an annotation.
-	for ; idx < len(transcriptions); idx++ {
-		if transcriptions[idx] != "" {
-			newContent += "\n[voice: " + transcriptions[idx] + "]"
-		}
-	}
-
-	msg.Content = newContent
-	msg.Media = keptMedia
-	return msg, true
-}
-
-// sendTranscriptionFeedback sends feedback to the user with the result of
-// audio transcription if the option is enabled. It uses Manager.SendMessage
-// which executes synchronously (rate limiting, splitting, retry) so that
-// ordering with the subsequent placeholder is guaranteed.
-func (al *AgentLoop) sendTranscriptionFeedback(
-	ctx context.Context,
-	channel, chatID, messageID string,
-	validTexts []string,
-) {
-	if !al.cfg.Voice.EchoTranscription {
-		return
-	}
-	if al.channelManager == nil {
-		return
-	}
-
-	var nonEmpty []string
-	for _, t := range validTexts {
-		if t != "" {
-			nonEmpty = append(nonEmpty, t)
-		}
-	}
-
-	var feedbackMsg string
-	if len(nonEmpty) > 0 {
-		feedbackMsg = "Transcript: " + strings.Join(nonEmpty, "\n")
-	} else {
-		feedbackMsg = "No voice detected in the audio"
-	}
-
-	err := al.channelManager.SendMessage(ctx, bus.OutboundMessage{
-		Channel:          channel,
-		ChatID:           chatID,
-		Content:          feedbackMsg,
-		ReplyToMessageID: messageID,
-	})
-	if err != nil {
-		logger.WarnCF("voice", "Failed to send transcription feedback", map[string]any{"error": err.Error()})
-	}
+	_ = ctx
+	return msg, false
 }
 
 // inferMediaType determines the media type ("image", "audio", "video", "file")
@@ -1482,6 +1356,9 @@ func (al *AgentLoop) resolveSteeringTarget(msg bus.InboundMessage) (string, stri
 	if msg.Channel == "system" {
 		return "", "", false
 	}
+	if inboundMetadata(msg, metadataKeyObserveOnly) == "true" {
+		return "", "", false
+	}
 
 	route, agent, err := al.resolveMessageRoute(msg)
 	if err != nil || agent == nil {
@@ -1497,11 +1374,7 @@ func (al *AgentLoop) requeueInboundMessage(msg bus.InboundMessage) error {
 	}
 	pubCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	return al.bus.PublishOutbound(pubCtx, bus.OutboundMessage{
-		Channel: msg.Channel,
-		ChatID:  msg.ChatID,
-		Content: msg.Content,
-	})
+	return al.bus.PublishInbound(pubCtx, msg)
 }
 
 func (al *AgentLoop) processSystemMessage(
@@ -2833,7 +2706,7 @@ turnLoop:
 
 			// Send ForUser if not silent and has content.
 			// For ResponseHandled tools, send regardless of SendResponse setting,
-			// since they've already handled the response (e.g., send_tts, send_file).
+			// since they've already handled the response (e.g., send_file).
 			shouldSendForUser := !toolResult.Silent && toolResult.ForUser != "" &&
 				(ts.opts.SendResponse || toolResult.ResponseHandled)
 			if shouldSendForUser {

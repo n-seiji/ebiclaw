@@ -270,6 +270,15 @@ source .mise/lib/platform.sh
 "${BUILD_DIR}/${BINARY_NAME}" "$@"
 """
 
+# ---------- gateway ----------
+[tasks.gateway]
+description = "Build and start ebiclaw gateway"
+depends = ["build"]
+run = """
+source .mise/lib/platform.sh
+"${BUILD_DIR}/${BINARY_NAME}" gateway "$@"
+"""
+
 # ---------- docker-build ----------
 [tasks.docker-build]
 description = "Build Docker image (minimal Alpine-based)"
@@ -337,27 +346,4 @@ if [ "$UNAME_S" != "Darwin" ]; then
 fi
 ./scripts/build-macos-app.sh "${PLATFORM}-${ARCH}"
 echo "macOS .app bundle created: ${BUILD_DIR}/EbiClaw.app"
-"""
-
-# ---------- mem ----------
-[tasks.mem]
-description = "Build membench, download LOCOMO data, run benchmark"
-run = """
-source .mise/lib/platform.sh
-echo "Building membench..."
-mkdir -p "$BUILD_DIR"
-go build -o "${BUILD_DIR}/membench" ./cmd/membench
-echo "Build complete: ${BUILD_DIR}/membench"
-if [ ! -f "${BUILD_DIR}/memdata/locomo10.json" ]; then
-  echo "Downloading LOCOMO dataset..."
-  mkdir -p "${BUILD_DIR}/memdata"
-  curl -sfL "https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json" \
-    -o "${BUILD_DIR}/memdata/locomo10.json" && [ -s "${BUILD_DIR}/memdata/locomo10.json" ] || { echo "Error: LOCOMO download failed"; exit 1; }
-  echo "Download complete"
-else
-  echo "LOCOMO dataset already exists, skipping download"
-fi
-echo "Running benchmark..."
-rm -rf "${BUILD_DIR}/memout"
-"${BUILD_DIR}/membench" run --data "${BUILD_DIR}/memdata" --out "${BUILD_DIR}/memout" --budget 4000
 """

@@ -12,12 +12,20 @@ import (
 
 type fakeLLM struct {
 	out        string
+	outs       []string
 	err        error
 	lastPrompt string
+	calls      int
 }
 
 func (f *fakeLLM) Distill(ctx context.Context, prompt string) (string, error) {
 	f.lastPrompt = prompt
+	f.calls++
+	if len(f.outs) > 0 {
+		out := f.outs[0]
+		f.outs = f.outs[1:]
+		return out, f.err
+	}
 	return f.out, f.err
 }
 
@@ -221,6 +229,41 @@ func TestDistiller_CreatesNewTopic(t *testing.T) {
 	}
 	if strings.Contains(llm.lastPrompt, string(line)) {
 		t.Fatalf("prompt should not embed raw JSONL directly:\n%s", llm.lastPrompt)
+	}
+}
+
+func TestDistiller_EmptyLLMOutput(t *testing.T) {
+	dir := t.TempDir()
+	rawDir := filepath.Join(dir, "raw", "slack", "C1")
+	if err := os.MkdirAll(rawDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rec := RawRecord{
+		Timestamp: time.Date(2026, 4, 29, 10, 0, 0, 0, time.UTC),
+		Role:      "user",
+		Platform:  "slack",
+		ChatID:    "C1",
+		Text:      "discuss archive",
+	}
+	line, err := json.Marshal(rec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rawDir, "2026-04-29.jsonl"), append(line, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	llm := &fakeLLM{out: "```json\n\n```"}
+	d := NewDistiller(dir, llm)
+	_, err = d.Run(context.Background(), time.Time{})
+	if err == nil || !strings.Contains(err.Error(), "empty llm output") {
+		t.Fatalf("err = %v, want empty llm output", err)
+	}
+	if llm.calls != 2 {
+		t.Fatalf("llm calls = %d, want 2", llm.calls)
+	}
+	if !strings.Contains(llm.lastPrompt, "return exactly []") {
+		t.Fatalf("retry prompt missing empty-array instruction:\n%s", llm.lastPrompt)
 	}
 }
 

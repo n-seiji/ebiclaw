@@ -43,7 +43,6 @@ func TestNewEbiclawCommand(t *testing.T) {
 		"onboard",
 		"skills",
 		"status",
-		"update",
 		"version",
 	}
 

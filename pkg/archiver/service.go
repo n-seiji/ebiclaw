@@ -22,16 +22,30 @@ type Service struct {
 	rawWriter atomic.Pointer[RawWriter]
 	observer  atomic.Pointer[Observer]
 
-	running atomic.Bool
-	stop    chan struct{}
-	stopped chan struct{}
+	logMu sync.Mutex
+	logs  []LogEntry
+
+	running       atomic.Bool
+	runInProgress atomic.Bool
+	stop          chan struct{}
+	stopped       chan struct{}
+}
+
+type LogEntry struct {
+	Time    time.Time      `json:"time"`
+	Level   string         `json:"level"`
+	Message string         `json:"message"`
+	Fields  map[string]any `json:"fields,omitempty"`
 }
 
 type Status struct {
-	Running                 bool      `json:"running"`
-	LastDistilledAt         time.Time `json:"last_distilled_at,omitempty"`
-	LastPushedAt            time.Time `json:"last_pushed_at,omitempty"`
-	ConsecutivePushFailures int       `json:"consecutive_push_failures"`
+	Running                 bool       `json:"running"`
+	ServiceRunning          bool       `json:"service_running"`
+	RunInProgress           bool       `json:"run_in_progress"`
+	LastDistilledAt         *time.Time `json:"last_distilled_at,omitempty"`
+	LastPushedAt            *time.Time `json:"last_pushed_at,omitempty"`
+	ConsecutivePushFailures int        `json:"consecutive_push_failures"`
+	Logs                    []LogEntry `json:"logs,omitempty"`
 }
 
 func NewService(cfg Config, llm LLMClient) *Service {
@@ -70,36 +84,54 @@ func (s *Service) Reload(cfg Config) {
 func (s *Service) RunOnce(ctx context.Context) error {
 	if !s.mu.TryLock() {
 		logger.WarnC("archiver", "Run skipped: archiver busy")
+		s.addLog("warn", "Run skipped: archiver busy", nil)
 		return ErrBusy
 	}
 	defer s.mu.Unlock()
+	s.runInProgress.Store(true)
+	defer s.runInProgress.Store(false)
 
 	cfg := s.cfg.Load()
 	if cfg == nil || !cfg.Active() {
 		logger.WarnC("archiver", "Run skipped: archiver inactive")
+		s.addLog("warn", "Run skipped: archiver inactive", nil)
 		return nil
 	}
-	logger.InfoCF("archiver", "Run started", map[string]any{
+	startFields := map[string]any{
 		"repository_path": cfg.RepositoryPath,
 		"allowlist_count": len(cfg.Allowlist),
 		"model_name":      cfg.Distill.ModelName,
-	})
+	}
+	logger.InfoCF("archiver", "Run started", startFields)
+	s.addLog("info", "Run started", startFields)
 
 	d := NewDistiller(cfg.RepositoryPath, s.llm)
+	s.addLog("info", "Distill started; waiting for LLM", map[string]any{
+		"repository_path": cfg.RepositoryPath,
+	})
 	res, err := d.Run(ctx, time.Time{})
 	if err != nil {
-		logger.ErrorCF("archiver", "Run failed during distill", map[string]any{
+		fields := map[string]any{
 			"error":           err.Error(),
 			"repository_path": cfg.RepositoryPath,
-		})
+		}
+		logger.ErrorCF("archiver", "Run failed during distill", fields)
+		s.addLog("error", "Run failed during distill", fields)
 		return fmt.Errorf("distill: %w", err)
 	}
 	if res.Skipped {
-		logger.InfoCF("archiver", "Run skipped: no new raw messages", map[string]any{
+		fields := map[string]any{
 			"repository_path": cfg.RepositoryPath,
-		})
+		}
+		logger.InfoCF("archiver", "Run skipped: no new raw messages", fields)
+		s.addLog("info", "Run skipped: no new raw messages", fields)
 		return nil
 	}
+	s.addLog("info", "Distill completed", map[string]any{
+		"created": res.Created,
+		"updated": res.Updated,
+		"merged":  res.Merged,
+	})
 
 	// Prune raw entries that were just distilled, before the git commit, so
 	// the deletion lands in the same commit as the topic updates. Cleanup
@@ -111,33 +143,42 @@ func (s *Service) RunOnce(ctx context.Context) error {
 		deleted, cerr := rw.CleanupBefore(res.CutoffAt)
 		if cerr != nil {
 			cleanupErr = fmt.Errorf("cleanup raw: %w", cerr)
-			logger.WarnCF("archiver", "Raw cleanup failed", map[string]any{
+			fields := map[string]any{
 				"error":           cerr.Error(),
 				"repository_path": cfg.RepositoryPath,
-			})
+			}
+			logger.WarnCF("archiver", "Raw cleanup failed", fields)
+			s.addLog("warn", "Raw cleanup failed", fields)
 		} else {
-			logger.InfoCF("archiver", "Raw cleanup completed", map[string]any{
+			fields := map[string]any{
 				"deleted":         deleted,
 				"repository_path": cfg.RepositoryPath,
-			})
+			}
+			logger.InfoCF("archiver", "Raw cleanup completed", fields)
+			s.addLog("info", "Raw cleanup completed", fields)
 		}
 	}
 
 	pusher := NewGitPusher(cfg.RepositoryPath)
 	summary := fmt.Sprintf("archive: %d created, %d updated, %d merged", res.Created, res.Updated, res.Merged)
+	s.addLog("info", "Git commit/push started", map[string]any{
+		"summary": summary,
+	})
 	pr, err := pusher.Run(summary)
 	st, _ := ReadState(cfg.RepositoryPath)
 	if err != nil {
 		st.ConsecutivePushFailures++
 		_ = WriteState(cfg.RepositoryPath, st)
-		logger.ErrorCF("archiver", "Git push failed", map[string]any{
+		fields := map[string]any{
 			"error":                     err.Error(),
 			"repository_path":           cfg.RepositoryPath,
 			"consecutive_push_failures": st.ConsecutivePushFailures,
 			"created":                   res.Created,
 			"updated":                   res.Updated,
 			"merged":                    res.Merged,
-		})
+		}
+		logger.ErrorCF("archiver", "Git push failed", fields)
+		s.addLog("error", "Git push failed", fields)
 		return err
 	}
 	if pr.Pushed {
@@ -145,20 +186,30 @@ func (s *Service) RunOnce(ctx context.Context) error {
 		st.LastPushedAt = time.Now().UTC()
 		_ = WriteState(cfg.RepositoryPath, st)
 	}
-	logger.InfoCF("archiver", "Run completed", map[string]any{
+	if !pr.Committed {
+		s.addLog("info", "Git skipped: no changes to commit", map[string]any{
+			"repository_path": cfg.RepositoryPath,
+		})
+	}
+	fields := map[string]any{
 		"repository_path": cfg.RepositoryPath,
 		"created":         res.Created,
 		"updated":         res.Updated,
 		"merged":          res.Merged,
 		"pushed":          pr.Pushed,
 		"committed":       pr.Committed,
-	})
+	}
+	logger.InfoCF("archiver", "Run completed", fields)
+	s.addLog("info", "Run completed", fields)
 	return cleanupErr
 }
 
 func (s *Service) Status() Status {
 	status := Status{
-		Running: s.running.Load(),
+		Running:        s.running.Load(),
+		ServiceRunning: s.running.Load(),
+		RunInProgress:  s.runInProgress.Load(),
+		Logs:           s.recentLogs(),
 	}
 
 	cfg := s.cfg.Load()
@@ -171,10 +222,42 @@ func (s *Service) Status() Status {
 		return status
 	}
 
-	status.LastDistilledAt = st.LastDistilledAt
-	status.LastPushedAt = st.LastPushedAt
+	status.LastDistilledAt = timePtrIfNonZero(st.LastDistilledAt)
+	status.LastPushedAt = timePtrIfNonZero(st.LastPushedAt)
 	status.ConsecutivePushFailures = st.ConsecutivePushFailures
 	return status
+}
+
+func timePtrIfNonZero(t time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return &t
+}
+
+func (s *Service) addLog(level, message string, fields map[string]any) {
+	entry := LogEntry{
+		Time:    time.Now().UTC(),
+		Level:   level,
+		Message: message,
+		Fields:  fields,
+	}
+	s.logMu.Lock()
+	defer s.logMu.Unlock()
+	s.logs = append(s.logs, entry)
+	const maxLogs = 80
+	if len(s.logs) > maxLogs {
+		copy(s.logs, s.logs[len(s.logs)-maxLogs:])
+		s.logs = s.logs[:maxLogs]
+	}
+}
+
+func (s *Service) recentLogs() []LogEntry {
+	s.logMu.Lock()
+	defer s.logMu.Unlock()
+	logs := make([]LogEntry, len(s.logs))
+	copy(logs, s.logs)
+	return logs
 }
 
 // Start launches the cron loop. Calling Start more than once is a no-op.
