@@ -18,6 +18,7 @@ import (
 	"github.com/n-seiji/ebiclaw/pkg/channels"
 	"github.com/n-seiji/ebiclaw/pkg/channels/pico"
 	_ "github.com/n-seiji/ebiclaw/pkg/channels/slack"
+	"github.com/n-seiji/ebiclaw/pkg/codexpipe"
 	"github.com/n-seiji/ebiclaw/pkg/config"
 	"github.com/n-seiji/ebiclaw/pkg/cron"
 	"github.com/n-seiji/ebiclaw/pkg/health"
@@ -129,7 +130,15 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 
 	provider, modelID, err := createStartupProvider(cfg, allowEmptyStartup)
 	if err != nil {
-		return fmt.Errorf("error creating provider: %w", err)
+		if cfg.CodexPipe.Enabled {
+			reason := fmt.Sprintf("provider creation failed, continuing in codex pipe mode: %v", err)
+			logger.WarnCF("gateway", reason, map[string]any{"codex_pipe": true})
+			provider = &startupBlockedProvider{reason: reason}
+			modelID = ""
+			err = nil
+		} else {
+			return fmt.Errorf("error creating provider: %w", err)
+		}
 	}
 
 	if modelID != "" {
@@ -183,7 +192,27 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go agentLoop.Run(ctx)
+	if cfg.CodexPipe.Enabled {
+		statePath := cfg.CodexPipe.StatePath
+		if statePath == "" {
+			statePath = filepath.Join(homePath, "codex_threads.json")
+		}
+		runner := &codexpipe.Runner{
+			Command:   cfg.CodexPipe.GetCommand(),
+			Model:     cfg.CodexPipe.Model,
+			Workspace: cfg.CodexPipe.Workspace,
+			Sandbox:   cfg.CodexPipe.GetSandbox(),
+		}
+		pipe := codexpipe.NewPipe(msgBus, runner, codexpipe.NewThreadStore(statePath), codexpipe.Options{
+			Sandbox:  cfg.CodexPipe.GetSandbox(),
+			TwoStage: cfg.CodexPipe.TwoStage,
+		})
+		logger.Info("Codex pipe mode enabled: bypassing agent loop")
+		fmt.Println("🔀 Codex pipe mode: messages are piped directly to codex exec")
+		go pipe.Run(ctx)
+	} else {
+		go agentLoop.Run(ctx)
+	}
 
 	var configReloadChan <-chan *config.Config
 	stopWatch := func() {}
@@ -440,6 +469,16 @@ func handleConfigReload(
 	debug bool,
 ) error {
 	logger.Info("🔄 Config file changed, reloading...")
+
+	// codex pipe mode does not support hot reload: the pipe goroutine is not
+	// rebuilt by executeReload. Require a restart when codex_pipe changes.
+	oldCfg := al.GetConfig()
+	if oldCfg.CodexPipe.Enabled || newCfg.CodexPipe.Enabled {
+		if oldCfg.CodexPipe != newCfg.CodexPipe {
+			logger.Warn("codex_pipe config changed: hot reload is not supported for pipe mode, restart the gateway to apply")
+			return fmt.Errorf("codex_pipe config change requires gateway restart")
+		}
+	}
 
 	newModel := newCfg.Agents.Defaults.ModelName
 
