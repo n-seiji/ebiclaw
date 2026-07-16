@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/n-seiji/ebiclaw/pkg/bus"
 	"github.com/n-seiji/ebiclaw/pkg/logger"
@@ -105,14 +106,19 @@ func (p *Pipe) handle(ctx context.Context, msg bus.InboundMessage) {
 
 // turn runs a single-stage turn; two-stage logic is added in a later task.
 func (p *Pipe) turn(ctx context.Context, threadID, content string) (*Result, error) {
-	return p.runner.Run(ctx, threadID, p.opts.Sandbox, content)
+	return p.runner.Run(ctx, threadID, "", content)
 }
 
 func (p *Pipe) reply(ctx context.Context, msg bus.InboundMessage, content string) {
 	if content == "" {
 		return
 	}
-	err := p.bus.PublishOutbound(ctx, bus.OutboundMessage{
+	// Use a context detached from the run ctx so replies computed
+	// during shutdown (run ctx cancelled) still get delivered while
+	// the bus is open, instead of being silently dropped.
+	pubCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+	err := p.bus.PublishOutbound(pubCtx, bus.OutboundMessage{
 		Channel:          msg.Channel,
 		ChatID:           msg.ChatID,
 		Content:          content,

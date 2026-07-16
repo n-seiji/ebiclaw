@@ -11,16 +11,21 @@ import (
 )
 
 type fakeTurner struct {
-	mu    sync.Mutex
-	calls []struct{ ThreadID, Sandbox, Prompt string }
-	resp  *Result
-	err   error
+	mu               sync.Mutex
+	calls            []struct{ ThreadID, Sandbox, Prompt string }
+	resp             *Result
+	err              error
+	blockUntilCancel bool
 }
 
-func (f *fakeTurner) Run(_ context.Context, threadID, sandbox, prompt string) (*Result, error) {
+func (f *fakeTurner) Run(ctx context.Context, threadID, sandbox, prompt string) (*Result, error) {
 	f.mu.Lock()
-	defer f.mu.Unlock()
 	f.calls = append(f.calls, struct{ ThreadID, Sandbox, Prompt string }{threadID, sandbox, prompt})
+	blockUntilCancel := f.blockUntilCancel
+	f.mu.Unlock()
+	if blockUntilCancel {
+		<-ctx.Done()
+	}
 	return f.resp, f.err
 }
 
@@ -99,5 +104,44 @@ func TestPipeReportsErrors(t *testing.T) {
 	out := waitOutbound(t, b)
 	if out.Content == "" {
 		t.Errorf("error reply is empty, want non-empty error message")
+	}
+}
+
+func TestPipeDeliversReplyComputedDuringShutdown(t *testing.T) {
+	b := bus.NewMessageBus()
+	store := NewThreadStore(filepath.Join(t.TempDir(), "threads.json"))
+	turner := &fakeTurner{resp: &Result{Text: "late answer", ThreadID: "th-1"}, blockUntilCancel: true}
+	p := NewPipe(b, turner, store, Options{Sandbox: "workspace-write"})
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go p.Run(ctx)
+
+	in := bus.InboundMessage{Channel: "slack", ChatID: "C1", Content: "hi", MessageID: "m1"}
+	if err := b.PublishInbound(ctx, in); err != nil {
+		t.Fatalf("PublishInbound: %v", err)
+	}
+
+	// Wait until the turner has been invoked, then cancel the run ctx
+	// while it's still blocked, simulating shutdown mid-flight.
+	deadline := time.After(2 * time.Second)
+	for {
+		turner.mu.Lock()
+		called := len(turner.calls) > 0
+		turner.mu.Unlock()
+		if called {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for turner to be called")
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+	cancel()
+
+	out := waitOutbound(t, b)
+	if out.Content != "late answer" {
+		t.Errorf("Content = %q, want %q", out.Content, "late answer")
 	}
 }
