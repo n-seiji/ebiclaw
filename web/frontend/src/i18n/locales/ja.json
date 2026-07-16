@@ -2,7 +2,7 @@
   "navigation": {
     "chat": "チャット",
     "model_group": "モデル",
-    "models": "モデル",
+    "engine": "エンジン",
     "credentials": "認証情報",
     "agent_group": "エージェント",
     "hub": "ハブ",
@@ -62,11 +62,9 @@
     "imageTooLarge": "\"{{name}}\" は上限 {{size}} を超えています。",
     "imageReadFailed": "\"{{name}}\" の読み込みに失敗しました。",
     "empty": {
-      "noConfiguredModel": "モデルが未設定",
-      "noConfiguredModelDescription": "チャットを開始するには、APIキー付きで少なくとも1つのAIモデルを設定する必要があります。",
-      "goToModels": "モデル設定へ",
-      "noSelectedModel": "モデルが未選択",
-      "noSelectedModelDescription": "モデルは設定済みですが、デフォルトが指定されていません。チャットを始める前にモデルを選択してください。",
+      "noConfiguredModel": "エンジンが未設定",
+      "noConfiguredModelDescription": "チャットを開始するには、CLIエンジン(またはデフォルトモデル)を設定する必要があります。",
+      "goToModels": "エンジン設定へ",
       "notRunning": "ゲートウェイが起動していません",
       "notRunningDescription": "チャットを開始するにはゲートウェイサービスを起動してください。上部バーの「ゲートウェイ起動」ボタンを使用します。"
     },
@@ -177,6 +175,44 @@
       "url": "認証URL",
       "polling": "ログイン状態を確認中...",
       "open": "認証ページを開く"
+    }
+  },
+  "engine": {
+    "title": "エンジン",
+    "description": "メッセージを処理するCLIエンジンを選択します。現在はCodexのみ利用できます。",
+    "loadError": "エンジン設定の読み込みに失敗しました",
+    "saveError": "エンジン設定の保存に失敗しました",
+    "backend": {
+      "comingSoon": "準備中",
+      "codex": {
+        "title": "Codex",
+        "description": "Codex CLI にメッセージを直接パイプします。"
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "近日対応予定のバックエンドです。"
+      }
+    },
+    "enabled": {
+      "label": "パイプモードを有効化",
+      "description": "有効にすると、メッセージはエージェントループを経由せず選択したCLIエンジンに直接渡されます。"
+    },
+    "model": {
+      "label": "モデル",
+      "placeholder": "空欄でCLIのデフォルトを使用",
+      "hint": "任意。CLI側のデフォルトモデルを上書きします。"
+    },
+    "workspace": {
+      "label": "ワークスペースパス",
+      "placeholder": "/path/to/workspace"
+    },
+    "sandbox": {
+      "label": "サンドボックス",
+      "options": {
+        "readOnly": "読み取り専用",
+        "workspaceWrite": "ワークスペース書き込み可",
+        "dangerFullAccess": "フルアクセス(危険)"
+      }
     }
   },
   "models": {
@@ -564,9 +600,9 @@
       "title": "EbiClawへようこそ",
       "description": "EbiClawは強力なAIアシスタントプラットフォームです。基本セットアップを数秒で完了しましょう。"
     },
-    "models": {
-      "title": "モデルを設定",
-      "description": "左のメニューから「モデル」をクリックしてAIプロバイダーのAPIキーを設定します。設定済みのモデルのみがチャットで使用できます。"
+    "engine": {
+      "title": "エンジンを設定",
+      "description": "左のメニューから「エンジン」をクリックしてCLIエンジンを選択します。設定済みのエンジンのみがチャットで使用できます。"
     },
     "gateway": {
       "title": "ゲートウェイを起動",

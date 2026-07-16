@@ -106,8 +106,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ...baseNavGroups[1],
         items: [
           {
-            title: "navigation.models",
-            url: "/models",
+            title: "navigation.engine",
+            url: "/engine",
             icon: IconAtom,
             translateTitle: true,
           },
@@ -213,7 +213,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             isActive={isActive}
                             onClick={handleNavItemClick}
                             data-tour={
-                              item.url === "/models" ? "models-nav" : undefined
+                              item.url === "/engine" ? "engine-nav" : undefined
                             }
                             className={`h-9 px-3 ${isActive ? "bg-accent/80 text-foreground font-medium" : "text-muted-foreground hover:bg-muted/60"}`}
                           >

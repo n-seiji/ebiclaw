@@ -1,7 +1,7 @@
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 
-export type TourStep = "welcome" | "models" | "gateway" | "docs" | "completed"
+export type TourStep = "welcome" | "engine" | "gateway" | "docs" | "completed"
 
 export interface TourState {
   currentStep: TourStep
@@ -38,7 +38,7 @@ export function useTourActions() {
   const goToNextStep = (currentStep: TourStep): TourStep => {
     const steps: TourStep[] = [
       "welcome",
-      "models",
+      "engine",
       "gateway",
       "docs",
       "completed",
@@ -53,7 +53,7 @@ export function useTourActions() {
   const goToPrevStep = (currentStep: TourStep): TourStep => {
     const steps: TourStep[] = [
       "welcome",
-      "models",
+      "engine",
       "gateway",
       "docs",
       "completed",
