@@ -445,6 +445,7 @@
   },
   "codex_pipe": {
     "enabled": false,
+    "backend": "codex",
     "model": "",
     "workspace": "",
     "sandbox": "workspace-write"

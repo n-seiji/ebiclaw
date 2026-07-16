@@ -195,6 +195,9 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 
 	var pipeDone chan struct{}
 	if cfg.CodexPipe.Enabled {
+		if backend := cfg.CodexPipe.GetBackend(); backend != "codex" {
+			logger.Warnf("codex_pipe.backend %q is not supported, falling back to codex", backend)
+		}
 		statePath := cfg.CodexPipe.StatePath
 		if statePath == "" {
 			statePath = filepath.Join(homePath, "codex_threads.json")
