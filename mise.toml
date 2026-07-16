@@ -6,6 +6,7 @@ CGO_ENABLED = "0"
 
 # ---------- generate ----------
 [tasks.generate]
+hide = true
 description = "Run go generate"
 run = """
 echo "Run generate..."
@@ -29,6 +30,7 @@ $LNCMD "${BINARY_NAME}-${PLATFORM}-${ARCH}${EXT}" "${BUILD_DIR}/${BINARY_NAME}${
 
 # ---------- build-launcher ----------
 [tasks.build-launcher]
+hide = true
 description = "Build ebiclaw-launcher (web console) binary"
 run = """
 source .mise/lib/platform.sh
@@ -43,11 +45,13 @@ echo "Build complete: ${BUILD_DIR}/ebiclaw-launcher${EXT}"
 
 # ---------- build-launcher-frontend ----------
 [tasks.build-launcher-frontend]
+hide = true
 description = "Build launcher frontend only"
 run = "cd web && mise run build-frontend"
 
 # ---------- build-launcher-tui ----------
 [tasks.build-launcher-tui]
+hide = true
 description = "Build ebiclaw-launcher TUI binary"
 run = """
 source .mise/lib/platform.sh
@@ -60,6 +64,7 @@ echo "Build complete: ${BUILD_DIR}/ebiclaw-launcher-tui"
 
 # ---------- build-whatsapp-native ----------
 [tasks.build-whatsapp-native]
+hide = true
 description = "Build with WhatsApp native (whatsmeow) support"
 depends = ["generate"]
 run = """
@@ -80,6 +85,7 @@ echo "Build complete"
 
 # ---------- build-linux-arm ----------
 [tasks.build-linux-arm]
+hide = true
 description = "Build for Linux ARMv7 (e.g. Raspberry Pi Zero 2 W 32-bit)"
 depends = ["generate"]
 run = """
@@ -92,6 +98,7 @@ echo "Build complete: ${BUILD_DIR}/${BINARY_NAME}-linux-arm"
 
 # ---------- build-linux-arm64 ----------
 [tasks.build-linux-arm64]
+hide = true
 description = "Build for Linux ARM64 (e.g. Raspberry Pi Zero 2 W 64-bit)"
 depends = ["generate"]
 run = """
@@ -104,6 +111,7 @@ echo "Build complete: ${BUILD_DIR}/${BINARY_NAME}-linux-arm64"
 
 # ---------- build-linux-mipsle ----------
 [tasks.build-linux-mipsle]
+hide = true
 description = "Build for Linux MIPS32 LE"
 depends = ["generate"]
 run = """
@@ -117,6 +125,7 @@ echo "Build complete: ${BUILD_DIR}/${BINARY_NAME}-linux-mipsle"
 
 # ---------- build-pi-zero ----------
 [tasks.build-pi-zero]
+hide = true
 description = "Build for Raspberry Pi Zero 2 W (32-bit and 64-bit)"
 depends = ["build-linux-arm", "build-linux-arm64"]
 run = """
@@ -126,6 +135,7 @@ echo "Pi Zero 2 W builds: ${BUILD_DIR}/${BINARY_NAME}-linux-arm (32-bit), ${BUIL
 
 # ---------- build-all ----------
 [tasks.build-all]
+hide = true
 description = "Build ebiclaw for all platforms"
 depends = ["generate"]
 run = """
@@ -150,6 +160,7 @@ echo "All builds complete"
 
 # ---------- install ----------
 [tasks.install]
+hide = true
 description = "Install ebiclaw to system"
 depends = ["build"]
 run = """
@@ -165,6 +176,7 @@ echo "Installation complete!"
 
 # ---------- uninstall ----------
 [tasks.uninstall]
+hide = true
 description = "Remove ebiclaw from system"
 run = """
 source .mise/lib/platform.sh
@@ -177,6 +189,7 @@ echo "If you need to delete all configurations, run 'mise run uninstall-all'"
 
 # ---------- uninstall-all ----------
 [tasks.uninstall-all]
+hide = true
 description = "Remove ebiclaw and all data"
 run = """
 source .mise/lib/platform.sh
@@ -197,6 +210,7 @@ echo "Clean complete"
 
 # ---------- vet ----------
 [tasks.vet]
+hide = true
 description = "Run go vet for static analysis"
 depends = ["generate"]
 run = """
@@ -234,6 +248,7 @@ $GOLANGCI_LINT run --build-tags "$GO_BUILD_TAGS"
 
 # ---------- fix ----------
 [tasks.fix]
+hide = true
 description = "Fix linting issues"
 run = """
 source .mise/lib/platform.sh
@@ -242,6 +257,7 @@ $GOLANGCI_LINT run --fix --build-tags "$GO_BUILD_TAGS"
 
 # ---------- deps ----------
 [tasks.deps]
+hide = true
 description = "Download dependencies"
 run = """
 go mod download
@@ -250,6 +266,7 @@ go mod verify
 
 # ---------- update-deps ----------
 [tasks.update-deps]
+hide = true
 description = "Update dependencies"
 run = """
 go get -u ./...
@@ -281,6 +298,7 @@ source .mise/lib/platform.sh
 
 # ---------- docker-build ----------
 [tasks.docker-build]
+hide = true
 description = "Build Docker image (minimal Alpine-based)"
 run = """
 echo "Building minimal Docker image (Alpine-based)..."
@@ -289,6 +307,7 @@ docker compose -f docker/docker-compose.yml build ebiclaw-agent ebiclaw-gateway
 
 # ---------- docker-build-full ----------
 [tasks.docker-build-full]
+hide = true
 description = "Build Docker image with full MCP support (Node.js 24)"
 run = """
 echo "Building full-featured Docker image (Node.js 24)..."
@@ -297,6 +316,7 @@ docker compose -f docker/docker-compose.full.yml build ebiclaw-agent ebiclaw-gat
 
 # ---------- docker-test ----------
 [tasks.docker-test]
+hide = true
 description = "Test MCP tools in Docker container"
 run = """
 echo "Testing MCP tools in Docker..."
@@ -306,26 +326,31 @@ chmod +x scripts/test-docker-mcp.sh
 
 # ---------- docker-run ----------
 [tasks.docker-run]
+hide = true
 description = "Run ebiclaw gateway in Docker (Alpine-based)"
 run = "docker compose -f docker/docker-compose.yml --profile gateway up"
 
 # ---------- docker-run-full ----------
 [tasks.docker-run-full]
+hide = true
 description = "Run ebiclaw gateway in Docker (full-featured)"
 run = "docker compose -f docker/docker-compose.full.yml --profile gateway up"
 
 # ---------- docker-run-agent ----------
 [tasks.docker-run-agent]
+hide = true
 description = "Run ebiclaw agent in Docker (interactive, Alpine-based)"
 run = "docker compose -f docker/docker-compose.yml run --rm ebiclaw-agent"
 
 # ---------- docker-run-agent-full ----------
 [tasks.docker-run-agent-full]
+hide = true
 description = "Run ebiclaw agent in Docker (interactive, full-featured)"
 run = "docker compose -f docker/docker-compose.full.yml run --rm ebiclaw-agent"
 
 # ---------- docker-clean ----------
 [tasks.docker-clean]
+hide = true
 description = "Clean Docker images and volumes"
 run = """
 docker compose -f docker/docker-compose.yml down -v
@@ -335,6 +360,7 @@ docker rmi ebiclaw:latest ebiclaw:full 2>/dev/null || true
 
 # ---------- build-macos-app ----------
 [tasks.build-macos-app]
+hide = true
 description = "Build EbiClaw macOS .app bundle"
 depends = ["build-launcher"]
 run = """
