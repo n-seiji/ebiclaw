@@ -104,9 +104,36 @@ func (p *Pipe) handle(ctx context.Context, msg bus.InboundMessage) {
 	p.reply(ctx, msg, res.Text)
 }
 
-// turn runs a single-stage turn; two-stage logic is added in a later task.
+const plannerPrefix = `まず実装計画だけを立ててください。ファイルは変更せず、調査して計画を返答してください。
+
+リクエスト:
+`
+
+const executorPrompt = `上記の計画を実行してください。完了したら結果を簡潔に報告してください。`
+
+// turn runs a single- or two-stage turn. In two-stage mode a read-only
+// planning turn runs first, then execution resumes the same thread.
 func (p *Pipe) turn(ctx context.Context, threadID, content string) (*Result, error) {
-	return p.runner.Run(ctx, threadID, "", content)
+	if !p.opts.TwoStage {
+		return p.runner.Run(ctx, threadID, "", content)
+	}
+
+	plan, err := p.runner.Run(ctx, threadID, "read-only", plannerPrefix+content)
+	if err != nil {
+		return nil, fmt.Errorf("plan stage: %w", err)
+	}
+	resumeID := plan.ThreadID
+	if resumeID == "" {
+		resumeID = threadID
+	}
+	res, err := p.runner.Run(ctx, resumeID, "", executorPrompt)
+	if err != nil {
+		return nil, fmt.Errorf("execute stage: %w", err)
+	}
+	if res.ThreadID == "" {
+		res.ThreadID = resumeID
+	}
+	return res, nil
 }
 
 func (p *Pipe) reply(ctx context.Context, msg bus.InboundMessage, content string) {

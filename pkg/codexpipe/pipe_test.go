@@ -145,3 +145,36 @@ func TestPipeDeliversReplyComputedDuringShutdown(t *testing.T) {
 		t.Errorf("Content = %q, want %q", out.Content, "late answer")
 	}
 }
+
+func TestPipeTwoStagePlansThenExecutes(t *testing.T) {
+	b := bus.NewMessageBus()
+	store := NewThreadStore(filepath.Join(t.TempDir(), "threads.json"))
+	turner := &fakeTurner{resp: &Result{Text: "done", ThreadID: "th-2"}}
+	p := NewPipe(b, turner, store, Options{Sandbox: "workspace-write", TwoStage: true})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go p.Run(ctx)
+
+	_ = b.PublishInbound(ctx, bus.InboundMessage{Channel: "slack", ChatID: "C1", Content: "add feature X"})
+	out := waitOutbound(t, b)
+	if out.Content != "done" {
+		t.Errorf("Content = %q, want %q", out.Content, "done")
+	}
+
+	turner.mu.Lock()
+	defer turner.mu.Unlock()
+	if len(turner.calls) != 2 {
+		t.Fatalf("calls = %d, want 2 (plan + execute)", len(turner.calls))
+	}
+	if turner.calls[0].Sandbox != "read-only" {
+		t.Errorf("planner sandbox = %q, want read-only", turner.calls[0].Sandbox)
+	}
+	if turner.calls[1].Sandbox != "" {
+		t.Errorf("executor sandbox = %q, want \"\" (default)", turner.calls[1].Sandbox)
+	}
+	// executor resumes the thread the planner created
+	if turner.calls[1].ThreadID != "th-2" {
+		t.Errorf("executor threadID = %q, want th-2", turner.calls[1].ThreadID)
+	}
+}
