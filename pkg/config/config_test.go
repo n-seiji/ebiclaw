@@ -1990,7 +1990,7 @@ func TestCodexPipeConfigDefaults(t *testing.T) {
 }
 
 func TestCodexPipeConfigParse(t *testing.T) {
-	raw := `{"codex_pipe":{"enabled":true,"model":"gpt-5-codex","workspace":"/tmp/ws","sandbox":"danger-full-access","two_stage":true}}`
+	raw := `{"codex_pipe":{"enabled":true,"model":"gpt-5-codex","workspace":"/tmp/ws","sandbox":"danger-full-access"}}`
 	var cfg Config
 	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
 		t.Fatalf("unmarshal: %v", err)
@@ -2000,9 +2000,6 @@ func TestCodexPipeConfigParse(t *testing.T) {
 	}
 	if got, want := cfg.CodexPipe.Model, "gpt-5-codex"; got != want {
 		t.Errorf("Model = %q, want %q", got, want)
-	}
-	if !cfg.CodexPipe.TwoStage {
-		t.Errorf("TwoStage = false, want true")
 	}
 	if got, want := cfg.CodexPipe.GetSandbox(), "danger-full-access"; got != want {
 		t.Errorf("GetSandbox() = %q, want %q", got, want)

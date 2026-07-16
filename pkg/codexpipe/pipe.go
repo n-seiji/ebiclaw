@@ -16,17 +16,11 @@ type Turner interface {
 	Run(ctx context.Context, threadID, sandbox, prompt string) (*Result, error)
 }
 
-// Options configures pipe behavior.
-type Options struct {
-	TwoStage bool
-}
-
 // Pipe consumes inbound messages and pipes them to the Codex CLI.
 type Pipe struct {
 	bus    *bus.MessageBus
 	runner Turner
 	store  *ThreadStore
-	opts   Options
 
 	mu       sync.Mutex
 	sessions map[string]*sync.Mutex
@@ -34,12 +28,11 @@ type Pipe struct {
 }
 
 // NewPipe creates a Pipe.
-func NewPipe(b *bus.MessageBus, runner Turner, store *ThreadStore, opts Options) *Pipe {
+func NewPipe(b *bus.MessageBus, runner Turner, store *ThreadStore) *Pipe {
 	return &Pipe{
 		bus:      b,
 		runner:   runner,
 		store:    store,
-		opts:     opts,
 		sessions: map[string]*sync.Mutex{},
 	}
 }
@@ -95,16 +88,10 @@ func (p *Pipe) handle(ctx context.Context, msg bus.InboundMessage) {
 		return
 	}
 
-	res, err := p.turn(ctx, threadID, msg.Content)
+	res, err := p.runner.Run(ctx, threadID, "", msg.Content)
 	if err != nil {
 		logger.ErrorCF("codexpipe", "codex turn failed",
 			map[string]any{"session": key, "error": err.Error()})
-		if res != nil && res.ThreadID != "" && res.ThreadID != threadID {
-			if setErr := p.store.Set(key, res.ThreadID); setErr != nil {
-				logger.ErrorCF("codexpipe", "persist thread failed",
-					map[string]any{"session": key, "error": setErr.Error()})
-			}
-		}
 		p.reply(ctx, msg, fmt.Sprintf("⚠️ codex error: %v", err))
 		return
 	}
@@ -115,38 +102,6 @@ func (p *Pipe) handle(ctx context.Context, msg bus.InboundMessage) {
 		}
 	}
 	p.reply(ctx, msg, res.Text)
-}
-
-const plannerPrefix = `まず実装計画だけを立ててください。ファイルは変更せず、調査して計画を返答してください。
-
-リクエスト:
-`
-
-const executorPrompt = `上記の計画を実行してください。完了したら結果を簡潔に報告してください。`
-
-// turn runs a single- or two-stage turn. In two-stage mode a read-only
-// planning turn runs first, then execution resumes the same thread.
-func (p *Pipe) turn(ctx context.Context, threadID, content string) (*Result, error) {
-	if !p.opts.TwoStage {
-		return p.runner.Run(ctx, threadID, "", content)
-	}
-
-	plan, err := p.runner.Run(ctx, threadID, "read-only", plannerPrefix+content)
-	if err != nil {
-		return nil, fmt.Errorf("plan stage: %w", err)
-	}
-	resumeID := plan.ThreadID
-	if resumeID == "" {
-		resumeID = threadID
-	}
-	res, err := p.runner.Run(ctx, resumeID, "", executorPrompt)
-	if err != nil {
-		return &Result{ThreadID: resumeID}, fmt.Errorf("execute stage: %w", err)
-	}
-	if res.ThreadID == "" {
-		res.ThreadID = resumeID
-	}
-	return res, nil
 }
 
 func (p *Pipe) reply(ctx context.Context, msg bus.InboundMessage, content string) {

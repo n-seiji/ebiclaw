@@ -205,9 +205,7 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 			Workspace: cfg.CodexPipe.Workspace,
 			Sandbox:   cfg.CodexPipe.GetSandbox(),
 		}
-		pipe := codexpipe.NewPipe(msgBus, runner, codexpipe.NewThreadStore(statePath), codexpipe.Options{
-			TwoStage: cfg.CodexPipe.TwoStage,
-		})
+		pipe := codexpipe.NewPipe(msgBus, runner, codexpipe.NewThreadStore(statePath))
 		logger.Info("Codex pipe mode enabled: bypassing agent loop")
 		fmt.Println("🔀 Codex pipe mode: messages are piped directly to codex exec")
 		pipeDone = make(chan struct{})

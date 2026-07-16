@@ -532,7 +532,6 @@ func DefaultConfig() *Config {
 			Model:     "",
 			Workspace: "",
 			Sandbox:   "",
-			TwoStage:  false,
 			StatePath: "",
 		},
 		BuildInfo: BuildInfo{

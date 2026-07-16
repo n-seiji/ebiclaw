@@ -625,9 +625,6 @@ type CodexPipeConfig struct {
 	// Sandbox is the codex sandbox mode for execution:
 	// "read-only" | "workspace-write" | "danger-full-access".
 	Sandbox string `json:"sandbox,omitempty" env:"EBICLAW_CODEX_PIPE_SANDBOX"`
-	// TwoStage enables plan-then-execute: a read-only planning turn followed
-	// by an execution turn resumed on the same thread.
-	TwoStage bool `json:"two_stage,omitempty" env:"EBICLAW_CODEX_PIPE_TWO_STAGE"`
 	// StatePath is the JSON file storing sessionKey -> codex thread ID.
 	// Defaults to <config dir>/codex_threads.json.
 	StatePath string `json:"state_path,omitempty" env:"EBICLAW_CODEX_PIPE_STATE_PATH"`

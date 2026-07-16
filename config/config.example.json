@@ -447,7 +447,6 @@
     "enabled": false,
     "model": "",
     "workspace": "",
-    "sandbox": "workspace-write",
-    "two_stage": false
+    "sandbox": "workspace-write"
   }
 }
