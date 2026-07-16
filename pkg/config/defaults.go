@@ -526,6 +526,15 @@ func DefaultConfig() *Config {
 			ModelName:         "",
 			EchoTranscription: false,
 		},
+		CodexPipe: CodexPipeConfig{
+			Enabled:   false,
+			Command:   "",
+			Model:     "",
+			Workspace: "",
+			Sandbox:   "",
+			TwoStage:  false,
+			StatePath: "",
+		},
 		BuildInfo: BuildInfo{
 			Version:   Version,
 			GitCommit: GitCommit,

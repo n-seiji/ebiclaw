@@ -442,5 +442,12 @@
     "port": 18790,
     "hot_reload": false,
     "log_level": "fatal"
+  },
+  "codex_pipe": {
+    "enabled": false,
+    "model": "",
+    "workspace": "",
+    "sandbox": "workspace-write",
+    "two_stage": false
   }
 }
