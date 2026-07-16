@@ -34,6 +34,7 @@ const (
 	serviceShutdownTimeout  = 30 * time.Second
 	providerReloadTimeout   = 30 * time.Second
 	gracefulShutdownTimeout = 15 * time.Second
+	codexPipeDrainTimeout   = 30 * time.Second
 
 	logPath   = "logs"
 	panicFile = "gateway_panic.log"
@@ -192,6 +193,7 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	var pipeDone chan struct{}
 	if cfg.CodexPipe.Enabled {
 		statePath := cfg.CodexPipe.StatePath
 		if statePath == "" {
@@ -209,7 +211,11 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 		})
 		logger.Info("Codex pipe mode enabled: bypassing agent loop")
 		fmt.Println("🔀 Codex pipe mode: messages are piped directly to codex exec")
-		go pipe.Run(ctx)
+		pipeDone = make(chan struct{})
+		go func() {
+			defer close(pipeDone)
+			pipe.Run(ctx)
+		}()
 	} else {
 		go agentLoop.Run(ctx)
 	}
@@ -229,7 +235,8 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 		select {
 		case <-sigChan:
 			logger.Info("Shutting down...")
-			shutdownGateway(runningServices, agentLoop, provider, true)
+			cancel()
+			shutdownGateway(runningServices, agentLoop, provider, true, pipeDone)
 			return nil
 		case newCfg := <-configReloadChan:
 			if !runningServices.reloading.CompareAndSwap(false, true) {
@@ -445,9 +452,18 @@ func shutdownGateway(
 	agentLoop *agent.AgentLoop,
 	provider providers.LLMProvider,
 	fullShutdown bool,
+	pipeDone <-chan struct{},
 ) {
 	if cp, ok := provider.(providers.StatefulProvider); ok && fullShutdown {
 		cp.Close()
+	}
+
+	if pipeDone != nil {
+		select {
+		case <-pipeDone:
+		case <-time.After(codexPipeDrainTimeout):
+			logger.Warn("codex pipe did not drain in-flight turns before shutdown timeout")
+		}
 	}
 
 	stopAndCleanupServices(runningServices, gracefulShutdownTimeout, false)
