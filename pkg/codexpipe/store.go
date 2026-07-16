@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 )
 
 // ThreadStore persists the sessionKey -> codex thread ID mapping as JSON.
@@ -22,9 +24,18 @@ func NewThreadStore(path string) *ThreadStore {
 	s := &ThreadStore{path: path, threads: map[string]string{}}
 	data, err := os.ReadFile(path)
 	if err == nil {
-		_ = json.Unmarshal(data, &s.threads)
+		// Unmarshal into a temporary map to avoid partial population on error
+		tempThreads := map[string]string{}
+		if err := json.Unmarshal(data, &tempThreads); err != nil {
+			logger.Warnf("failed to unmarshal thread store at %s: %v", path, err)
+			// Start with empty map; Set will attempt to rewrite
+			s.threads = map[string]string{}
+		} else {
+			s.threads = tempThreads
+		}
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		// unreadable store: start empty; Set will attempt to rewrite
+		logger.Warnf("failed to read thread store at %s: %v", path, err)
 		s.threads = map[string]string{}
 	}
 	return s
