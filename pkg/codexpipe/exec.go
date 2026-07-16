@@ -51,6 +51,9 @@ func (r *Runner) Run(ctx context.Context, threadID, sandbox, prompt string) (*Re
 	if sandbox == "" {
 		sandbox = r.Sandbox
 	}
+	if sandbox == "" {
+		sandbox = "workspace-write"
+	}
 	args = append(args,
 		"-c", fmt.Sprintf("sandbox_mode=%q", sandbox),
 		"-c", `approval_policy="never"`,
@@ -73,10 +76,13 @@ func (r *Runner) Run(ctx context.Context, threadID, sandbox, prompt string) (*Re
 	runErr := isolation.Run(cmd)
 
 	// codex writes diagnostics to stderr but still emits valid JSONL on
-	// stdout, so prefer parsed output even on non-zero exit.
-	if out := stdout.String(); out != "" {
-		if res, err := parseEvents(out); err == nil && res.Text != "" {
-			return res, nil
+	// stdout, so prefer parsed output even on non-zero exit. A cancelled
+	// context takes precedence over any partial output.
+	if ctx.Err() == nil {
+		if out := stdout.String(); out != "" {
+			if res, err := parseEvents(out); err == nil && res.Text != "" {
+				return res, nil
+			}
 		}
 	}
 	if runErr != nil {
