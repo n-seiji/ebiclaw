@@ -18,7 +18,7 @@ func statusCmd() {
 
 	configPath := internal.GetConfigPath()
 
-	fmt.Printf("%s ebiclaw Status\n", internal.Logo)
+	fmt.Printf("%s tsukasa Status\n", internal.Logo)
 	fmt.Printf("Version: %s\n", config.FormatVersion())
 	build, _ := config.FormatBuildInfo()
 	if build != "" {

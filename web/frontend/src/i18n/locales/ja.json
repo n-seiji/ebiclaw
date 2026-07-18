@@ -548,11 +548,11 @@
       "monitor_usb": "USBを監視",
       "monitor_usb_hint": "デバイス有効時にUSBの接続/切断イベントを監視します。",
       "autostart_label": "ログイン時に起動",
-      "autostart_hint": "ログイン時にEbiClaw Webを自動起動します。",
+      "autostart_hint": "ログイン時にTsukasa Webを自動起動します。",
       "autostart_unsupported": "このプラットフォームではログイン時起動はサポートされていません。",
       "autostart_load_error": "ログイン時起動の状態取得に失敗しました。",
       "server_port": "サービスポート",
-      "server_port_hint": "EbiClaw Webが使用するHTTPポート。",
+      "server_port_hint": "Tsukasa Webが使用するHTTPポート。",
       "launcher_token": "ログイントークン",
       "launcher_token_section_hint": "このセクションの変更はランチャーの再起動後に反映されます。",
       "launcher_token_hint": "ランチャーログイン画面でのサインインに使用します。",
@@ -597,8 +597,8 @@
     "next": "次へ",
     "finish": "完了",
     "welcome": {
-      "title": "EbiClawへようこそ",
-      "description": "EbiClawは強力なAIアシスタントプラットフォームです。基本セットアップを数秒で完了しましょう。"
+      "title": "Tsukasaへようこそ",
+      "description": "Tsukasaは強力なAIアシスタントプラットフォームです。基本セットアップを数秒で完了しましょう。"
     },
     "engine": {
       "title": "エンジンを設定",
