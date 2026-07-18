@@ -62,6 +62,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Model list management
 	h.registerModelRoutes(mux)
 
+	// CLI engine selection (codex / claude-code)
+	h.registerEngineRoutes(mux)
+
 	// Channel catalog (for frontend navigation/config pages)
 	h.registerChannelRoutes(mux)
 

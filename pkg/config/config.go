@@ -618,7 +618,11 @@ type VoiceConfig struct {
 // CodexPipeConfig configures the Codex pipe mode: inbound messages are piped
 // directly to the Codex CLI instead of the built-in agent loop.
 type CodexPipeConfig struct {
-	Enabled   bool   `json:"enabled"              env:"EBICLAW_CODEX_PIPE_ENABLED"`
+	Enabled bool `json:"enabled"              env:"EBICLAW_CODEX_PIPE_ENABLED"`
+	// Backend selects which CLI engine handles piped messages.
+	// Currently only "codex" is supported; other values fall back to "codex"
+	// with a startup warning.
+	Backend   string `json:"backend,omitempty"    env:"EBICLAW_CODEX_PIPE_BACKEND"`
 	Command   string `json:"command,omitempty"    env:"EBICLAW_CODEX_PIPE_COMMAND"`
 	Model     string `json:"model,omitempty"      env:"EBICLAW_CODEX_PIPE_MODEL"`
 	Workspace string `json:"workspace,omitempty"  env:"EBICLAW_CODEX_PIPE_WORKSPACE"`
@@ -628,6 +632,14 @@ type CodexPipeConfig struct {
 	// StatePath is the JSON file storing sessionKey -> codex thread ID.
 	// Defaults to <config dir>/codex_threads.json.
 	StatePath string `json:"state_path,omitempty" env:"EBICLAW_CODEX_PIPE_STATE_PATH"`
+}
+
+// GetBackend returns the configured CLI backend, defaulting to "codex".
+func (c *CodexPipeConfig) GetBackend() string {
+	if c.Backend == "" {
+		return "codex"
+	}
+	return c.Backend
 }
 
 // GetCommand returns the codex binary name, defaulting to "codex".

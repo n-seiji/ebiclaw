@@ -2,7 +2,7 @@
   "navigation": {
     "chat": "Chat",
     "model_group": "Models",
-    "models": "Models",
+    "engine": "Engine",
     "credentials": "Credentials",
     "agent_group": "Agent",
     "hub": "Hub",
@@ -62,11 +62,9 @@
     "imageTooLarge": "\"{{name}}\" exceeds the {{size}} limit.",
     "imageReadFailed": "Failed to read \"{{name}}\".",
     "empty": {
-      "noConfiguredModel": "No Model Configured",
-      "noConfiguredModelDescription": "You need to configure at least one AI model with an API key before you can start chatting.",
-      "goToModels": "Go to Models",
-      "noSelectedModel": "No Model Selected",
-      "noSelectedModelDescription": "You have configured models, but none is set as default. Select a model before starting chat.",
+      "noConfiguredModel": "Engine Not Ready",
+      "noConfiguredModelDescription": "Configure a CLI engine (or a default model) before you can start chatting.",
+      "goToModels": "Go to Engine",
       "notRunning": "Gateway Not Running",
       "notRunningDescription": "Start the gateway service to begin chatting. Use the Start Gateway button in the top bar."
     },
@@ -177,6 +175,44 @@
       "url": "Verification URL",
       "polling": "Polling login status...",
       "open": "Open Verification Page"
+    }
+  },
+  "engine": {
+    "title": "Engine",
+    "description": "Choose the CLI engine that handles your messages. Only Codex is available today.",
+    "loadError": "Failed to load engine settings",
+    "saveError": "Failed to save engine settings",
+    "backend": {
+      "comingSoon": "Coming soon",
+      "codex": {
+        "title": "Codex",
+        "description": "Pipes messages directly to the Codex CLI."
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "This backend is coming soon."
+      }
+    },
+    "enabled": {
+      "label": "Enable pipe mode",
+      "description": "When enabled, messages bypass the agent loop and are sent directly to the selected CLI engine."
+    },
+    "model": {
+      "label": "Model",
+      "placeholder": "Leave blank to use the CLI default",
+      "hint": "Optional. Overrides the CLI's default model."
+    },
+    "workspace": {
+      "label": "Workspace Path",
+      "placeholder": "/path/to/workspace"
+    },
+    "sandbox": {
+      "label": "Sandbox",
+      "options": {
+        "readOnly": "Read only",
+        "workspaceWrite": "Workspace write",
+        "dangerFullAccess": "Full access (danger)"
+      }
     }
   },
   "models": {
@@ -564,9 +600,9 @@
       "title": "Welcome to EbiClaw",
       "description": "EbiClaw is a powerful AI assistant platform. Let's take a few seconds to help you complete the basic setup."
     },
-    "models": {
-      "title": "Configure Models",
-      "description": "Click the \"Models\" menu on the left to configure API keys for AI providers. Only configured models can be used for chat."
+    "engine": {
+      "title": "Configure Engine",
+      "description": "Click the \"Engine\" menu on the left to choose a CLI engine. Only a configured engine can be used for chat."
     },
     "gateway": {
       "title": "Start Gateway",
