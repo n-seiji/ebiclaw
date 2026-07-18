@@ -3,7 +3,6 @@
     "chat": "チャット",
     "model_group": "モデル",
     "engine": "エンジン",
-    "credentials": "認証情報",
     "agent_group": "エージェント",
     "hub": "ハブ",
     "skills": "スキル",
@@ -114,68 +113,6 @@
     "commit": "コミット",
     "build": "ビルド",
     "version_unknown": "不明"
-  },
-  "credentials": {
-    "description": "対応プロバイダーのOAuthおよびトークン認証情報を管理します。",
-    "loading": "認証情報を読み込み中...",
-    "providers": {
-      "openai": {
-        "description": "ブラウザOAuth、デバイスコード、トークンログインに対応。"
-      },
-      "anthropic": {
-        "description": "Claude接続にはトークンログインを使用します。"
-      }
-    },
-    "status": {
-      "connected": "接続済み",
-      "needsRefresh": "更新が必要",
-      "expired": "有効期限切れ",
-      "notLoggedIn": "未ログイン"
-    },
-    "actions": {
-      "browser": "ブラウザOAuth",
-      "deviceCode": "デバイスコード",
-      "stopLoading": "読み込み停止",
-      "saveToken": "保存",
-      "logout": "ログアウト"
-    },
-    "logoutDialog": {
-      "title": "プロバイダーからログアウトしますか？",
-      "description": "保存された {{provider}} の認証情報が削除されます。"
-    },
-    "fields": {
-      "openaiToken": "OpenAI トークン",
-      "anthropicToken": "Anthropic トークン"
-    },
-    "labels": {
-      "account": "アカウント",
-      "email": "メール",
-      "project": "プロジェクト"
-    },
-    "errors": {
-      "loadFailed": "認証情報の読み込みに失敗しました",
-      "flowFailed": "認証フローの確認に失敗しました",
-      "loginFailed": "ログインに失敗しました",
-      "logoutFailed": "ログアウトに失敗しました",
-      "invalidBrowserResponse": "ブラウザログインのレスポンスが不正です",
-      "invalidDeviceResponse": "デバイスコードのレスポンスが不正です",
-      "popupBlocked": "新しいタブを開けませんでした。ポップアップを許可して再度お試しください。"
-    },
-    "flow": {
-      "current": "現在の認証ステータス",
-      "pending": "認証を待機中...",
-      "success": "認証に成功しました",
-      "error": "認証に失敗しました",
-      "expired": "認証セッションの有効期限が切れました"
-    },
-    "device": {
-      "title": "OpenAI デバイスログイン",
-      "description": "認証ページを開いて以下のコードを入力してください。このページは自動更新されます。",
-      "code": "ユーザーコード",
-      "url": "認証URL",
-      "polling": "ログイン状態を確認中...",
-      "open": "認証ページを開く"
-    }
   },
   "engine": {
     "title": "エンジン",

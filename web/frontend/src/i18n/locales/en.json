@@ -3,7 +3,6 @@
     "chat": "Chat",
     "model_group": "Models",
     "engine": "Engine",
-    "credentials": "Credentials",
     "agent_group": "Agent",
     "hub": "Hub",
     "skills": "Skills",
@@ -114,68 +113,6 @@
     "commit": "Commit",
     "build": "Build",
     "version_unknown": "Unknown"
-  },
-  "credentials": {
-    "description": "Manage OAuth and token-based credentials for supported providers.",
-    "loading": "Loading credentials...",
-    "providers": {
-      "openai": {
-        "description": "Supports browser OAuth, device code, and token login."
-      },
-      "anthropic": {
-        "description": "Uses token login for Claude access."
-      }
-    },
-    "status": {
-      "connected": "Connected",
-      "needsRefresh": "Needs refresh",
-      "expired": "Expired",
-      "notLoggedIn": "Not logged in"
-    },
-    "actions": {
-      "browser": "Browser OAuth",
-      "deviceCode": "Device Code",
-      "stopLoading": "Stop Loading",
-      "saveToken": "Save",
-      "logout": "Logout"
-    },
-    "logoutDialog": {
-      "title": "Logout provider?",
-      "description": "This will remove your saved credential for {{provider}}."
-    },
-    "fields": {
-      "openaiToken": "OpenAI token",
-      "anthropicToken": "Anthropic token"
-    },
-    "labels": {
-      "account": "Account",
-      "email": "Email",
-      "project": "Project"
-    },
-    "errors": {
-      "loadFailed": "Failed to load credentials",
-      "flowFailed": "Failed to check authentication flow",
-      "loginFailed": "Login failed",
-      "logoutFailed": "Logout failed",
-      "invalidBrowserResponse": "Invalid browser login response",
-      "invalidDeviceResponse": "Invalid device code response",
-      "popupBlocked": "Unable to open a new tab. Please allow popups and try again."
-    },
-    "flow": {
-      "current": "Current authentication status",
-      "pending": "Waiting for authorization...",
-      "success": "Authentication successful",
-      "error": "Authentication failed",
-      "expired": "Authentication session expired"
-    },
-    "device": {
-      "title": "OpenAI Device Login",
-      "description": "Open the verification page and enter the code below. This page will refresh automatically.",
-      "code": "User Code",
-      "url": "Verification URL",
-      "polling": "Polling login status...",
-      "open": "Open Verification Page"
-    }
   },
   "engine": {
     "title": "Engine",

@@ -13,7 +13,6 @@ import { Route as LogsRouteImport } from './routes/logs'
 import { Route as LauncherSetupRouteImport } from './routes/launcher-setup'
 import { Route as LauncherLoginRouteImport } from './routes/launcher-login'
 import { Route as EngineRouteImport } from './routes/engine'
-import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as ConfigRouteImport } from './routes/config'
 import { Route as ArchiverRouteImport } from './routes/archiver'
 import { Route as AgentRouteImport } from './routes/agent'
@@ -43,11 +42,6 @@ const LauncherLoginRoute = LauncherLoginRouteImport.update({
 const EngineRoute = EngineRouteImport.update({
   id: '/engine',
   path: '/engine',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CredentialsRoute = CredentialsRouteImport.update({
-  id: '/credentials',
-  path: '/credentials',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfigRoute = ConfigRouteImport.update({
@@ -107,7 +101,6 @@ export interface FileRoutesByFullPath {
   '/agent': typeof AgentRouteWithChildren
   '/archiver': typeof ArchiverRoute
   '/config': typeof ConfigRouteWithChildren
-  '/credentials': typeof CredentialsRoute
   '/engine': typeof EngineRoute
   '/launcher-login': typeof LauncherLoginRoute
   '/launcher-setup': typeof LauncherSetupRoute
@@ -124,7 +117,6 @@ export interface FileRoutesByTo {
   '/agent': typeof AgentRouteWithChildren
   '/archiver': typeof ArchiverRoute
   '/config': typeof ConfigRouteWithChildren
-  '/credentials': typeof CredentialsRoute
   '/engine': typeof EngineRoute
   '/launcher-login': typeof LauncherLoginRoute
   '/launcher-setup': typeof LauncherSetupRoute
@@ -142,7 +134,6 @@ export interface FileRoutesById {
   '/agent': typeof AgentRouteWithChildren
   '/archiver': typeof ArchiverRoute
   '/config': typeof ConfigRouteWithChildren
-  '/credentials': typeof CredentialsRoute
   '/engine': typeof EngineRoute
   '/launcher-login': typeof LauncherLoginRoute
   '/launcher-setup': typeof LauncherSetupRoute
@@ -161,7 +152,6 @@ export interface FileRouteTypes {
     | '/agent'
     | '/archiver'
     | '/config'
-    | '/credentials'
     | '/engine'
     | '/launcher-login'
     | '/launcher-setup'
@@ -178,7 +168,6 @@ export interface FileRouteTypes {
     | '/agent'
     | '/archiver'
     | '/config'
-    | '/credentials'
     | '/engine'
     | '/launcher-login'
     | '/launcher-setup'
@@ -195,7 +184,6 @@ export interface FileRouteTypes {
     | '/agent'
     | '/archiver'
     | '/config'
-    | '/credentials'
     | '/engine'
     | '/launcher-login'
     | '/launcher-setup'
@@ -213,7 +201,6 @@ export interface RootRouteChildren {
   AgentRoute: typeof AgentRouteWithChildren
   ArchiverRoute: typeof ArchiverRoute
   ConfigRoute: typeof ConfigRouteWithChildren
-  CredentialsRoute: typeof CredentialsRoute
   EngineRoute: typeof EngineRoute
   LauncherLoginRoute: typeof LauncherLoginRoute
   LauncherSetupRoute: typeof LauncherSetupRoute
@@ -248,13 +235,6 @@ declare module '@tanstack/react-router' {
       path: '/engine'
       fullPath: '/engine'
       preLoaderRoute: typeof EngineRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/credentials': {
-      id: '/credentials'
-      path: '/credentials'
-      fullPath: '/credentials'
-      preLoaderRoute: typeof CredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/config': {
@@ -373,7 +353,6 @@ const rootRouteChildren: RootRouteChildren = {
   AgentRoute: AgentRouteWithChildren,
   ArchiverRoute: ArchiverRoute,
   ConfigRoute: ConfigRouteWithChildren,
-  CredentialsRoute: CredentialsRoute,
   EngineRoute: EngineRoute,
   LauncherLoginRoute: LauncherLoginRoute,
   LauncherSetupRoute: LauncherSetupRoute,
