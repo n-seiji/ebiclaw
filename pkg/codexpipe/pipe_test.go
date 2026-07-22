@@ -120,6 +120,7 @@ func TestPipeStreamsMultipleMessagesInOrder(t *testing.T) {
 	if first.Content != "plan: doing X" || second.Content != "done: X finished" {
 		t.Errorf("replies = %q, %q, want %q, %q", first.Content, second.Content, "plan: doing X", "done: X finished")
 	}
+	waitThreadStored(t, store, "slack:C1", "th-1")
 }
 
 func TestPipeResumesExistingThread(t *testing.T) {

@@ -599,10 +599,10 @@ type VoiceConfig struct {
 	EchoTranscription bool   `json:"echo_transcription"       env:"EBICLAW_VOICE_ECHO_TRANSCRIPTION"`
 }
 
-// CodexPipeConfig configures the Codex pipe mode: inbound messages are piped
-// directly to the Codex CLI instead of the built-in agent loop.
+// CodexPipeConfig configures the Codex pipe: inbound messages are always
+// piped directly to the Codex CLI, the only message path (the built-in
+// agent loop no longer handles chat turns).
 type CodexPipeConfig struct {
-	Enabled bool `json:"enabled"              env:"EBICLAW_CODEX_PIPE_ENABLED"`
 	// Backend selects which CLI engine handles piped messages.
 	// Currently only "codex" is supported; other values fall back to "codex"
 	// with a startup warning.

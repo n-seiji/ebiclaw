@@ -130,17 +130,15 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 	}
 	defer pid.RemovePidFile(homePath)
 
+	// The codex pipe is the only message path, so a startup provider failure
+	// no longer blocks the gateway: the pipe does not depend on it.
 	provider, modelID, err := createStartupProvider(cfg, allowEmptyStartup)
 	if err != nil {
-		if cfg.CodexPipe.Enabled {
-			reason := fmt.Sprintf("provider creation failed, continuing in codex pipe mode: %v", err)
-			logger.WarnCF("gateway", reason, map[string]any{"codex_pipe": true})
-			provider = &startupBlockedProvider{reason: reason}
-			modelID = ""
-			err = nil
-		} else {
-			return fmt.Errorf("error creating provider: %w", err)
-		}
+		reason := fmt.Sprintf("provider creation failed, continuing in codex pipe mode: %v", err)
+		logger.WarnCF("gateway", reason, map[string]any{"codex_pipe": true})
+		provider = &startupBlockedProvider{reason: reason}
+		modelID = ""
+		err = nil
 	}
 
 	if modelID != "" {
@@ -194,33 +192,28 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var pipeDone chan struct{}
-	if cfg.CodexPipe.Enabled {
-		if backend := cfg.CodexPipe.GetBackend(); backend != "codex" {
-			logger.Warnf("codex_pipe.backend %q is not supported, falling back to codex", backend)
-		}
-		statePath := cfg.CodexPipe.StatePath
-		if statePath == "" {
-			statePath = filepath.Join(homePath, "codex_threads.json")
-		}
-		runner := &codexpipe.Runner{
-			Command:       cfg.CodexPipe.GetCommand(),
-			Model:         cfg.CodexPipe.Model,
-			Workspace:     cfg.CodexPipe.Workspace,
-			Sandbox:       cfg.CodexPipe.GetSandbox(),
-			WritableRoots: cfg.CodexPipe.WritableRoots,
-		}
-		pipe := codexpipe.NewPipe(msgBus, runner, codexpipe.NewThreadStore(statePath))
-		logger.Info("Codex pipe mode enabled: bypassing agent loop")
-		fmt.Println("🔀 Codex pipe mode: messages are piped directly to codex exec")
-		pipeDone = make(chan struct{})
-		go func() {
-			defer close(pipeDone)
-			pipe.Run(ctx)
-		}()
-	} else {
-		go agentLoop.Run(ctx)
+	if backend := cfg.CodexPipe.GetBackend(); backend != "codex" {
+		logger.Warnf("codex_pipe.backend %q is not supported, falling back to codex", backend)
 	}
+	statePath := cfg.CodexPipe.StatePath
+	if statePath == "" {
+		statePath = filepath.Join(homePath, "codex_threads.json")
+	}
+	runner := &codexpipe.Runner{
+		Command:       cfg.CodexPipe.GetCommand(),
+		Model:         cfg.CodexPipe.Model,
+		Workspace:     cfg.CodexPipe.Workspace,
+		Sandbox:       cfg.CodexPipe.GetSandbox(),
+		WritableRoots: cfg.CodexPipe.WritableRoots,
+	}
+	pipe := codexpipe.NewPipe(msgBus, runner, codexpipe.NewThreadStore(statePath))
+	logger.Info("Codex pipe: the only message path")
+	fmt.Println("🔀 Codex pipe: messages are piped directly to codex exec")
+	pipeDone := make(chan struct{})
+	go func() {
+		defer close(pipeDone)
+		pipe.Run(ctx)
+	}()
 
 	var configReloadChan <-chan *config.Config
 	stopWatch := func() {}
@@ -350,17 +343,9 @@ func setupAndStartServices(
 		fmt.Println("✓ Archiver service started")
 	}
 
-	runningServices.HeartbeatService = heartbeat.NewHeartbeatService(
-		cfg.WorkspacePath(),
-		cfg.Heartbeat.Interval,
-		cfg.Heartbeat.Enabled,
-	)
-	runningServices.HeartbeatService.SetBus(msgBus)
-	runningServices.HeartbeatService.SetHandler(createHeartbeatHandler(agentLoop))
-	if err = runningServices.HeartbeatService.Start(); err != nil {
-		return nil, fmt.Errorf("error starting heartbeat service: %w", err)
-	}
-	fmt.Println("✓ Heartbeat service started")
+	// Heartbeat is not started: it fires through the agent loop
+	// (ProcessHeartbeat), which no longer runs now that the codex pipe is
+	// the only message path. Re-wiring it through the pipe is 2b scope.
 
 	runningServices.MediaStore = media.NewFileMediaStoreWithCleanup(media.MediaCleanerConfig{
 		Enabled:  cfg.Tools.MediaCleanup.Enabled,
@@ -488,14 +473,12 @@ func handleConfigReload(
 ) error {
 	logger.Info("🔄 Config file changed, reloading...")
 
-	// codex pipe mode does not support hot reload: the pipe goroutine is not
+	// The codex pipe does not support hot reload: the pipe goroutine is not
 	// rebuilt by executeReload. Require a restart when codex_pipe changes.
 	oldCfg := al.GetConfig()
-	if oldCfg.CodexPipe.Enabled || newCfg.CodexPipe.Enabled {
-		if !reflect.DeepEqual(oldCfg.CodexPipe, newCfg.CodexPipe) {
-			logger.Warn("codex_pipe config changed: hot reload is not supported for pipe mode, restart the gateway to apply")
-			return fmt.Errorf("codex_pipe config change requires gateway restart")
-		}
+	if !reflect.DeepEqual(oldCfg.CodexPipe, newCfg.CodexPipe) {
+		logger.Warn("codex_pipe config changed: hot reload is not supported, restart the gateway to apply")
+		return fmt.Errorf("codex_pipe config change requires gateway restart")
 	}
 
 	newModel := newCfg.Agents.Defaults.ModelName
@@ -600,17 +583,8 @@ func restartServices(
 		fmt.Println("  ✓ Archiver service restarted")
 	}
 
-	runningServices.HeartbeatService = heartbeat.NewHeartbeatService(
-		cfg.WorkspacePath(),
-		cfg.Heartbeat.Interval,
-		cfg.Heartbeat.Enabled,
-	)
-	runningServices.HeartbeatService.SetBus(msgBus)
-	runningServices.HeartbeatService.SetHandler(createHeartbeatHandler(al))
-	if err = runningServices.HeartbeatService.Start(); err != nil {
-		return fmt.Errorf("error restarting heartbeat service: %w", err)
-	}
-	fmt.Println("  ✓ Heartbeat service restarted")
+	// Heartbeat is not restarted; see the matching comment in
+	// setupAndStartServices.
 
 	runningServices.MediaStore = media.NewFileMediaStoreWithCleanup(media.MediaCleanerConfig{
 		Enabled:  cfg.Tools.MediaCleanup.Enabled,

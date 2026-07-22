@@ -8,7 +8,7 @@ import {
   getEngine,
   updateEngine,
 } from "@/api/engine"
-import { Field, SwitchCardField } from "@/components/shared-form"
+import { Field } from "@/components/shared-form"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -55,14 +55,12 @@ export function EnginePage() {
   const [saveError, setSaveError] = useState("")
   const [dirty, setDirty] = useState(false)
 
-  const [enabled, setEnabled] = useState(false)
   const [model, setModel] = useState("")
   const [workspace, setWorkspace] = useState("")
   const [sandbox, setSandbox] = useState<EngineSandbox>("workspace-write")
 
   const applyEngine = useCallback((data: EngineInfo) => {
     setEngine(data)
-    setEnabled(data.enabled)
     setModel(data.model)
     setWorkspace(data.workspace)
     setSandbox(data.sandbox)
@@ -113,7 +111,6 @@ export function EnginePage() {
         model,
         workspace,
         sandbox,
-        enabled,
       })
       await fetchEngine()
     } catch (e) {
@@ -184,19 +181,7 @@ export function EnginePage() {
               ))}
             </div>
 
-            <div className="mt-6">
-              <SwitchCardField
-                label={t("engine.enabled.label")}
-                hint={t("engine.enabled.description")}
-                checked={enabled}
-                onCheckedChange={(checked) => {
-                  setEnabled(checked)
-                  setDirty(true)
-                }}
-              />
-            </div>
-
-            <div className="mt-4 space-y-4">
+            <div className="mt-6 space-y-4">
               <Field
                 label={t("engine.model.label")}
                 hint={t("engine.model.hint")}

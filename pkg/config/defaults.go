@@ -527,7 +527,6 @@ func DefaultConfig() *Config {
 			EchoTranscription: false,
 		},
 		CodexPipe: CodexPipeConfig{
-			Enabled:   false,
 			Command:   "",
 			Model:     "",
 			Workspace: "",
