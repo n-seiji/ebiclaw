@@ -616,6 +616,9 @@ type CodexPipeConfig struct {
 	// StatePath is the JSON file storing sessionKey -> codex thread ID.
 	// Defaults to <config dir>/codex_threads.json.
 	StatePath string `json:"state_path,omitempty" env:"EBICLAW_CODEX_PIPE_STATE_PATH"`
+	// WritableRoots are extra directories writable under the
+	// workspace-write sandbox.
+	WritableRoots []string `json:"writable_roots,omitempty"`
 }
 
 // GetBackend returns the configured CLI backend, defaulting to "codex".

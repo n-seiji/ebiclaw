@@ -448,6 +448,7 @@
     "backend": "codex",
     "model": "",
     "workspace": "",
-    "sandbox": "workspace-write"
+    "sandbox": "workspace-write",
+    "writable_roots": []
   }
 }
