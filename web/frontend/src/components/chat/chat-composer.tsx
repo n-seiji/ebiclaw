@@ -15,7 +15,7 @@ interface ChatComposerProps {
   onRemoveAttachment: (index: number) => void
   onSend: () => void
   isConnected: boolean
-  hasDefaultModel: boolean
+  isEngineReady: boolean
   canSend: boolean
 }
 
@@ -27,11 +27,11 @@ export function ChatComposer({
   onRemoveAttachment,
   onSend,
   isConnected,
-  hasDefaultModel,
+  isEngineReady,
   canSend,
 }: ChatComposerProps) {
   const { t } = useTranslation()
-  const canInput = isConnected && hasDefaultModel
+  const canInput = isConnected && isEngineReady
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing) return

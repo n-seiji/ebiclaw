@@ -65,10 +65,12 @@ func (p *CodexCliProvider) Chat(
 	// Parse JSONL from stdout even if exit code is non-zero,
 	// because codex writes diagnostic noise to stderr (e.g. rollout errors)
 	// but still produces valid JSONL output.
+	var parsedResp *LLMResponse
+	var parseErr error
 	if stdoutStr := stdout.String(); stdoutStr != "" {
-		resp, parseErr := p.parseJSONLEvents(stdoutStr)
-		if parseErr == nil && resp != nil && (resp.Content != "" || len(resp.ToolCalls) > 0) {
-			return resp, nil
+		parsedResp, parseErr = p.parseJSONLEvents(stdoutStr)
+		if parseErr == nil && parsedResp != nil && (parsedResp.Content != "" || len(parsedResp.ToolCalls) > 0) {
+			return parsedResp, nil
 		}
 	}
 
@@ -76,10 +78,17 @@ func (p *CodexCliProvider) Chat(
 		if ctx.Err() == context.Canceled {
 			return nil, ctx.Err()
 		}
-		if stderrStr := stderr.String(); stderrStr != "" {
-			return nil, fmt.Errorf("codex cli error: %s", stderrStr)
+		stderrStr := strings.TrimSpace(stderr.String())
+		switch {
+		case parseErr != nil && stderrStr != "":
+			return nil, fmt.Errorf("codex cli error: %w\ncli_output: %v\nstderr: %s", err, parseErr, stderrStr)
+		case parseErr != nil:
+			return nil, fmt.Errorf("codex cli error: %w\ncli_output: %v", err, parseErr)
+		case stderrStr != "":
+			return nil, fmt.Errorf("codex cli error: %w\nstderr: %s", err, stderrStr)
+		default:
+			return nil, fmt.Errorf("codex cli error: %w", err)
 		}
-		return nil, fmt.Errorf("codex cli error: %w", err)
 	}
 
 	return p.parseJSONLEvents(stdout.String())
@@ -118,13 +127,11 @@ func (p *CodexCliProvider) buildPrompt(messages []Message, tools []ToolDefinitio
 		sb.WriteString("\n\n## Task\n\n")
 	}
 
-	if len(tools) > 0 {
-		sb.WriteString(buildCLIToolsPrompt(tools))
-		sb.WriteString("\n\n")
-	}
+	// tools are intentionally ignored: Codex CLI runs its own agent loop and
+	// tool execution; text-based pseudo tool-use is not supported.
 
 	// Simplify single user message (no prefix)
-	if len(conversationParts) == 1 && len(systemParts) == 0 && len(tools) == 0 {
+	if len(conversationParts) == 1 && len(systemParts) == 0 {
 		return conversationParts[0]
 	}
 
@@ -169,6 +176,7 @@ func (p *CodexCliProvider) parseJSONLEvents(output string) (*LLMResponse, error)
 	var lastError string
 
 	scanner := bufio.NewScanner(strings.NewReader(output))
+	scanner.Buffer(make([]byte, 0, 64*1024), 16*1024*1024)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
@@ -202,6 +210,9 @@ func (p *CodexCliProvider) parseJSONLEvents(output string) (*LLMResponse, error)
 			}
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("codex cli: parse jsonl output: %w", err)
+	}
 
 	if lastError != "" && len(contentParts) == 0 {
 		return nil, fmt.Errorf("codex cli: %s", lastError)
@@ -209,19 +220,9 @@ func (p *CodexCliProvider) parseJSONLEvents(output string) (*LLMResponse, error)
 
 	content := strings.Join(contentParts, "\n")
 
-	// Extract tool calls from response text (same pattern as ClaudeCliProvider)
-	toolCalls := extractToolCallsFromText(content)
-
-	finishReason := "stop"
-	if len(toolCalls) > 0 {
-		finishReason = "tool_calls"
-		content = stripToolCallsFromText(content)
-	}
-
 	return &LLMResponse{
 		Content:      strings.TrimSpace(content),
-		ToolCalls:    toolCalls,
-		FinishReason: finishReason,
+		FinishReason: "stop",
 		Usage:        usage,
 	}, nil
 }

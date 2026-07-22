@@ -400,7 +400,7 @@ func (t *ToolsConfig) IsToolEnabled(name string) bool {
 	case "find_skills":
 		return t.FindSkills.Enabled
 	case "i2c":
-		return t.I2C.Enabled
+		return false
 	case "install_skill":
 		return t.InstallSkill.Enabled
 	case "list_dir":
@@ -414,7 +414,7 @@ func (t *ToolsConfig) IsToolEnabled(name string) bool {
 	case "spawn_status":
 		return t.SpawnStatus.Enabled
 	case "spi":
-		return t.SPI.Enabled
+		return false
 	case "subagent":
 		return t.Subagent.Enabled
 	case "web_fetch":
@@ -422,7 +422,7 @@ func (t *ToolsConfig) IsToolEnabled(name string) bool {
 	case "send_file":
 		return t.SendFile.Enabled
 	case "send_tts":
-		return t.SendTTS.Enabled
+		return false
 	case "write_file":
 		return t.WriteFile.Enabled
 	case "mcp":

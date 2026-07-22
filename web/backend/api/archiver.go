@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/n-seiji/ebiclaw/pkg/archiver"
 	"github.com/n-seiji/ebiclaw/pkg/config"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 	ppid "github.com/n-seiji/ebiclaw/pkg/pid"
 	"github.com/n-seiji/ebiclaw/web/backend/launcherconfig"
 )
@@ -42,10 +42,13 @@ type ArchiverRunner interface {
 }
 
 type ArchiverStatusSnapshot struct {
-	Running                 bool      `json:"running"`
-	LastDistilledAt         time.Time `json:"last_distilled_at,omitempty"`
-	LastPushedAt            time.Time `json:"last_pushed_at,omitempty"`
-	ConsecutivePushFailures int       `json:"consecutive_push_failures"`
+	Running                 bool                `json:"running"`
+	ServiceRunning          bool                `json:"service_running"`
+	RunInProgress           bool                `json:"run_in_progress"`
+	LastDistilledAt         *time.Time          `json:"last_distilled_at,omitempty"`
+	LastPushedAt            *time.Time          `json:"last_pushed_at,omitempty"`
+	ConsecutivePushFailures int                 `json:"consecutive_push_failures"`
+	Logs                    []archiver.LogEntry `json:"logs,omitempty"`
 }
 
 type ArchiverHandler struct {
@@ -109,29 +112,42 @@ func (h *ArchiverHandler) status(w http.ResponseWriter, r *http.Request) {
 
 func (h *ArchiverHandler) run(w http.ResponseWriter, r *http.Request) {
 	if h.runner == nil {
-		if h.server != nil {
-			statusCode, body, err := h.server.proxyGatewayArchiverRun(r.Context())
-			if err == nil {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(statusCode)
-				if len(body) > 0 {
-					_, _ = w.Write(body)
-				}
-				return
-			}
-		}
-		http.Error(w, "archiver not bound", http.StatusServiceUnavailable)
-		return
-	}
-	if err := h.runner.RunOnce(r.Context()); err != nil {
-		if errors.Is(err, archiver.ErrBusy) {
-			http.Error(w, "busy", http.StatusConflict)
+		if h.server == nil {
+			writeArchiverJSONError(w, "archiver not bound", http.StatusServiceUnavailable)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		go h.server.triggerGatewayArchiverRun()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "archiver trigger requested"})
 		return
 	}
+	go func() {
+		_ = h.runner.RunOnce(context.Background())
+	}()
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "archiver triggered"})
+}
+
+func (h *Handler) triggerGatewayArchiverRun() {
+	statusCode, body, err := h.proxyGatewayArchiverRun(context.Background())
+	if err != nil {
+		logger.ErrorCF("archiver", "Launcher archiver run proxy failed", map[string]any{
+			"error": err.Error(),
+		})
+		return
+	}
+	logger.InfoCF("archiver", "Launcher archiver run proxy completed", map[string]any{
+		"status_code": statusCode,
+		"body_bytes":  len(body),
+	})
+}
+
+func writeArchiverJSONError(w http.ResponseWriter, message string, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
 
 func (h *Handler) proxyGatewayArchiverStatus(ctx context.Context) (ArchiverStatusSnapshot, error) {
@@ -162,6 +178,10 @@ func (h *Handler) doGatewayArchiverRequest(ctx context.Context, method, path str
 	if pidData == nil {
 		pidData = gatewayPidDataByConfig(h.configPath)
 		if pidData == nil {
+			logger.ErrorCF("archiver", "Gateway archiver proxy missing pid data", map[string]any{
+				"method": method,
+				"path":   path,
+			})
 			return 0, nil, fmt.Errorf("gateway pid data unavailable")
 		}
 	}
@@ -179,6 +199,11 @@ func (h *Handler) doGatewayArchiverRequest(ctx context.Context, method, path str
 	}
 
 	url := "http://" + net.JoinHostPort(host, strconv.Itoa(port)) + path
+	logger.InfoCF("archiver", "Gateway archiver proxy request", map[string]any{
+		"method": method,
+		"url":    url,
+		"pid":    pidData.PID,
+	})
 	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return 0, nil, err
@@ -189,6 +214,12 @@ func (h *Handler) doGatewayArchiverRequest(ctx context.Context, method, path str
 
 	resp, err := (&http.Client{Timeout: 15 * time.Second}).Do(req)
 	if err != nil {
+		logger.ErrorCF("archiver", "Gateway archiver proxy request failed", map[string]any{
+			"method": method,
+			"url":    url,
+			"pid":    pidData.PID,
+			"error":  err.Error(),
+		})
 		return 0, nil, err
 	}
 	defer resp.Body.Close()
@@ -197,6 +228,13 @@ func (h *Handler) doGatewayArchiverRequest(ctx context.Context, method, path str
 	if err != nil {
 		return 0, nil, err
 	}
+	logger.InfoCF("archiver", "Gateway archiver proxy response", map[string]any{
+		"method":      method,
+		"url":         url,
+		"pid":         pidData.PID,
+		"status_code": resp.StatusCode,
+		"body_bytes":  len(body),
+	})
 	return resp.StatusCode, body, nil
 }
 

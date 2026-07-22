@@ -14,7 +14,6 @@ type channelCatalogItem struct {
 }
 
 var channelCatalog = []channelCatalogItem{
-	{Name: "discord", ConfigKey: "discord"},
 	{Name: "slack", ConfigKey: "slack"},
 	{Name: "pico", ConfigKey: "pico"},
 }
@@ -89,13 +88,6 @@ func buildChannelConfigResponse(cfg *config.Config, item channelCatalogItem) cha
 	}
 
 	switch item.Name {
-	case "discord":
-		channelCfg := cfg.Channels.Discord
-		resp.ConfiguredSecrets = collectConfiguredSecrets(
-			channelSecretPresence{key: "token", configured: channelCfg.Token.String() != ""},
-		)
-		channelCfg.Token = config.SecureString{}
-		resp.Config = channelCfg
 	case "slack":
 		channelCfg := cfg.Channels.Slack
 		resp.ConfiguredSecrets = collectConfiguredSecrets(

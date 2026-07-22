@@ -103,9 +103,24 @@ export function AppHeader() {
         <SidebarTrigger className="text-muted-foreground hover:bg-accent hover:text-foreground flex h-9 w-9 items-center justify-center rounded-lg sm:hidden [&>svg]:size-5">
           <IconMenu2 />
         </SidebarTrigger>
-        <div className="hidden w-36 shrink-0 items-center sm:flex">
-          <Link to="/">
-            <img className="w-full" src="/logo_with_text.png" alt="Logo" />
+        <div className="hidden w-36 shrink-0 items-center gap-2 sm:flex">
+          <Link to="/" className="text-foreground flex items-center gap-2" aria-label="Tsukasa">
+            <svg
+              viewBox="0 0 100 100"
+              className="h-6 w-6 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="50" cy="50" r="44" strokeWidth="5" />
+              <g strokeWidth="6.5">
+                <path d="M30 32 H70 V66 q0 7 -7 7 h-3" />
+                <path d="M40 47 H60" />
+                <rect x="40" y="56" width="15" height="12" rx="1.5" />
+              </g>
+            </svg>
+            <span className="text-base font-bold tracking-wide">TSUKASA</span>
           </Link>
         </div>
       </div>

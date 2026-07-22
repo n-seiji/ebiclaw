@@ -8,6 +8,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/n-seiji/ebiclaw/pkg/config"
 	"github.com/n-seiji/ebiclaw/pkg/providers"
@@ -40,7 +41,7 @@ func (a *archiverLLMAdapter) Distill(ctx context.Context, prompt string) (string
 	// Resolve the model: prefer explicit override, fall back to agent default.
 	resolved := a.modelName
 	if resolved == "" {
-		resolved = a.cfg.Agents.Defaults.GetModelName()
+		resolved = preferredArchiverModelName(a.cfg)
 	}
 	if resolved == "" {
 		return "", fmt.Errorf("archiver llm adapter: no model configured")
@@ -75,6 +76,18 @@ func (a *archiverLLMAdapter) Distill(ctx context.Context, prompt string) (string
 		return "", fmt.Errorf("archiver llm adapter: nil response")
 	}
 	return resp.Content, nil
+}
+
+func preferredArchiverModelName(cfg *config.Config) string {
+	for _, model := range cfg.ModelList {
+		protocol, _ := providers.ExtractProtocol(model.Model)
+		if protocol == "codex-cli" || protocol == "codexcli" {
+			if strings.TrimSpace(model.ModelName) != "" {
+				return model.ModelName
+			}
+		}
+	}
+	return cfg.Agents.Defaults.GetModelName()
 }
 
 // archiverSystemPrompt returns the system prompt used by the distiller.

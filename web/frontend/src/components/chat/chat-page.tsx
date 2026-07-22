@@ -6,13 +6,12 @@ import { toast } from "sonner"
 import { AssistantMessage } from "@/components/chat/assistant-message"
 import { ChatComposer } from "@/components/chat/chat-composer"
 import { ChatEmptyState } from "@/components/chat/chat-empty-state"
-import { ModelSelector } from "@/components/chat/model-selector"
 import { SessionHistoryMenu } from "@/components/chat/session-history-menu"
 import { TypingIndicator } from "@/components/chat/typing-indicator"
 import { UserMessage } from "@/components/chat/user-message"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { useChatModels } from "@/hooks/use-chat-models"
+import { useEngine } from "@/hooks/use-engine"
 import { useGateway } from "@/hooks/use-gateway"
 import { usePicoChat } from "@/hooks/use-pico-chat"
 import { useSessionHistory } from "@/hooks/use-session-history"
@@ -67,15 +66,8 @@ export function ChatPage() {
   const isGatewayRunning = gwState === "running"
   const isChatConnected = connectionState === "connected"
 
-  const {
-    defaultModelName,
-    hasAvailableModels,
-    apiKeyModels,
-    oauthModels,
-    localModels,
-    handleSetDefault,
-  } = useChatModels({ isConnected: isGatewayRunning })
-  const canSend = isChatConnected && Boolean(defaultModelName)
+  const { chatReady } = useEngine({ isConnected: isGatewayRunning })
+  const canSend = isChatConnected && chatReady
 
   const {
     sessions,
@@ -189,17 +181,6 @@ export function ChatPage() {
         className={`transition-shadow ${
           hasScrolled ? "shadow-xs" : "shadow-none"
         }`}
-        titleExtra={
-          hasAvailableModels && (
-            <ModelSelector
-              defaultModelName={defaultModelName}
-              apiKeyModels={apiKeyModels}
-              oauthModels={oauthModels}
-              localModels={localModels}
-              onValueChange={handleSetDefault}
-            />
-          )
-        }
       >
         <Button
           variant="secondary"
@@ -235,11 +216,7 @@ export function ChatPage() {
       >
         <div className="mx-auto flex w-full max-w-250 flex-col gap-8 pb-8">
           {messages.length === 0 && !isTyping && (
-            <ChatEmptyState
-              hasAvailableModels={hasAvailableModels}
-              defaultModelName={defaultModelName}
-              isConnected={isGatewayRunning}
-            />
+            <ChatEmptyState chatReady={chatReady} isConnected={isGatewayRunning} />
           )}
 
           {messages.map((msg) => (
@@ -278,7 +255,7 @@ export function ChatPage() {
         onRemoveAttachment={handleRemoveAttachment}
         onSend={handleSend}
         isConnected={isChatConnected}
-        hasDefaultModel={Boolean(defaultModelName)}
+        isEngineReady={chatReady}
         canSend={canSubmit}
       />
     </div>

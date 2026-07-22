@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"runtime"
 
 	"github.com/n-seiji/ebiclaw/pkg/config"
 )
@@ -125,18 +124,6 @@ var toolCatalog = []toolCatalogEntry{
 		ConfigKey:   "spawn_status",
 	},
 	{
-		Name:        "i2c",
-		Description: "Interact with I2C hardware devices exposed on the host.",
-		Category:    "hardware",
-		ConfigKey:   "i2c",
-	},
-	{
-		Name:        "spi",
-		Description: "Interact with SPI hardware devices exposed on the host.",
-		Category:    "hardware",
-		ConfigKey:   "spi",
-	},
-	{
 		Name:        "tool_search_tool_regex",
 		Description: "Discover hidden MCP tools by regex search when tool discovery is enabled.",
 		Category:    "discovery",
@@ -224,8 +211,6 @@ func buildToolSupport(cfg *config.Config) []toolSupportItem {
 			status, reasonCode = resolveDiscoveryToolSupport(cfg, cfg.Tools.MCP.Discovery.UseRegex)
 		case "tool_search_tool_bm25":
 			status, reasonCode = resolveDiscoveryToolSupport(cfg, cfg.Tools.MCP.Discovery.UseBM25)
-		case "i2c", "spi":
-			status, reasonCode = resolveHardwareToolSupport(cfg.Tools.IsToolEnabled(entry.ConfigKey))
 		default:
 			if cfg.Tools.IsToolEnabled(entry.ConfigKey) {
 				status = "enabled"
@@ -242,16 +227,6 @@ func buildToolSupport(cfg *config.Config) []toolSupportItem {
 		})
 	}
 	return items
-}
-
-func resolveHardwareToolSupport(enabled bool) (string, string) {
-	if !enabled {
-		return "disabled", ""
-	}
-	if runtime.GOOS != "linux" {
-		return "blocked", "requires_linux"
-	}
-	return "enabled", ""
 }
 
 func resolveDiscoveryToolSupport(cfg *config.Config, methodEnabled bool) (string, string) {
@@ -312,10 +287,6 @@ func applyToolState(cfg *config.Config, toolName string, enabled bool) error {
 			cfg.Tools.Spawn.Enabled = true
 			cfg.Tools.Subagent.Enabled = true
 		}
-	case "i2c":
-		cfg.Tools.I2C.Enabled = enabled
-	case "spi":
-		cfg.Tools.SPI.Enabled = enabled
 	case "tool_search_tool_regex":
 		cfg.Tools.MCP.Discovery.UseRegex = enabled
 		if enabled {

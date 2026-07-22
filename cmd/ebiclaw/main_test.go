@@ -17,7 +17,7 @@ func TestNewEbiclawCommand(t *testing.T) {
 
 	require.NotNil(t, cmd)
 
-	short := fmt.Sprintf("%s ebiclaw - Personal AI Assistant %s\n\n", internal.Logo, config.GetVersion())
+	short := fmt.Sprintf("%s tsukasa - Personal AI Assistant %s\n\n", internal.Logo, config.GetVersion())
 
 	assert.Equal(t, "ebiclaw", cmd.Use)
 	assert.Equal(t, short, cmd.Short)
@@ -43,7 +43,6 @@ func TestNewEbiclawCommand(t *testing.T) {
 		"onboard",
 		"skills",
 		"status",
-		"update",
 		"version",
 	}
 

@@ -62,6 +62,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Model list management
 	h.registerModelRoutes(mux)
 
+	// CLI engine selection (codex / claude-code)
+	h.registerEngineRoutes(mux)
+
 	// Channel catalog (for frontend navigation/config pages)
 	h.registerChannelRoutes(mux)
 
@@ -74,9 +77,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Launcher service parameters (port/public)
 	h.registerLauncherConfigRoutes(mux)
-
-	// Self-update endpoint (requires dashboard auth)
-	h.registerUpdateRoutes(mux)
 
 	// Runtime build/version metadata
 	h.registerVersionRoutes(mux)

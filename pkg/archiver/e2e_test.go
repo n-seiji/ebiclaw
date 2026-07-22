@@ -28,6 +28,7 @@ func TestE2E_FullCycle(t *testing.T) {
 		{"-C", work, "config", "user.name", "t"},
 		{"-C", work, "commit", "--allow-empty", "-m", "init"},
 		{"-C", work, "push", "-u", "origin", "main"},
+		{"-C", bare, "symbolic-ref", "HEAD", "refs/heads/main"},
 	} {
 		if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v: %s", args, err, out)
