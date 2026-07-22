@@ -74,6 +74,13 @@ func (p *Pipe) sessionLock(key string) *sync.Mutex {
 }
 
 func (p *Pipe) handle(ctx context.Context, msg bus.InboundMessage) {
+	// Channels mark non-addressed messages (e.g. Slack messages without a
+	// bot mention) as observe-only so the archiver can ingest them; they
+	// must not trigger a codex turn or a reply.
+	if msg.Metadata["observe_only"] == "true" {
+		return
+	}
+
 	key := p.sessionKey(msg)
 	lock := p.sessionLock(key)
 	lock.Lock()

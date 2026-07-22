@@ -205,3 +205,33 @@ func TestPipeSkipsEmptyContentWithoutMedia(t *testing.T) {
 		t.Errorf("calls = %d, want 0 (turner should not be invoked)", len(turner.calls))
 	}
 }
+
+func TestPipeSkipsObserveOnlyMessages(t *testing.T) {
+	b := bus.NewMessageBus()
+	store := NewThreadStore(filepath.Join(t.TempDir(), "threads.json"))
+	turner := &fakeTurner{resp: &Result{Text: "answer", ThreadID: "th-1"}}
+	p := NewPipe(b, turner, store)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go p.Run(ctx)
+
+	in := bus.InboundMessage{
+		Channel:   "slack",
+		ChatID:    "C1",
+		Content:   "not addressed to the bot",
+		MessageID: "m1",
+		Metadata:  map[string]string{"observe_only": "true"},
+	}
+	if err := b.PublishInbound(ctx, in); err != nil {
+		t.Fatalf("PublishInbound: %v", err)
+	}
+
+	waitNoOutbound(t, b)
+
+	turner.mu.Lock()
+	defer turner.mu.Unlock()
+	if len(turner.calls) != 0 {
+		t.Errorf("calls = %d, want 0 (observe-only must not trigger a turn)", len(turner.calls))
+	}
+}
