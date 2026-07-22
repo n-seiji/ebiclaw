@@ -65,10 +65,12 @@ func (p *CodexCliProvider) Chat(
 	// Parse JSONL from stdout even if exit code is non-zero,
 	// because codex writes diagnostic noise to stderr (e.g. rollout errors)
 	// but still produces valid JSONL output.
+	var parsedResp *LLMResponse
+	var parseErr error
 	if stdoutStr := stdout.String(); stdoutStr != "" {
-		resp, parseErr := p.parseJSONLEvents(stdoutStr)
-		if parseErr == nil && resp != nil && (resp.Content != "" || len(resp.ToolCalls) > 0) {
-			return resp, nil
+		parsedResp, parseErr = p.parseJSONLEvents(stdoutStr)
+		if parseErr == nil && parsedResp != nil && (parsedResp.Content != "" || len(parsedResp.ToolCalls) > 0) {
+			return parsedResp, nil
 		}
 	}
 
@@ -76,10 +78,17 @@ func (p *CodexCliProvider) Chat(
 		if ctx.Err() == context.Canceled {
 			return nil, ctx.Err()
 		}
-		if stderrStr := stderr.String(); stderrStr != "" {
-			return nil, fmt.Errorf("codex cli error: %s", stderrStr)
+		stderrStr := strings.TrimSpace(stderr.String())
+		switch {
+		case parseErr != nil && stderrStr != "":
+			return nil, fmt.Errorf("codex cli error: %w\ncli_output: %v\nstderr: %s", err, parseErr, stderrStr)
+		case parseErr != nil:
+			return nil, fmt.Errorf("codex cli error: %w\ncli_output: %v", err, parseErr)
+		case stderrStr != "":
+			return nil, fmt.Errorf("codex cli error: %w\nstderr: %s", err, stderrStr)
+		default:
+			return nil, fmt.Errorf("codex cli error: %w", err)
 		}
-		return nil, fmt.Errorf("codex cli error: %w", err)
 	}
 
 	return p.parseJSONLEvents(stdout.String())
