@@ -1,21 +1,16 @@
 <div align="center">
-  <img src="assets/tsukasa-logo-light.svg" alt="Tsukasa" width="512">
 
-  <h1>Tsukasa: Go で書かれた超効率 AI アシスタント</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/tsukasa-logo-dark.svg">
+  <img src="assets/tsukasa-logo-light.svg" alt="Tsukasa" width="180">
+</picture>
 
-  <h3>$10 ハードウェア · 10MB RAM · ms 起動 · Let's Go, Tsukasa!</h3>
+<h1>司 Tsukasa</h1>
+
+<h3>Slack にいる AI の同僚 — Codex CLI 直結、仕事を覚えている。</h3>
   <p>
     <img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go&logoColor=white" alt="Go">
-    <img src="https://img.shields.io/badge/Arch-x86__64%2C%20ARM64%2C%20MIPS%2C%20RISC--V%2C%20LoongArch-blue" alt="Hardware">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-    <br>
-    <a href="https://ebiclaw.io"><img src="https://img.shields.io/badge/Website-ebiclaw.io-blue?style=flat&logo=google-chrome&logoColor=white" alt="Website"></a>
-    <a href="https://docs.ebiclaw.io/"><img src="https://img.shields.io/badge/Docs-Official-007acc?style=flat&logo=read-the-docs&logoColor=white" alt="Docs"></a>
-    <a href="https://deepwiki.com/n-seiji/ebiclaw"><img src="https://img.shields.io/badge/Wiki-DeepWiki-FFA500?style=flat&logo=wikipedia&logoColor=white" alt="Wiki"></a>
-    <br>
-    <a href="https://x.com/SipeedIO"><img src="https://img.shields.io/badge/X_(Twitter)-SipeedIO-black?style=flat&logo=x&logoColor=white" alt="Twitter"></a>
-    <a href="./assets/wechat.png"><img src="https://img.shields.io/badge/WeChat-Group-41d56b?style=flat&logo=wechat&logoColor=white"></a>
-    <a href="https://discord.gg/V4sAZ9XWpN"><img src="https://img.shields.io/badge/Discord-Community-4c60eb?style=flat&logo=discord&logoColor=white" alt="Discord"></a>
   </p>
 
 **日本語** | [English](README.md)
@@ -24,133 +19,21 @@
 
 ---
 
-> **Tsukasa** は [Sipeed](https://sipeed.com) が立ち上げた独立したオープンソースプロジェクトです。完全に **Go 言語**で一から書かれており、OpenClaw、NanoBot、その他のプロジェクトのフォークではありません。
+**Tsukasa(司)** は **Go** 製のパーソナル AI チームメイトです。Slack(または web コンソール)からのメッセージを **Codex CLI** にそのまま横流しします — トークン課金の API も、自前のエージェントループも不要。会話はアーカイブされ、過去の仕事について Tsukasa に聞けます。
 
-**Tsukasa** は [NanoBot](https://github.com/HKUDS/nanobot) にインスパイアされた超軽量パーソナル AI アシスタントです。**Go** でゼロからリビルドされ、「セルフブートストラッピング」プロセスで構築されました — AI Agent 自身がアーキテクチャの移行とコード最適化を推進しました。
+## 🔀 仕組み(Codex パイプモード)
 
-**$10 のハードウェアで 10MB 未満の RAM で動作** — OpenClaw より 99% 少ないメモリ、Mac mini より 98% 安い！
+```
+Slack / Web ──▶ gateway ──▶ codex exec --json (スレッドごとに resume) ──▶ 返信
+                   │
+                   └──▶ archiver(会話を記録して後から参照)
+```
 
-<table align="center">
-  <tr align="center">
-    <td align="center" valign="top">
-      <p align="center">
-        <img src="assets/ebiclaw_mem.gif" width="360" height="240">
-      </p>
-    </td>
-    <td align="center" valign="top">
-      <p align="center">
-        <img src="assets/licheervnano.png" width="400" height="240">
-      </p>
-    </td>
-  </tr>
-</table>
-
-> [!CAUTION]
-> **セキュリティに関する注意**
->
-> * **暗号通貨なし:** Tsukasa には公式トークン/コインは**一切ありません**。`pump.fun` やその他の取引プラットフォームでの主張はすべて**詐欺**です。
-> * **公式ドメイン:** **唯一**の公式サイトは **[ebiclaw.io](https://ebiclaw.io)**、企業サイトは **[sipeed.com](https://sipeed.com)** です。
-> * **注意:** 多くの `.ai/.org/.com/.net/...` ドメインは第三者によって登録されています。信頼しないでください。
-> * **注記:** Tsukasa は初期開発段階にあり、未解決のネットワークセキュリティ問題がある可能性があります。v1.0 リリース前に本番環境へのデプロイは避けてください。
-> * **注記:** Tsukasa は最近多くの PR をマージしており、最新バージョンではメモリフットプリントが大きくなる場合があります（10〜20MB）。機能セットが安定次第、リソース最適化を優先する予定です。
-
-## 📢 ニュース
-
-2026-03-31 📱 **Android サポート！** TsukasaがAndroidで動作！APKは[ebiclaw.io](https://ebiclaw.io/download)からダウンロード
-
-2026-03-25 🚀 **v0.2.4 リリース！** Agent アーキテクチャ全面刷新（SubTurn、Hooks、Steering、EventBus）、WeChat/WeCom 統合、セキュリティ強化（.security.yml、機密データフィルタリング）、新プロバイダー（AWS Bedrock、Azure、Xiaomi MiMo）、35 件のバグ修正。Tsukasa **26K ⭐** 達成！
-
-2026-03-17 🚀 **v0.2.3 リリース！** システムトレイ UI（Windows & Linux）、サブエージェントステータス追跡（`spawn_status`）、実験的 Gateway ホットリロード、cron セキュリティゲート、セキュリティ修正 2 件。Tsukasa **25K ⭐** 達成！
-
-2026-03-09 🎉 **v0.2.1 — 最大のアップデート！** MCP プロトコルサポート、4 つの新チャンネル (Matrix/IRC/WeCom/Discord Proxy)、3 つの新プロバイダー (Kimi/Minimax/Avian)、ビジョンパイプライン、JSONL メモリストア、モデルルーティング。
-
-2026-02-28 📦 **v0.2.0** リリース — Docker Compose と Web UI Launcher サポート。
-
-<details>
-<summary>過去のニュース...</summary>
-
-2026-02-26 🎉 Tsukasa がわずか 17 日で **20K スター** 達成！Channel 自動オーケストレーションとケイパビリティインターフェースが実装されました。
-
-2026-02-16 🎉 Tsukasa が 1 週間で 12K スター達成！コミュニティメンテナーの役割と[ロードマップ](ROADMAP.md)が正式に公開されました。
-
-2026-02-13 🎉 Tsukasa が 4 日間で 5000 スター達成！プロジェクトロードマップと開発者グループの準備が進行中。
-
-2026-02-09 🎉 **Tsukasa リリース！** $10 ハードウェアで 10MB 未満の RAM で動く AI Agent を 1 日で構築。Let's Go, Tsukasa!
-
-</details>
-
-## ✨ 特徴
-
-🪶 **超軽量**: コアメモリフットプリント 10MB 未満 — OpenClaw より 99% 小さい。*
-
-💰 **最小コスト**: $10 ハードウェアで動作 — Mac mini より 98% 安い。
-
-⚡️ **超高速起動**: 起動時間 400 倍高速。0.6GHz シングルコアでも 1 秒未満で起動。
-
-🌍 **真のポータビリティ**: RISC-V、ARM、MIPS、x86 対応の単一バイナリ。どこでも動く！
-
-🤖 **AI ブートストラップ**: 純粋な Go ネイティブ実装 — コアコードの 95% が Agent によって生成され、人間によるレビューで調整。
-
-🔌 **MCP 対応**: ネイティブ [Model Context Protocol](https://modelcontextprotocol.io/) 統合 — 任意の MCP サーバーに接続して Agent 機能を拡張。
-
-👁️ **ビジョンパイプライン**: 画像やファイルを Agent に直接送信 — マルチモーダル LLM 向けの自動 base64 エンコーディング。
-
-🧠 **スマートルーティング**: ルールベースのモデルルーティング — 簡単なクエリは軽量モデルへ、API コストを節約。
-
-_*最近のバージョンでは急速な PR マージにより 10〜20MB になる場合があります。リソース最適化は計画中です。起動時間の比較は 0.8GHz シングルコアベンチマークに基づいています（下表参照）。_
-
-<div align="center">
-
-|                                | OpenClaw      | NanoBot                  | **Tsukasa**                           |
-| ------------------------------ | ------------- | ------------------------ | -------------------------------------- |
-| **言語**                       | TypeScript    | Python                   | **Go**                                 |
-| **RAM**                        | >1GB          | >100MB                   | **< 10MB***                            |
-| **起動時間**</br>(0.8GHz コア) | >500秒        | >30秒                    | **<1秒**                               |
-| **コスト**                     | Mac Mini $599 | 大半の Linux ボード ~$50 | **あらゆる Linux ボード**</br>**最安 $10** |
-
-<img src="assets/compare.jpg" alt="Tsukasa" width="512">
-
-</div>
-
-> **[ハードウェア互換性リスト](docs/ja/hardware-compatibility.md)** — テスト済みの全ボード一覧（$5 RISC-V から Raspberry Pi、Android スマートフォンまで）。お使いのボードが未掲載？PR を送ってください！
-
-<p align="center">
-<img src="assets/hardware-banner.jpg" alt="Tsukasa Hardware Compatibility" width="100%">
-</p>
-
-## 🦾 デモンストレーション
-
-### 🛠️ スタンダードアシスタントワークフロー
-
-<table align="center">
-<tr align="center">
-<th><p align="center">フルスタックエンジニアモード</p></th>
-<th><p align="center">ログ＆計画管理</p></th>
-<th><p align="center">Web 検索＆学習</p></th>
-</tr>
-<tr>
-<td align="center"><p align="center"><img src="assets/ebiclaw_code.gif" width="240" height="180"></p></td>
-<td align="center"><p align="center"><img src="assets/ebiclaw_memory.gif" width="240" height="180"></p></td>
-<td align="center"><p align="center"><img src="assets/ebiclaw_search.gif" width="240" height="180"></p></td>
-</tr>
-<tr>
-<td align="center">開発 · デプロイ · スケール</td>
-<td align="center">スケジュール · 自動化 · メモリ</td>
-<td align="center">発見 · インサイト · トレンド</td>
-</tr>
-</table>
-
-### 🐜 革新的な省フットプリントデプロイ
-
-Tsukasa はほぼすべての Linux デバイスにデプロイできます！
-
-- $9.9 [LicheeRV-Nano](https://www.aliexpress.com/item/1005006519668532.html) E(Ethernet) または W(WiFi6) バージョン、最小ホームアシスタントに
-- $30~50 [NanoKVM](https://www.aliexpress.com/item/1005007369816019.html) または $100 [NanoKVM-Pro](https://www.aliexpress.com/item/1005010048471263.html) サーバー自動メンテナンスに
-- $50 [MaixCAM](https://www.aliexpress.com/item/1005008053333693.html) または $100 [MaixCAM2](https://www.kickstarter.com/projects/zepan/maixcam2-build-your-next-gen-4k-ai-camera) スマート監視に
-
-<https://private-user-images.githubusercontent.com/83055338/547056448-e7b031ff-d6f5-4468-bcca-5726b6fecb5c.mp4>
-
-🌟 もっと多くのデプロイ事例が待っています！
+- **ループではなくパイプ**: `codex_pipe.enabled` で内蔵エージェントループをバイパスし、メッセージを `codex exec` に転送。ツール・sandbox・推論は Codex 側が持ち、Tsukasa は経路に徹する
+- **スレッド記憶**: Slack スレッド ↔ Codex スレッドを永続対応付け(`codex exec resume`)し、文脈が続く
+- **sandbox 明示**: 全ターンに `sandbox_mode`(read-only / workspace-write / danger-full-access)を config から指定
+- **エンジン選択**: web コンソールの Engine ページで CLI バックエンドを選択(現在は Codex、Claude Code は準備中)
+- パイプ無効時は従来のマルチプロバイダ・エージェントループも利用可能
 
 ## 📦 インストール
 
