@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/n-seiji/ebiclaw/pkg/isolation"
@@ -26,6 +27,9 @@ type Runner struct {
 	Model     string
 	Workspace string
 	Sandbox   string
+	// WritableRoots are extra directories writable under the
+	// workspace-write sandbox (e.g. ~/.config/gcloud).
+	WritableRoots []string
 }
 
 // Run executes one Codex turn. When threadID is empty a new thread is
@@ -61,6 +65,18 @@ func (r *Runner) Run(ctx context.Context, threadID, sandbox, prompt string) (*Re
 		"-c", fmt.Sprintf("sandbox_mode=%q", sandbox),
 		"-c", `approval_policy="never"`,
 	)
+	if sandbox == "workspace-write" {
+		// workspace-write はデフォルトでネットワーク遮断・cwd 外書き込み禁止
+		args = append(args, "-c", "sandbox_workspace_write.network_access=true")
+		if len(r.WritableRoots) > 0 {
+			quoted := make([]string, len(r.WritableRoots))
+			for i, root := range r.WritableRoots {
+				quoted[i] = strconv.Quote(root)
+			}
+			args = append(args, "-c",
+				"sandbox_workspace_write.writable_roots=["+strings.Join(quoted, ",")+"]")
+		}
+	}
 	if r.Model != "" {
 		args = append(args, "-m", r.Model)
 	}

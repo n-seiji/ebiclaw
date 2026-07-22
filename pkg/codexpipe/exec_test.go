@@ -289,6 +289,16 @@ func TestRun_DefaultSandboxWhenEmpty(t *testing.T) {
 	if !found {
 		t.Fatalf("expected default sandbox_mode=\"workspace-write\" when both sandbox and r.Sandbox are empty, got: %v", args)
 	}
+	netFound := false
+	for i, a := range args {
+		if a == "-c" && i+1 < len(args) && args[i+1] == "sandbox_workspace_write.network_access=true" {
+			netFound = true
+			break
+		}
+	}
+	if !netFound {
+		t.Errorf("expected network_access override for workspace-write sandbox, got: %v", args)
+	}
 }
 
 func TestRun_CancelledContextTakesPrecedenceOverPartialOutput(t *testing.T) {

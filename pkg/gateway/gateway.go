@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -203,10 +204,11 @@ func Run(debug bool, homePath, configPath string, allowEmptyStartup bool) (runEr
 			statePath = filepath.Join(homePath, "codex_threads.json")
 		}
 		runner := &codexpipe.Runner{
-			Command:   cfg.CodexPipe.GetCommand(),
-			Model:     cfg.CodexPipe.Model,
-			Workspace: cfg.CodexPipe.Workspace,
-			Sandbox:   cfg.CodexPipe.GetSandbox(),
+			Command:       cfg.CodexPipe.GetCommand(),
+			Model:         cfg.CodexPipe.Model,
+			Workspace:     cfg.CodexPipe.Workspace,
+			Sandbox:       cfg.CodexPipe.GetSandbox(),
+			WritableRoots: cfg.CodexPipe.WritableRoots,
 		}
 		pipe := codexpipe.NewPipe(msgBus, runner, codexpipe.NewThreadStore(statePath))
 		logger.Info("Codex pipe mode enabled: bypassing agent loop")
@@ -490,7 +492,7 @@ func handleConfigReload(
 	// rebuilt by executeReload. Require a restart when codex_pipe changes.
 	oldCfg := al.GetConfig()
 	if oldCfg.CodexPipe.Enabled || newCfg.CodexPipe.Enabled {
-		if oldCfg.CodexPipe != newCfg.CodexPipe {
+		if !reflect.DeepEqual(oldCfg.CodexPipe, newCfg.CodexPipe) {
 			logger.Warn("codex_pipe config changed: hot reload is not supported for pipe mode, restart the gateway to apply")
 			return fmt.Errorf("codex_pipe config change requires gateway restart")
 		}
