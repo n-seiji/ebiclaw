@@ -34,7 +34,15 @@ type Runner struct {
 
 // Run executes one Codex turn. When threadID is empty a new thread is
 // started; otherwise the existing thread is resumed. sandbox overrides
-// r.Sandbox when non-empty (used by the two-stage planner).
+// r.Sandbox when non-empty (used by the two-stage planner). onMessage, if
+// non-nil, is invoked synchronously for each agent_message as it arrives on
+// stdout, before the turn completes.
+//
+// Return contract: once onMessage has fired at least once, Run always
+// returns a non-nil *Result alongside any error (so ThreadID can still be
+// persisted and callers can report the error as a follow-up, on top of the
+// messages already streamed). Before any onMessage fire, an error still
+// returns a nil *Result, matching the pre-streaming behavior.
 //
 // sandbox と承認抑止は -s / --full-auto ではなく -c config override で渡す。
 // 理由: `codex exec resume` サブコマンドは -s/--sandbox フラグを受け付けず、
@@ -44,7 +52,9 @@ type Runner struct {
 // -C (workspace) は `codex exec resume` では受け付けられない
 // ("unexpected argument '-C' found", codex-cli 0.144.4 で確認)。resume は
 // セッション作成時の cwd をそのまま引き継ぐため、resume 時は付与しない。
-func (r *Runner) Run(ctx context.Context, threadID, sandbox, prompt string) (*Result, error) {
+func (r *Runner) Run(
+	ctx context.Context, threadID, sandbox, prompt string, onMessage func(text string),
+) (*Result, error) {
 	args := []string{"exec"}
 	if threadID != "" {
 		args = append(args, "resume", threadID)
@@ -88,32 +98,82 @@ func (r *Runner) Run(ctx context.Context, threadID, sandbox, prompt string) (*Re
 	cmd := exec.CommandContext(ctx, r.Command, args...)
 	cmd.Stdin = bytes.NewReader([]byte(prompt))
 
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("codex exec: stdout pipe: %w", err)
+	}
+	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
-	runErr := isolation.Run(cmd)
+	if err := isolation.Start(cmd); err != nil {
+		return nil, fmt.Errorf("codex exec: start: %w", err)
+	}
 
-	// codex writes diagnostics to stderr but still emits valid JSONL on
-	// stdout, so prefer parsed output even on non-zero exit. A cancelled
-	// context takes precedence over any partial output.
-	if ctx.Err() == nil {
-		if out := stdout.String(); out != "" {
-			if res, err := parseEvents(out); err == nil && res.Text != "" {
-				return res, nil
+	res := &Result{}
+	var parts []string
+	var lastError string
+	fired := false
+
+	scanner := bufio.NewScanner(stdout)
+	scanner.Buffer(make([]byte, 0, 64*1024), 16*1024*1024)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		var ev event
+		if err := json.Unmarshal([]byte(line), &ev); err != nil {
+			continue
+		}
+		if ev.ThreadID != "" {
+			res.ThreadID = ev.ThreadID
+		}
+		switch ev.Type {
+		case "item.completed":
+			if ev.Item != nil && ev.Item.Type == "agent_message" && ev.Item.Text != "" {
+				parts = append(parts, ev.Item.Text)
+				fired = true
+				if onMessage != nil {
+					onMessage(ev.Item.Text)
+				}
+			}
+		case "error":
+			lastError = ev.Message
+		case "turn.failed":
+			if ev.Error != nil {
+				lastError = ev.Error.Message
 			}
 		}
 	}
-	if runErr != nil {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
+	scanErr := scanner.Err()
+	waitErr := cmd.Wait()
+
+	res.Text = strings.TrimSpace(strings.Join(parts, "\n"))
+
+	// A cancelled context takes precedence over any partial output.
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	if scanErr != nil {
+		return nil, fmt.Errorf("parse codex jsonl: %w", scanErr)
+	}
+	if lastError != "" {
+		turnErr := fmt.Errorf("codex: %s", lastError)
+		if fired {
+			return res, turnErr
 		}
+		return nil, turnErr
+	}
+	// codex writes diagnostics to stderr but still emits valid JSONL on
+	// stdout, so a non-zero exit is not itself a failure once at least one
+	// agent_message has been observed.
+	if waitErr != nil && !fired {
 		if s := strings.TrimSpace(stderr.String()); s != "" {
 			return nil, fmt.Errorf("codex exec: %s", s)
 		}
-		return nil, fmt.Errorf("codex exec: %w", runErr)
+		return nil, fmt.Errorf("codex exec: %w", waitErr)
 	}
-	return parseEvents(stdout.String())
+	return res, nil
 }
 
 type event struct {
@@ -133,6 +193,8 @@ type eventErr struct {
 	Message string `json:"message"`
 }
 
+// parseEvents parses a full JSONL transcript at once. Kept for tests that
+// exercise the event-parsing rules directly without spawning a process.
 func parseEvents(output string) (*Result, error) {
 	res := &Result{}
 	var parts []string
