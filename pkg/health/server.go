@@ -138,9 +138,7 @@ func (s *Server) SetArchiverRunFunc(fn func(context.Context) error) {
 
 func (s *Server) reloadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed, use POST"})
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed, use POST"})
 		return
 	}
 
@@ -152,9 +150,7 @@ func (s *Server) reloadHandler(w http.ResponseWriter, r *http.Request) {
 	if requiredToken != "" {
 		given := extractBearerToken(r.Header.Get("Authorization"))
 		if given == "" || subtle.ConstantTimeCompare([]byte(given), []byte(requiredToken)) != 1 {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			return
 		}
 	}
@@ -164,35 +160,25 @@ func (s *Server) reloadHandler(w http.ResponseWriter, r *http.Request) {
 	s.mu.Unlock()
 
 	if reloadFunc == nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]string{"error": "reload not configured"})
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "reload not configured"})
 		return
 	}
 
 	if err := reloadFunc(); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "reload triggered"})
+	writeJSON(w, http.StatusOK, map[string]string{"status": "reload triggered"})
 }
 
 func (s *Server) archiverStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed, use GET"})
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed, use GET"})
 		return
 	}
 	if !s.authorize(r) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
 
@@ -200,28 +186,20 @@ func (s *Server) archiverStatusHandler(w http.ResponseWriter, r *http.Request) {
 	statusFunc := s.archiverStatusFunc
 	s.mu.RUnlock()
 	if statusFunc == nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "archiver not configured"})
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "archiver not configured"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(statusFunc())
+	writeJSON(w, http.StatusOK, statusFunc())
 }
 
 func (s *Server) archiverRunHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed, use POST"})
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed, use POST"})
 		return
 	}
 	if !s.authorize(r) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
 
@@ -229,15 +207,11 @@ func (s *Server) archiverRunHandler(w http.ResponseWriter, r *http.Request) {
 	runFunc := s.archiverRunFunc
 	s.mu.RUnlock()
 	if runFunc == nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "archiver not configured"})
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "archiver not configured"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "archiver triggered"})
+	writeJSON(w, http.StatusAccepted, map[string]string{"status": "archiver triggered"})
 	logger.InfoC("archiver", "Gateway archiver run accepted")
 	go func() {
 		if err := runFunc(context.Background()); err != nil {
@@ -251,22 +225,15 @@ func (s *Server) archiverRunHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
 	uptime := time.Since(s.startTime)
-	resp := StatusResponse{
+	writeJSON(w, http.StatusOK, StatusResponse{
 		Status: "ok",
 		Uptime: uptime.String(),
 		PID:    os.Getpid(),
-	}
-
-	json.NewEncoder(w).Encode(resp)
+	})
 }
 
 func (s *Server) readyHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	s.mu.RLock()
 	ready := s.ready
 	checks := make(map[string]Check)
@@ -274,8 +241,7 @@ func (s *Server) readyHandler(w http.ResponseWriter, r *http.Request) {
 	s.mu.RUnlock()
 
 	if !ready {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(StatusResponse{
+		writeJSON(w, http.StatusServiceUnavailable, StatusResponse{
 			Status: "not ready",
 			Checks: checks,
 		})
@@ -284,8 +250,7 @@ func (s *Server) readyHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, check := range checks {
 		if check.Status == "fail" {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			json.NewEncoder(w).Encode(StatusResponse{
+			writeJSON(w, http.StatusServiceUnavailable, StatusResponse{
 				Status: "not ready",
 				Checks: checks,
 			})
@@ -293,9 +258,8 @@ func (s *Server) readyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
 	uptime := time.Since(s.startTime)
-	json.NewEncoder(w).Encode(StatusResponse{
+	writeJSON(w, http.StatusOK, StatusResponse{
 		Status: "ready",
 		Uptime: uptime.String(),
 		Checks: checks,
@@ -325,6 +289,14 @@ func statusString(ok bool) string {
 		return "ok"
 	}
 	return "fail"
+}
+
+// writeJSON writes payload as a JSON response with the given status code and
+// the application/json content type.
+func writeJSON(w http.ResponseWriter, status int, payload any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(payload)
 }
 
 // extractBearerToken returns the token from an "Authorization: Bearer <t>" header,
