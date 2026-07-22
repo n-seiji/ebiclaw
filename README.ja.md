@@ -100,7 +100,7 @@ ebiclaw-launcher
 
 **始め方:**
 
-WebUI を開いたら：**1)** Provider を設定（LLM API キーを追加）→ **2)** Channel を設定（例：Discord）→ **3)** Gateway を起動 → **4)** チャット！
+WebUI を開いたら：**1)** Provider を設定（LLM API キーを追加）→ **2)** Channel を設定（例：Slack）→ **3)** Gateway を起動 → **4)** チャット！
 
 WebUI の詳細なドキュメントは [docs.ebiclaw.io](https://docs.ebiclaw.io) を参照してください。
 
