@@ -28,7 +28,6 @@ type engineResponse struct {
 	Model             string          `json:"model"`
 	Workspace         string          `json:"workspace"`
 	Sandbox           string          `json:"sandbox"`
-	Enabled           bool            `json:"enabled"`
 	AvailableBackends []engineBackend `json:"available_backends"`
 	ChatReady         bool            `json:"chat_ready"`
 }
@@ -54,7 +53,6 @@ func (h *Handler) handleGetEngine(w http.ResponseWriter, r *http.Request) {
 		Model:     cfg.CodexPipe.Model,
 		Workspace: cfg.CodexPipe.Workspace,
 		Sandbox:   cfg.CodexPipe.GetSandbox(),
-		Enabled:   cfg.CodexPipe.Enabled,
 		AvailableBackends: []engineBackend{
 			{ID: "codex", Available: codexAvailable},
 			{ID: "claude-code", Available: false},
@@ -73,29 +71,15 @@ func isCodexAvailable(cfg *config.Config) bool {
 }
 
 // isChatReady determines whether chat can accept a message given the
-// current configuration: when pipe mode is enabled, the selected backend
-// must be available; otherwise the agent loop's default model must be set
-// and present in the model list.
+// current configuration: the codex pipe is the only message path, so the
+// selected backend must be available.
 func isChatReady(cfg *config.Config, codexAvailable bool) bool {
-	if cfg.CodexPipe.Enabled {
-		switch cfg.CodexPipe.GetBackend() {
-		case "codex":
-			return codexAvailable
-		default:
-			return false
-		}
-	}
-
-	defaultModel := cfg.Agents.Defaults.GetModelName()
-	if defaultModel == "" {
+	switch cfg.CodexPipe.GetBackend() {
+	case "codex":
+		return codexAvailable
+	default:
 		return false
 	}
-	for _, m := range cfg.ModelList {
-		if m.ModelName == defaultModel {
-			return true
-		}
-	}
-	return false
 }
 
 // engineUpdateRequest is the payload accepted by PUT /api/engine. All fields
@@ -105,7 +89,6 @@ type engineUpdateRequest struct {
 	Model     *string `json:"model,omitempty"`
 	Workspace *string `json:"workspace,omitempty"`
 	Sandbox   *string `json:"sandbox,omitempty"`
-	Enabled   *bool   `json:"enabled,omitempty"`
 }
 
 var validSandboxModes = map[string]bool{
@@ -157,9 +140,6 @@ func (h *Handler) handleUpdateEngine(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Sandbox != nil {
 		cfg.CodexPipe.Sandbox = *req.Sandbox
-	}
-	if req.Enabled != nil {
-		cfg.CodexPipe.Enabled = *req.Enabled
 	}
 
 	if err := config.SaveConfig(h.configPath, cfg); err != nil {

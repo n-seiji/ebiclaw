@@ -19,7 +19,7 @@ func resetEngineHooks(t *testing.T) {
 	})
 }
 
-func TestHandleGetEngine_PipeDisabledUsesDefaultModelReadiness(t *testing.T) {
+func TestHandleGetEngine_ChatReadyReflectsCodexAvailability(t *testing.T) {
 	configPath, cleanup := setupOAuthTestEnv(t)
 	defer cleanup()
 	resetOAuthHooks(t)
@@ -47,11 +47,8 @@ func TestHandleGetEngine_PipeDisabledUsesDefaultModelReadiness(t *testing.T) {
 	if resp.Backend != "codex" {
 		t.Errorf("Backend = %q; want %q", resp.Backend, "codex")
 	}
-	if resp.Enabled {
-		t.Errorf("Enabled = true; want false")
-	}
 	if !resp.ChatReady {
-		t.Errorf("ChatReady = false; want true (default model is configured)")
+		t.Errorf("ChatReady = false; want true (codex on PATH)")
 	}
 	if len(resp.AvailableBackends) != 2 {
 		t.Fatalf("AvailableBackends = %v; want 2 entries", resp.AvailableBackends)
@@ -64,22 +61,13 @@ func TestHandleGetEngine_PipeDisabledUsesDefaultModelReadiness(t *testing.T) {
 	}
 }
 
-func TestHandleGetEngine_PipeEnabledRequiresCodexAvailability(t *testing.T) {
+func TestHandleGetEngine_ChatNotReadyWhenCodexUnavailable(t *testing.T) {
 	configPath, cleanup := setupOAuthTestEnv(t)
 	defer cleanup()
 	resetOAuthHooks(t)
 	resetEngineHooks(t)
 
 	lookPathFunc = func(string) (string, error) { return "", &fakeLookPathError{} }
-
-	cfg, err := config.LoadConfig(configPath)
-	if err != nil {
-		t.Fatalf("LoadConfig error: %v", err)
-	}
-	cfg.CodexPipe.Enabled = true
-	if err := config.SaveConfig(configPath, cfg); err != nil {
-		t.Fatalf("SaveConfig error: %v", err)
-	}
 
 	h := NewHandler(configPath)
 	mux := http.NewServeMux()
@@ -158,7 +146,6 @@ func TestHandleUpdateEngine_UpdatesConfig(t *testing.T) {
 		"model":     "gpt-5",
 		"workspace": "/tmp/work",
 		"sandbox":   "read-only",
-		"enabled":   true,
 	})
 	req := httptest.NewRequest(http.MethodPut, "/api/engine", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
@@ -184,8 +171,5 @@ func TestHandleUpdateEngine_UpdatesConfig(t *testing.T) {
 	}
 	if cfg.CodexPipe.Sandbox != "read-only" {
 		t.Errorf("Sandbox = %q; want %q", cfg.CodexPipe.Sandbox, "read-only")
-	}
-	if !cfg.CodexPipe.Enabled {
-		t.Errorf("Enabled = false; want true")
 	}
 }

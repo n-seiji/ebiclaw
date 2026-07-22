@@ -16,17 +16,32 @@ type fakeTurner struct {
 	resp             *Result
 	err              error
 	blockUntilCancel bool
+	// messages, if set, are streamed via onMessage in order instead of the
+	// single resp.Text message.
+	messages []string
 }
 
-func (f *fakeTurner) Run(ctx context.Context, threadID, sandbox, prompt string) (*Result, error) {
+func (f *fakeTurner) Run(
+	ctx context.Context, threadID, sandbox, prompt string, onMessage func(string),
+) (*Result, error) {
 	f.mu.Lock()
 	f.calls = append(f.calls, struct{ ThreadID, Sandbox, Prompt string }{threadID, sandbox, prompt})
 	blockUntilCancel := f.blockUntilCancel
+	resp, err, messages := f.resp, f.err, f.messages
 	f.mu.Unlock()
 	if blockUntilCancel {
 		<-ctx.Done()
 	}
-	return f.resp, f.err
+	if onMessage != nil {
+		if len(messages) > 0 {
+			for _, m := range messages {
+				onMessage(m)
+			}
+		} else if resp != nil && resp.Text != "" {
+			onMessage(resp.Text)
+		}
+	}
+	return resp, err
 }
 
 func waitOutbound(t *testing.T, b *bus.MessageBus) bus.OutboundMessage {
@@ -37,6 +52,23 @@ func waitOutbound(t *testing.T, b *bus.MessageBus) bus.OutboundMessage {
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for outbound message")
 		return bus.OutboundMessage{}
+	}
+}
+
+// waitThreadStored polls the store for sessionKey since, with streaming
+// replies, the thread ID is only known (and persisted) once the whole turn
+// returns, which happens after the last reply has already reached the bus.
+func waitThreadStored(t *testing.T, store *ThreadStore, sessionKey, want string) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		if id, ok := store.Get(sessionKey); ok && id == want {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for thread %q to be stored under %q", want, sessionKey)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -62,9 +94,33 @@ func TestPipeRepliesAndPersistsThread(t *testing.T) {
 	if out.Channel != "slack" || out.ChatID != "C1" {
 		t.Errorf("route = %s/%s, want slack/C1", out.Channel, out.ChatID)
 	}
-	if id, ok := store.Get("slack:C1"); !ok || id != "th-1" {
-		t.Errorf("stored thread = %q,%v, want %q,true", id, ok, "th-1")
+	waitThreadStored(t, store, "slack:C1", "th-1")
+}
+
+func TestPipeStreamsMultipleMessagesInOrder(t *testing.T) {
+	b := bus.NewMessageBus()
+	store := NewThreadStore(filepath.Join(t.TempDir(), "threads.json"))
+	turner := &fakeTurner{
+		messages: []string{"plan: doing X", "done: X finished"},
+		resp:     &Result{ThreadID: "th-1"},
 	}
+	p := NewPipe(b, turner, store)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go p.Run(ctx)
+
+	in := bus.InboundMessage{Channel: "slack", ChatID: "C1", Content: "do X", MessageID: "m1"}
+	if err := b.PublishInbound(ctx, in); err != nil {
+		t.Fatalf("PublishInbound: %v", err)
+	}
+
+	first := waitOutbound(t, b)
+	second := waitOutbound(t, b)
+	if first.Content != "plan: doing X" || second.Content != "done: X finished" {
+		t.Errorf("replies = %q, %q, want %q, %q", first.Content, second.Content, "plan: doing X", "done: X finished")
+	}
+	waitThreadStored(t, store, "slack:C1", "th-1")
 }
 
 func TestPipeResumesExistingThread(t *testing.T) {
@@ -144,6 +200,7 @@ func TestPipeDeliversReplyComputedDuringShutdown(t *testing.T) {
 	if out.Content != "late answer" {
 		t.Errorf("Content = %q, want %q", out.Content, "late answer")
 	}
+	waitThreadStored(t, store, "slack:C1", "th-1")
 }
 
 func waitNoOutbound(t *testing.T, b *bus.MessageBus) {

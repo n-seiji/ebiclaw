@@ -14,7 +14,6 @@ export interface EngineInfo {
   model: string
   workspace: string
   sandbox: EngineSandbox
-  enabled: boolean
   available_backends: EngineBackendInfo[]
   chat_ready: boolean
 }
@@ -24,7 +23,6 @@ export interface EngineUpdatePayload {
   model?: string
   workspace?: string
   sandbox?: EngineSandbox
-  enabled?: boolean
 }
 
 interface EngineActionResponse {

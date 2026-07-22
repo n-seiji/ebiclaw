@@ -2,7 +2,6 @@ package tools
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -258,7 +257,10 @@ func TestCronTool_ExecuteJobPublishesErrorWhenExecDisabled(t *testing.T) {
 	}
 }
 
-func TestCronTool_ExecuteJobPublishesAgentResponse(t *testing.T) {
+// TestCronTool_ExecuteJobFailsInstructionJobs verifies that agent_turn
+// ("instruction") jobs are rejected instead of being routed through the
+// agent loop, which the codex pipe (the only message path) does not run.
+func TestCronTool_ExecuteJobFailsInstructionJobs(t *testing.T) {
 	executor := &stubJobExecutor{response: "generated reply"}
 	tool := newTestCronToolWithExecutorAndConfig(t, executor, config.DefaultConfig())
 
@@ -267,60 +269,14 @@ func TestCronTool_ExecuteJobPublishesAgentResponse(t *testing.T) {
 	job.Payload.To = "chat-1"
 	job.Payload.Message = "send me a poem"
 
-	if got := tool.ExecuteJob(context.Background(), job); got != "ok" {
-		t.Fatalf("ExecuteJob() = %q, want ok", got)
+	got := tool.ExecuteJob(context.Background(), job)
+	if !strings.Contains(got, "pipe-only mode") {
+		t.Fatalf("ExecuteJob() = %q, want message containing %q", got, "pipe-only mode")
 	}
 
-	if executor.lastKey != "cron-job-1" {
-		t.Fatalf("sessionKey = %q, want cron-job-1", executor.lastKey)
-	}
-	if executor.lastChan != "telegram" || executor.lastChatID != "chat-1" {
-		t.Fatalf("executor target = %s/%s, want telegram/chat-1", executor.lastChan, executor.lastChatID)
-	}
-	if executor.lastPrompt != "send me a poem" {
-		t.Fatalf("prompt = %q, want original message", executor.lastPrompt)
-	}
-	if executor.publishedResp != "generated reply" {
-		t.Fatalf("published response = %q, want generated reply", executor.publishedResp)
-	}
-	if executor.publishedChan != "telegram" || executor.publishedChatID != "chat-1" {
-		t.Fatalf("published target = %s/%s, want telegram/chat-1", executor.publishedChan, executor.publishedChatID)
-	}
-}
-
-func TestCronTool_ExecuteJobSkipsEmptyAgentResponse(t *testing.T) {
-	executor := &stubJobExecutor{}
-	tool := newTestCronToolWithExecutorAndConfig(t, executor, config.DefaultConfig())
-
-	job := &cron.CronJob{ID: "job-empty"}
-	job.Payload.Channel = "telegram"
-	job.Payload.To = "chat-1"
-	job.Payload.Message = "say nothing"
-
-	if got := tool.ExecuteJob(context.Background(), job); got != "ok" {
-		t.Fatalf("ExecuteJob() = %q, want ok", got)
-	}
-
-	if executor.publishedResp != "" {
-		t.Fatalf("unexpected published response: %q", executor.publishedResp)
-	}
-}
-
-func TestCronTool_ExecuteJobSkipsWhenMessageToolAlreadySent(t *testing.T) {
-	executor := &stubJobExecutor{response: "Sent.", alreadySent: true}
-	tool := newTestCronToolWithExecutorAndConfig(t, executor, config.DefaultConfig())
-
-	job := &cron.CronJob{ID: "job-msg-sent"}
-	job.Payload.Channel = "telegram"
-	job.Payload.To = "chat-1"
-	job.Payload.Message = "send weather"
-
-	if got := tool.ExecuteJob(context.Background(), job); got != "ok" {
-		t.Fatalf("ExecuteJob() = %q, want ok", got)
-	}
-
-	if executor.publishedResp != "" {
-		t.Fatalf("expected no published response when message tool already sent, got: %q", executor.publishedResp)
+	if executor.lastPrompt != "" || executor.publishedResp != "" {
+		t.Fatalf("instruction job must not reach the agent loop, executor saw prompt=%q published=%q",
+			executor.lastPrompt, executor.publishedResp)
 	}
 }
 
@@ -428,24 +384,3 @@ func TestCronTool_ExecuteJobVerbatimBypassesAgent(t *testing.T) {
 	}
 }
 
-func TestCronTool_ExecuteJobReturnsErrorWithoutPublish(t *testing.T) {
-	executor := &stubJobExecutor{
-		response: "this response must not be published",
-		err:      fmt.Errorf("agent failure"),
-	}
-	tool := newTestCronToolWithExecutorAndConfig(t, executor, config.DefaultConfig())
-
-	job := &cron.CronJob{ID: "job-err"}
-	job.Payload.Channel = "telegram"
-	job.Payload.To = "chat-1"
-	job.Payload.Message = "do something"
-
-	got := tool.ExecuteJob(context.Background(), job)
-	if !strings.Contains(got, "agent failure") {
-		t.Fatalf("ExecuteJob() = %q, want error message", got)
-	}
-
-	if executor.publishedResp != "" {
-		t.Fatalf("unexpected publish on error path: %q", executor.publishedResp)
-	}
-}

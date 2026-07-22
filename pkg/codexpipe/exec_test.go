@@ -148,7 +148,7 @@ func TestRun_NewThreadArgOrder(t *testing.T) {
 	script, recordPath := newStubCodex(t, stdout, "", 0)
 
 	r := &Runner{Command: script, Workspace: "/work/dir", Sandbox: "read-only"}
-	res, err := r.Run(context.Background(), "", "", "hello there")
+	res, err := r.Run(context.Background(), "", "", "hello there", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -204,7 +204,7 @@ func TestRun_ResumeArgOrder(t *testing.T) {
 	script, recordPath := newStubCodex(t, stdout, "", 0)
 
 	r := &Runner{Command: script, Workspace: "/work/dir", Sandbox: "workspace-write"}
-	res, err := r.Run(context.Background(), "thread-123", "", "continue")
+	res, err := r.Run(context.Background(), "thread-123", "", "continue", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -246,7 +246,7 @@ func TestRun_NonZeroExitWithValidStdout_IsSuccess(t *testing.T) {
 	script, _ := newStubCodex(t, stdout, "some diagnostic noise", 1)
 
 	r := &Runner{Command: script, Sandbox: "workspace-write"}
-	res, err := r.Run(context.Background(), "", "", "prompt")
+	res, err := r.Run(context.Background(), "", "", "prompt", nil)
 	if err != nil {
 		t.Fatalf("Run() error = %v, want nil (non-zero exit but valid stdout)", err)
 	}
@@ -259,7 +259,7 @@ func TestRun_NonZeroExitWithEmptyStdout_ReturnsStderr(t *testing.T) {
 	script, _ := newStubCodex(t, "", "boom: something broke", 1)
 
 	r := &Runner{Command: script, Sandbox: "workspace-write"}
-	_, err := r.Run(context.Background(), "", "", "prompt")
+	_, err := r.Run(context.Background(), "", "", "prompt", nil)
 	if err == nil {
 		t.Fatal("Run() error = nil, want error")
 	}
@@ -273,7 +273,7 @@ func TestRun_DefaultSandboxWhenEmpty(t *testing.T) {
 	script, recordPath := newStubCodex(t, stdout, "", 0)
 
 	r := &Runner{Command: script}
-	if _, err := r.Run(context.Background(), "", "", "prompt"); err != nil {
+	if _, err := r.Run(context.Background(), "", "", "prompt", nil); err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
 
@@ -320,11 +320,72 @@ printf '{"type":"item.completed","item":{"type":"agent_message","text":"too late
 	defer cancel()
 
 	r := &Runner{Command: scriptPath, Sandbox: "workspace-write"}
-	_, err := r.Run(ctx, "", "", "prompt")
+	_, err := r.Run(ctx, "", "", "prompt", nil)
 	if err == nil {
 		t.Fatal("Run() error = nil, want context deadline exceeded")
 	}
 	if !strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
 		t.Errorf("error = %v, want containing %q", err, context.DeadlineExceeded.Error())
+	}
+}
+
+func TestRun_StreamsAgentMessagesInOrder(t *testing.T) {
+	stdout := strings.Join([]string{
+		`{"type":"item.completed","item":{"type":"agent_message","text":"one"}}`,
+		`{"type":"item.completed","item":{"type":"agent_message","text":"two"}}`,
+		`{"type":"item.completed","item":{"type":"agent_message","text":"three"}}`,
+	}, "\n") + "\n"
+	script, _ := newStubCodex(t, stdout, "", 0)
+
+	var got []string
+	r := &Runner{Command: script, Sandbox: "workspace-write"}
+	res, err := r.Run(context.Background(), "", "", "prompt", func(text string) {
+		got = append(got, text)
+	})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	want := []string{"one", "two", "three"}
+	if len(got) != len(want) {
+		t.Fatalf("onMessage calls = %v, want %v", got, want)
+	}
+	for i, w := range want {
+		if got[i] != w {
+			t.Errorf("onMessage[%d] = %q, want %q", i, got[i], w)
+		}
+	}
+	if res.Text != "one\ntwo\nthree" {
+		t.Errorf("Text = %q, want %q", res.Text, "one\ntwo\nthree")
+	}
+}
+
+func TestRun_ReturnsResultAndErrorAfterPartialMessages(t *testing.T) {
+	stdout := strings.Join([]string{
+		`{"type":"thread.started","thread_id":"th-9"}`,
+		`{"type":"item.completed","item":{"type":"agent_message","text":"partial plan"}}`,
+		`{"type":"error","message":"boom mid-turn"}`,
+	}, "\n") + "\n"
+	script, _ := newStubCodex(t, stdout, "", 1)
+
+	var got []string
+	r := &Runner{Command: script, Sandbox: "workspace-write"}
+	res, err := r.Run(context.Background(), "", "", "prompt", func(text string) {
+		got = append(got, text)
+	})
+
+	if err == nil {
+		t.Fatal("Run() error = nil, want non-nil once onMessage has fired")
+	}
+	if !strings.Contains(err.Error(), "boom mid-turn") {
+		t.Errorf("error = %v, want containing %q", err, "boom mid-turn")
+	}
+	if res == nil {
+		t.Fatal("Run() res = nil, want non-nil once onMessage has fired (contract: both non-nil)")
+	}
+	if res.ThreadID != "th-9" {
+		t.Errorf("ThreadID = %q, want %q", res.ThreadID, "th-9")
+	}
+	if len(got) != 1 || got[0] != "partial plan" {
+		t.Errorf("onMessage calls = %v, want [%q]", got, "partial plan")
 	}
 }

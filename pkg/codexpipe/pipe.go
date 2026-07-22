@@ -11,9 +11,16 @@ import (
 	"github.com/n-seiji/ebiclaw/pkg/logger"
 )
 
-// Turner runs one Codex turn. Implemented by *Runner.
+// minStreamedReplyInterval is the safety valve against Slack rate limiting
+// (429) when codex emits several agent_message events in quick succession.
+// Content-level coalescing is intentionally not done here; that grain of
+// what gets reported is an AGENTS.md/prompt concern, not a code concern.
+const minStreamedReplyInterval = time.Second
+
+// Turner runs one Codex turn, invoking onMessage for each agent_message as
+// it arrives. Implemented by *Runner.
 type Turner interface {
-	Run(ctx context.Context, threadID, sandbox, prompt string) (*Result, error)
+	Run(ctx context.Context, threadID, sandbox, prompt string, onMessage func(text string)) (*Result, error)
 }
 
 // Pipe consumes inbound messages and pipes them to the Codex CLI.
@@ -95,20 +102,38 @@ func (p *Pipe) handle(ctx context.Context, msg bus.InboundMessage) {
 		return
 	}
 
-	res, err := p.runner.Run(ctx, threadID, "", msg.Content)
+	sent := false
+	var lastSent time.Time
+	onMessage := func(text string) {
+		if text == "" {
+			return
+		}
+		if !lastSent.IsZero() {
+			if wait := minStreamedReplyInterval - time.Since(lastSent); wait > 0 {
+				time.Sleep(wait)
+			}
+		}
+		lastSent = time.Now()
+		sent = true
+		p.reply(ctx, msg, text)
+	}
+
+	res, err := p.runner.Run(ctx, threadID, "", msg.Content, onMessage)
 	if err != nil {
 		logger.ErrorCF("codexpipe", "codex turn failed",
 			map[string]any{"session": key, "error": err.Error()})
-		p.reply(ctx, msg, fmt.Sprintf("⚠️ codex error: %v", err))
-		return
+		if sent {
+			p.reply(ctx, msg, fmt.Sprintf("⚠️ codex error after partial reply: %v", err))
+		} else {
+			p.reply(ctx, msg, fmt.Sprintf("⚠️ codex error: %v", err))
+		}
 	}
-	if res.ThreadID != "" && res.ThreadID != threadID {
+	if res != nil && res.ThreadID != "" && res.ThreadID != threadID {
 		if err := p.store.Set(key, res.ThreadID); err != nil {
 			logger.ErrorCF("codexpipe", "persist thread failed",
 				map[string]any{"session": key, "error": err.Error()})
 		}
 	}
-	p.reply(ctx, msg, res.Text)
 }
 
 func (p *Pipe) reply(ctx context.Context, msg bus.InboundMessage, content string) {

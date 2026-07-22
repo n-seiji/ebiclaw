@@ -10,6 +10,7 @@ import (
 	"github.com/n-seiji/ebiclaw/pkg/config"
 	"github.com/n-seiji/ebiclaw/pkg/constants"
 	"github.com/n-seiji/ebiclaw/pkg/cron"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 	"github.com/n-seiji/ebiclaw/pkg/utils"
 )
 
@@ -369,22 +370,12 @@ func (t *CronTool) ExecuteJob(ctx context.Context, job *cron.CronJob) string {
 		return "ok"
 	}
 
-	sessionKey := fmt.Sprintf("cron-%s", job.ID)
-
-	// Call agent with the job message
-	response, err := t.executor.ProcessDirectWithChannel(
-		ctx,
-		job.Payload.Message,
-		sessionKey,
-		channel,
-		chatID,
-	)
-	if err != nil {
-		return fmt.Sprintf("Error: %v", err)
-	}
-
-	if response != "" {
-		t.executor.PublishResponseIfNeeded(ctx, channel, chatID, response)
-	}
-	return "ok"
+	// Instruction jobs (agent_turn) re-render the message through the agent
+	// loop at trigger time, but the codex pipe is now the only message path
+	// and does not run the agent loop. Re-wiring scheduled instructions
+	// through the pipe (e.g. as an inbound bus message) is 2b scope; until
+	// then, fail the job instead of silently dropping it.
+	logger.WarnCF("cron", "instruction job skipped: pipe-only mode does not run the agent loop",
+		map[string]any{"job_id": job.ID})
+	return "error: pipe-only mode does not support instruction cron jobs (see 2b)"
 }

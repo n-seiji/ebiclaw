@@ -129,10 +129,6 @@
         "description": "This backend is coming soon."
       }
     },
-    "enabled": {
-      "label": "Enable pipe mode",
-      "description": "When enabled, messages bypass the agent loop and are sent directly to the selected CLI engine."
-    },
     "model": {
       "label": "Model",
       "placeholder": "Leave blank to use the CLI default",

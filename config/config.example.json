@@ -444,7 +444,6 @@
     "log_level": "fatal"
   },
   "codex_pipe": {
-    "enabled": false,
     "backend": "codex",
     "model": "",
     "workspace": "",
