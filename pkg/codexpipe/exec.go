@@ -47,7 +47,10 @@ func (r *Runner) Run(ctx context.Context, threadID, sandbox, prompt string) (*Re
 	}
 	// [OPTIONS] を positional args (SESSION_ID, PROMPT) より前に置く。
 	// Usage: codex exec resume [OPTIONS] [SESSION_ID] [PROMPT]
-	args = append(args, "--json", "--skip-git-repo-check", "--color", "never")
+	// --color は付けない: `codex exec resume` が受け付けず
+	// ("unexpected argument '--color' found", codex-cli 0.145.0 で確認)、
+	// --json 出力では色付けの意味も無い。
+	args = append(args, "--json", "--skip-git-repo-check")
 	if sandbox == "" {
 		sandbox = r.Sandbox
 	}
