@@ -1,12 +1,15 @@
 <div align="center">
-<img src="assets/logo.webp" alt="EbiClaw" width="512">
 
-<h1>EbiClaw: Ultra-Efficient AI Assistant in Go</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/tsukasa-logo-dark.svg">
+  <img src="assets/tsukasa-logo-light.svg" alt="Tsukasa" width="180">
+</picture>
 
-<h3>$10 Hardware · 10MB RAM · ms Boot · Let's Go, EbiClaw!</h3>
+<h1>司 Tsukasa</h1>
+
+<h3>Your AI teammate on Slack — powered by the Codex CLI, remembers your work.</h3>
   <p>
     <img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go&logoColor=white" alt="Go">
-    <img src="https://img.shields.io/badge/Arch-x86__64%2C%20ARM64%2C%20MIPS%2C%20RISC--V%2C%20LoongArch-blue" alt="Hardware">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   </p>
 
@@ -16,23 +19,33 @@
 
 ---
 
-**EbiClaw** is an ultra-lightweight personal AI assistant written in **Go**. It runs on $10 hardware with <10MB RAM.
+**Tsukasa (司)** is a personal AI teammate written in **Go**. Messages from Slack (or the web console) are piped straight to the **Codex CLI** — no per-token API billing, no bespoke agent loop to maintain. Conversations are archived so you can ask Tsukasa about past work.
+
+## 🔀 How it works (Codex pipe mode)
+
+```
+Slack / Web ──▶ gateway ──▶ codex exec --json (resume per thread) ──▶ reply
+                   │
+                   └──▶ archiver (records conversations for recall)
+```
+
+- **Pipe, not loop**: with `codex_pipe.enabled`, the gateway bypasses the built-in agent loop and forwards each message to `codex exec`. Codex brings its own tools, sandbox, and reasoning — Tsukasa just routes.
+- **Thread memory**: each Slack thread maps to a persistent Codex thread (`codex exec resume`), so context carries across messages.
+- **Sandboxed**: every turn runs with an explicit `sandbox_mode` (`read-only` / `workspace-write` / `danger-full-access`) set from config.
+- **Engine selection**: pick the CLI backend on the web console's Engine page (Codex today; Claude Code planned).
+- The classic multi-provider agent loop is still available when pipe mode is off.
 
 ## ✨ Features
 
-🪶 **Ultra-lightweight**: Core memory footprint <10MB.
+🔀 **Codex pipe mode**: subscription-based Codex CLI instead of per-token API costs.
 
-💰 **Minimal cost**: Efficient enough to run on $10 hardware.
+🪶 **Lightweight**: small Go binary, minimal footprint, fast boot.
 
-⚡️ **Lightning-fast boot**: Boots in <1s even on a 0.6GHz single-core processor.
+🌍 **Portable**: single binary across RISC-V, ARM, MIPS, and x86 architectures.
 
-🌍 **Truly portable**: Single binary across RISC-V, ARM, MIPS, and x86 architectures.
+🗂️ **Work archive**: conversations are distilled into topic notes you (and Tsukasa) can search.
 
-🔌 **MCP support**: Native [Model Context Protocol](https://modelcontextprotocol.io/) integration — connect any MCP server to extend Agent capabilities.
-
-👁️ **Vision pipeline**: Send images and files directly to the Agent — automatic base64 encoding for multimodal LLMs.
-
-🧠 **Smart routing**: Rule-based model routing — simple queries go to lightweight models, saving API costs.
+🖥️ **Web console**: chat, engine selection, channels, archiver, and logs at `localhost:18800`.
 
 > **[Hardware Compatibility List](docs/hardware-compatibility.md)** — See all tested boards, from $5 RISC-V to Raspberry Pi to Android phones.
 
@@ -222,7 +235,7 @@ ebiclaw gateway
 
 ## 🔌 Providers (LLM)
 
-EbiClaw supports multiple LLM providers through the `model_list` configuration. Use the `protocol/model` format:
+Tsukasa supports multiple LLM providers through the `model_list` configuration. Use the `protocol/model` format:
 
 | Provider | Protocol | API Key | Notes |
 |----------|----------|---------|-------|
@@ -276,7 +289,7 @@ For full provider configuration details, see [Providers & Models](docs/providers
 
 ## 💬 Channels (Chat Apps)
 
-Talk to your EbiClaw through messaging platforms:
+Talk to your Tsukasa through messaging platforms:
 
 | Channel | Setup | Protocol | Docs |
 |---------|-------|----------|------|
@@ -293,7 +306,7 @@ For detailed channel setup instructions, see [Chat Apps Configuration](docs/chat
 
 ### 🔍 Web Search
 
-EbiClaw can search the web to provide up-to-date information. Configure in `tools.web`:
+Tsukasa can search the web to provide up-to-date information. Configure in `tools.web`:
 
 | Search Engine | API Key | Free Tier | Link |
 |--------------|---------|-----------|------|
@@ -305,7 +318,7 @@ EbiClaw can search the web to provide up-to-date information. Configure in `tool
 
 ### ⚙️ Other Tools
 
-EbiClaw includes built-in tools for file operations, code execution, scheduling, and more. See [Tools Configuration](docs/tools_configuration.md) for details.
+Tsukasa includes built-in tools for file operations, code execution, scheduling, and more. See [Tools Configuration](docs/tools_configuration.md) for details.
 
 ## 🎯 Skills
 
@@ -313,7 +326,7 @@ Skills are modular capabilities that extend your Agent. They are loaded from `SK
 
 ## 🔗 MCP (Model Context Protocol)
 
-EbiClaw natively supports [MCP](https://modelcontextprotocol.io/) — connect any MCP server to extend your Agent's capabilities with external tools and data sources.
+Tsukasa natively supports [MCP](https://modelcontextprotocol.io/) — connect any MCP server to extend your Agent's capabilities with external tools and data sources.
 
 ```json
 {
@@ -356,7 +369,7 @@ For full MCP configuration (stdio, SSE, HTTP transports, Tool Discovery), see [T
 
 ### ⏰ Scheduled Tasks / Reminders
 
-EbiClaw supports scheduled reminders and recurring tasks through the `cron` tool:
+Tsukasa supports scheduled reminders and recurring tasks through the `cron` tool:
 
 * **One-time reminders**: "Remind me in 10 minutes" -> triggers once after 10min
 * **Recurring tasks**: "Remind me every 2 hours" -> triggers every 2 hours
