@@ -106,7 +106,7 @@ ebiclaw-launcher
 
 **Getting started:** 
 
-Open the WebUI, then: **1)** Configure a Provider (add your LLM API key) -> **2)** Configure a Channel (e.g., Discord) -> **3)** Start the Gateway -> **4)** Chat!
+Open the WebUI, then: **1)** Configure a Provider (add your LLM API key) -> **2)** Configure a Channel (e.g., Slack) -> **3)** Start the Gateway -> **4)** Chat!
 
 <details>
 <summary><b>Docker (alternative)</b></summary>
@@ -293,7 +293,6 @@ Talk to your Tsukasa through messaging platforms:
 
 | Channel | Setup | Protocol | Docs |
 |---------|-------|----------|------|
-| **Discord** | Easy (bot token + intents) | WebSocket | [Guide](docs/channels/discord/README.md) |
 | **Slack** | Easy (bot + app token) | Socket Mode | [Guide](docs/channels/slack/README.md) |
 | **Pico** | Easy (enable) | Native protocol | Built-in |
 | **Pico Client** | Easy (WebSocket URL) | WebSocket | Built-in |

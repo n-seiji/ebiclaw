@@ -333,7 +333,6 @@ Provider の完全な設定詳細は [Provider とモデル](docs/ja/providers.m
 
 | Channel | セットアップ | Protocol | ドキュメント |
 |---------|------------|----------|------------|
-| **Discord** | 簡単（bot トークン + intents） | WebSocket | [ガイド](docs/channels/discord/README.ja.md) |
 | **Slack** | 簡単（bot + app トークン） | Socket Mode | [ガイド](docs/channels/slack/README.ja.md) |
 | **Pico** | 簡単（有効化） | Native protocol | 内蔵 |
 | **Pico Client** | 簡単（WebSocket URL） | WebSocket | 内蔵 |
