@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"maps"
 	"net/http"
@@ -12,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/n-seiji/ebiclaw/pkg/archiver"
+	"github.com/n-seiji/ebiclaw/pkg/logger"
 )
 
 type Server struct {
@@ -212,16 +211,17 @@ func (s *Server) archiverRunHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := runFunc(r.Context()); err != nil {
-		status := http.StatusInternalServerError
-		if errors.Is(err, archiver.ErrBusy) {
-			status = http.StatusConflict
-		}
-		writeJSON(w, status, map[string]string{"error": err.Error()})
-		return
-	}
-
 	writeJSON(w, http.StatusAccepted, map[string]string{"status": "archiver triggered"})
+	logger.InfoC("archiver", "Gateway archiver run accepted")
+	go func() {
+		if err := runFunc(context.Background()); err != nil {
+			logger.ErrorCF("archiver", "Gateway archiver run failed", map[string]any{
+				"error": err.Error(),
+			})
+			return
+		}
+		logger.InfoC("archiver", "Gateway archiver run finished")
+	}()
 }
 
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {

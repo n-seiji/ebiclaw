@@ -4,10 +4,8 @@ import {
   IconAtom,
   IconChevronsDown,
   IconChevronsUp,
-  IconKey,
   IconListDetails,
   IconMessageCircle,
-  IconSearch,
   IconSettings,
   IconSparkles,
   IconTools,
@@ -106,15 +104,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ...baseNavGroups[1],
         items: [
           {
-            title: "navigation.models",
-            url: "/models",
+            title: "navigation.engine",
+            url: "/engine",
             icon: IconAtom,
-            translateTitle: true,
-          },
-          {
-            title: "navigation.credentials",
-            url: "/credentials",
-            icon: IconKey,
             translateTitle: true,
           },
         ],
@@ -133,12 +125,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         ...baseNavGroups[2],
         items: [
-          {
-            title: "navigation.hub",
-            url: "/agent/hub",
-            icon: IconSearch,
-            translateTitle: true,
-          },
           {
             title: "navigation.skills",
             url: "/agent/skills",
@@ -213,7 +199,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             isActive={isActive}
                             onClick={handleNavItemClick}
                             data-tour={
-                              item.url === "/models" ? "models-nav" : undefined
+                              item.url === "/engine" ? "engine-nav" : undefined
                             }
                             className={`h-9 px-3 ${isActive ? "bg-accent/80 text-foreground font-medium" : "text-muted-foreground hover:bg-muted/60"}`}
                           >

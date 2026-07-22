@@ -406,7 +406,7 @@ func TestDrainBusToSteering_RequeuesDifferentScopeMessage(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		al.drainBusToSteering(ctx, activeScope, activeAgentID)
+		al.drainBusToSteering(ctx, activeScope, activeAgentID, activeMsg.ChatID)
 		close(done)
 	}()
 
@@ -422,12 +422,107 @@ func TestDrainBusToSteering_RequeuesDifferentScopeMessage(t *testing.T) {
 
 	select {
 	case <-ctx.Done():
-		t.Fatalf("timeout waiting for requeued message on outbound bus")
-	case requeued := <-msgBus.OutboundChan():
+		t.Fatalf("timeout waiting for requeued message on inbound bus")
+	case requeued := <-msgBus.InboundChan():
 		if requeued.Channel != otherMsg.Channel || requeued.ChatID != otherMsg.ChatID ||
 			requeued.Content != otherMsg.Content {
 			t.Fatalf("requeued message mismatch: got %+v want %+v", requeued, otherMsg)
 		}
+	}
+}
+
+func TestDrainBusToSteering_RequeuesSameScopeDifferentChat(t *testing.T) {
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				ModelName: "test-model",
+			},
+		},
+	}
+
+	msgBus := bus.NewMessageBus()
+	al := NewAgentLoop(cfg, msgBus, &mockProvider{})
+
+	activeMsg := bus.InboundMessage{
+		Channel: "slack",
+		ChatID:  "C123/1780211420.461409",
+		Content: "active thread",
+		Peer:    bus.Peer{Kind: "channel", ID: "C123"},
+	}
+	activeScope, activeAgentID, ok := al.resolveSteeringTarget(activeMsg)
+	if !ok {
+		t.Fatal("expected active message to resolve to a steering scope")
+	}
+
+	channelMsg := bus.InboundMessage{
+		Channel: "slack",
+		ChatID:  "C123/1780211757.120179",
+		Content: "new top-level mention",
+		Peer:    bus.Peer{Kind: "channel", ID: "C123"},
+	}
+	channelScope, _, ok := al.resolveSteeringTarget(channelMsg)
+	if !ok {
+		t.Fatal("expected channel message to resolve to a steering scope")
+	}
+	if channelScope != activeScope {
+		t.Fatalf("test requires shared session scope, got active=%q channel=%q", activeScope, channelScope)
+	}
+
+	if err := msgBus.PublishInbound(context.Background(), channelMsg); err != nil {
+		t.Fatalf("PublishInbound failed: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		al.drainBusToSteering(ctx, activeScope, activeAgentID, activeMsg.ChatID)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for drainBusToSteering to stop")
+	}
+
+	if msgs := al.dequeueSteeringMessagesForScope(activeScope); len(msgs) != 0 {
+		t.Fatalf("expected no steering messages for different chat, got %v", msgs)
+	}
+
+	select {
+	case <-ctx.Done():
+		t.Fatalf("timeout waiting for requeued message on inbound bus")
+	case requeued := <-msgBus.InboundChan():
+		if requeued.ChatID != channelMsg.ChatID || requeued.Content != channelMsg.Content {
+			t.Fatalf("requeued message mismatch: got %+v want %+v", requeued, channelMsg)
+		}
+	}
+}
+
+func TestResolveSteeringTarget_ObserveOnlyDisabled(t *testing.T) {
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				ModelName: "test-model",
+			},
+		},
+	}
+
+	al := NewAgentLoop(cfg, bus.NewMessageBus(), &mockProvider{})
+	msg := bus.InboundMessage{
+		Channel: "slack",
+		ChatID:  "C123",
+		Content: "ambient channel chatter",
+		Peer:    bus.Peer{Kind: "channel", ID: "C123"},
+		Metadata: map[string]string{
+			"observe_only": "true",
+		},
+	}
+
+	if scope, agentID, ok := al.resolveSteeringTarget(msg); ok {
+		t.Fatalf("observe-only message resolved as steering target: scope=%q agent=%q", scope, agentID)
 	}
 }
 

@@ -2,10 +2,8 @@
   "navigation": {
     "chat": "チャット",
     "model_group": "モデル",
-    "models": "モデル",
-    "credentials": "認証情報",
+    "engine": "エンジン",
     "agent_group": "エージェント",
-    "hub": "ハブ",
     "skills": "スキル",
     "tools": "ツール",
     "services": "サービス",
@@ -62,11 +60,9 @@
     "imageTooLarge": "\"{{name}}\" は上限 {{size}} を超えています。",
     "imageReadFailed": "\"{{name}}\" の読み込みに失敗しました。",
     "empty": {
-      "noConfiguredModel": "モデルが未設定",
-      "noConfiguredModelDescription": "チャットを開始するには、APIキー付きで少なくとも1つのAIモデルを設定する必要があります。",
-      "goToModels": "モデル設定へ",
-      "noSelectedModel": "モデルが未選択",
-      "noSelectedModelDescription": "モデルは設定済みですが、デフォルトが指定されていません。チャットを始める前にモデルを選択してください。",
+      "noConfiguredModel": "エンジンが未設定",
+      "noConfiguredModelDescription": "チャットを開始するには、CLIエンジン(またはデフォルトモデル)を設定する必要があります。",
+      "goToModels": "エンジン設定へ",
       "notRunning": "ゲートウェイが起動していません",
       "notRunningDescription": "チャットを開始するにはゲートウェイサービスを起動してください。上部バーの「ゲートウェイ起動」ボタンを使用します。"
     },
@@ -117,66 +113,42 @@
     "build": "ビルド",
     "version_unknown": "不明"
   },
-  "credentials": {
-    "description": "対応プロバイダーのOAuthおよびトークン認証情報を管理します。",
-    "loading": "認証情報を読み込み中...",
-    "providers": {
-      "openai": {
-        "description": "ブラウザOAuth、デバイスコード、トークンログインに対応。"
+  "engine": {
+    "title": "エンジン",
+    "description": "メッセージを処理するCLIエンジンを選択します。現在はCodexのみ利用できます。",
+    "loadError": "エンジン設定の読み込みに失敗しました",
+    "saveError": "エンジン設定の保存に失敗しました",
+    "backend": {
+      "comingSoon": "準備中",
+      "codex": {
+        "title": "Codex",
+        "description": "Codex CLI にメッセージを直接パイプします。"
       },
-      "anthropic": {
-        "description": "Claude接続にはトークンログインを使用します。"
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "近日対応予定のバックエンドです。"
       }
     },
-    "status": {
-      "connected": "接続済み",
-      "needsRefresh": "更新が必要",
-      "expired": "有効期限切れ",
-      "notLoggedIn": "未ログイン"
+    "enabled": {
+      "label": "パイプモードを有効化",
+      "description": "有効にすると、メッセージはエージェントループを経由せず選択したCLIエンジンに直接渡されます。"
     },
-    "actions": {
-      "browser": "ブラウザOAuth",
-      "deviceCode": "デバイスコード",
-      "stopLoading": "読み込み停止",
-      "saveToken": "保存",
-      "logout": "ログアウト"
+    "model": {
+      "label": "モデル",
+      "placeholder": "空欄でCLIのデフォルトを使用",
+      "hint": "任意。CLI側のデフォルトモデルを上書きします。"
     },
-    "logoutDialog": {
-      "title": "プロバイダーからログアウトしますか？",
-      "description": "保存された {{provider}} の認証情報が削除されます。"
+    "workspace": {
+      "label": "ワークスペースパス",
+      "placeholder": "/path/to/workspace"
     },
-    "fields": {
-      "openaiToken": "OpenAI トークン",
-      "anthropicToken": "Anthropic トークン"
-    },
-    "labels": {
-      "account": "アカウント",
-      "email": "メール",
-      "project": "プロジェクト"
-    },
-    "errors": {
-      "loadFailed": "認証情報の読み込みに失敗しました",
-      "flowFailed": "認証フローの確認に失敗しました",
-      "loginFailed": "ログインに失敗しました",
-      "logoutFailed": "ログアウトに失敗しました",
-      "invalidBrowserResponse": "ブラウザログインのレスポンスが不正です",
-      "invalidDeviceResponse": "デバイスコードのレスポンスが不正です",
-      "popupBlocked": "新しいタブを開けませんでした。ポップアップを許可して再度お試しください。"
-    },
-    "flow": {
-      "current": "現在の認証ステータス",
-      "pending": "認証を待機中...",
-      "success": "認証に成功しました",
-      "error": "認証に失敗しました",
-      "expired": "認証セッションの有効期限が切れました"
-    },
-    "device": {
-      "title": "OpenAI デバイスログイン",
-      "description": "認証ページを開いて以下のコードを入力してください。このページは自動更新されます。",
-      "code": "ユーザーコード",
-      "url": "認証URL",
-      "polling": "ログイン状態を確認中...",
-      "open": "認証ページを開く"
+    "sandbox": {
+      "label": "サンドボックス",
+      "options": {
+        "readOnly": "読み取り専用",
+        "workspaceWrite": "ワークスペース書き込み可",
+        "dangerFullAccess": "フルアクセス(危険)"
+      }
     }
   },
   "models": {
@@ -357,28 +329,6 @@
         "dropzone_label": "スキルファイルをここにドロップ",
         "dropzone_active": "離してこのスキルをインポート",
         "dropzone_release": "スキルは正規化されてワークスペースのスキルディレクトリに保存されます。",
-        "marketplace_title": "スキルを探す",
-        "marketplace_description": "スキルレジストリを検索して、有用なスキルをこのワークスペースにインストールできます",
-        "marketplace_search_placeholder": "github、docker、databaseなどの機能を検索...",
-        "marketplace_search_action": "検索",
-        "marketplace_search_status": "検索ステータス",
-        "marketplace_install_status": "インストールステータス",
-        "marketplace_notice_title": "セキュリティ通知",
-        "marketplace_notice_body": "レジストリのスキルはサードパーティのコンテンツです。インストール前に作者、ページURL、手順、必要なコードや認証情報を確認してください。",
-        "marketplace_status_disabled": "無効化されています。まずツールページで対応ツールを有効化してください。",
-        "marketplace_status_enable_hint": "まずツールページで関連ツールを有効化してください。",
-        "marketplace_search_error": "レジストリの検索に失敗しました。",
-        "marketplace_loading_results": "スキルを検索中...",
-        "marketplace_loading_more": "さらにスキルを読み込み中...",
-        "marketplace_results_title": "「{{query}}」の検索結果 {{count}} 件",
-        "marketplace_results_hint": "レジストリの検索結果は現在のワークスペースにインストールされます。",
-        "marketplace_install_action": "インストール",
-        "marketplace_installed": "インストール済み",
-        "marketplace_view_installed": "ローカルを表示",
-        "marketplace_installed_hint": "このワークスペースに「{{name}}」として既に利用可能です。",
-        "marketplace_empty_results": "「{{query}}」に一致するインストール可能なスキルはありません。",
-        "marketplace_idle": "機能名を検索して、設定済みレジストリからインストール可能なスキルを探してください。",
-        "marketplace_unavailable": "レジストリ検索は現在利用できません。スキルツールの設定を確認してください。",
         "sort": {
           "name_asc": "名前 (A-Z)",
           "name_desc": "名前 (Z-A)",
@@ -512,11 +462,11 @@
       "monitor_usb": "USBを監視",
       "monitor_usb_hint": "デバイス有効時にUSBの接続/切断イベントを監視します。",
       "autostart_label": "ログイン時に起動",
-      "autostart_hint": "ログイン時にEbiClaw Webを自動起動します。",
+      "autostart_hint": "ログイン時にTsukasa Webを自動起動します。",
       "autostart_unsupported": "このプラットフォームではログイン時起動はサポートされていません。",
       "autostart_load_error": "ログイン時起動の状態取得に失敗しました。",
       "server_port": "サービスポート",
-      "server_port_hint": "EbiClaw Webが使用するHTTPポート。",
+      "server_port_hint": "Tsukasa Webが使用するHTTPポート。",
       "launcher_token": "ログイントークン",
       "launcher_token_section_hint": "このセクションの変更はランチャーの再起動後に反映されます。",
       "launcher_token_hint": "ランチャーログイン画面でのサインインに使用します。",
@@ -561,12 +511,12 @@
     "next": "次へ",
     "finish": "完了",
     "welcome": {
-      "title": "EbiClawへようこそ",
-      "description": "EbiClawは強力なAIアシスタントプラットフォームです。基本セットアップを数秒で完了しましょう。"
+      "title": "Tsukasaへようこそ",
+      "description": "Tsukasaは強力なAIアシスタントプラットフォームです。基本セットアップを数秒で完了しましょう。"
     },
-    "models": {
-      "title": "モデルを設定",
-      "description": "左のメニューから「モデル」をクリックしてAIプロバイダーのAPIキーを設定します。設定済みのモデルのみがチャットで使用できます。"
+    "engine": {
+      "title": "エンジンを設定",
+      "description": "左のメニューから「エンジン」をクリックしてCLIエンジンを選択します。設定済みのエンジンのみがチャットで使用できます。"
     },
     "gateway": {
       "title": "ゲートウェイを起動",

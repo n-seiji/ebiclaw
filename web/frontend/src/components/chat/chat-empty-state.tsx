@@ -2,7 +2,6 @@ import {
   IconPlugConnectedX,
   IconRobot,
   IconRobotOff,
-  IconStar,
 } from "@tabler/icons-react"
 import { Link } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
@@ -10,19 +9,14 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 
 interface ChatEmptyStateProps {
-  hasAvailableModels: boolean
-  defaultModelName: string
+  chatReady: boolean
   isConnected: boolean
 }
 
-export function ChatEmptyState({
-  hasAvailableModels,
-  defaultModelName,
-  isConnected,
-}: ChatEmptyStateProps) {
+export function ChatEmptyState({ chatReady, isConnected }: ChatEmptyStateProps) {
   const { t } = useTranslation()
 
-  if (!hasAvailableModels) {
+  if (!chatReady) {
     return (
       <div className="flex flex-col items-center justify-center py-20 opacity-70">
         <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
@@ -35,24 +29,8 @@ export function ChatEmptyState({
           {t("chat.empty.noConfiguredModelDescription")}
         </p>
         <Button asChild variant="outline" size="sm" className="px-4">
-          <Link to="/models">{t("chat.empty.goToModels")}</Link>
+          <Link to="/engine">{t("chat.empty.goToModels")}</Link>
         </Button>
-      </div>
-    )
-  }
-
-  if (!defaultModelName) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 opacity-70">
-        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
-          <IconStar className="h-8 w-8" />
-        </div>
-        <h3 className="mb-2 text-xl font-medium">
-          {t("chat.empty.noSelectedModel")}
-        </h3>
-        <p className="text-muted-foreground mb-4 text-center text-sm">
-          {t("chat.empty.noSelectedModelDescription")}
-        </p>
       </div>
     )
   }

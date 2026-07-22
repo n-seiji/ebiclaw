@@ -16,49 +16,12 @@ export interface SkillDetailResponse extends SkillSupportItem {
   content: string
 }
 
-export interface SkillRegistrySearchResult {
-  score: number
-  slug: string
-  display_name: string
-  summary: string
-  version: string
-  registry_name: string
-  url?: string
-  installed: boolean
-  installed_name?: string
-}
-
 interface SkillsResponse {
   skills: SkillSupportItem[]
 }
 
-export interface SkillSearchResponse {
-  results: SkillRegistrySearchResult[]
-  limit: number
-  offset: number
-  next_offset?: number
-  has_more: boolean
-}
-
 type SkillActionResponse = Partial<SkillSupportItem> & {
   status?: string
-}
-
-export interface InstallSkillRequest {
-  slug: string
-  registry: string
-  version?: string
-  force?: boolean
-}
-
-export interface InstallSkillResponse {
-  status: string
-  slug: string
-  registry: string
-  version: string
-  summary?: string
-  is_suspicious?: boolean
-  skill?: SkillSupportItem
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -75,29 +38,6 @@ export async function getSkills(): Promise<SkillsResponse> {
 
 export async function getSkill(name: string): Promise<SkillDetailResponse> {
   return request<SkillDetailResponse>(`/api/skills/${encodeURIComponent(name)}`)
-}
-
-export async function searchSkills(
-  query: string,
-  limit = 20,
-  offset = 0,
-): Promise<SkillSearchResponse> {
-  const params = new URLSearchParams({
-    q: query,
-    limit: String(limit),
-    offset: String(offset),
-  })
-  return request<SkillSearchResponse>(`/api/skills/search?${params.toString()}`)
-}
-
-export async function installSkill(
-  input: InstallSkillRequest,
-): Promise<InstallSkillResponse> {
-  return request<InstallSkillResponse>("/api/skills/install", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  })
 }
 
 export async function importSkill(file: File): Promise<SkillActionResponse> {

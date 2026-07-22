@@ -13,16 +13,30 @@ interface ArchiverConfig {
   repository_path: string
   allowlist: string[]
   schedule: { cron: string; timezone: string }
-  distill?: { max_input_tokens?: number; model_name?: string; max_retries?: number }
+  distill?: {
+    max_input_tokens?: number
+    model_name?: string
+    max_retries?: number
+  }
   push?: { warn_after_consecutive_failures?: number }
   tools_readonly_enabled?: boolean
 }
 
 interface ArchiverStatus {
   running: boolean
+  service_running?: boolean
+  run_in_progress?: boolean
   last_distilled_at?: string
   last_pushed_at?: string
   consecutive_push_failures?: number
+  logs?: ArchiverLogEntry[]
+}
+
+interface ArchiverLogEntry {
+  time: string
+  level: "info" | "warn" | "error" | string
+  message: string
+  fields?: Record<string, unknown>
 }
 
 async function getConfig(): Promise<ArchiverConfig> {
@@ -50,8 +64,25 @@ async function runNow(): Promise<void> {
   const res = await fetch("/api/archiver/run", { method: "POST" })
   if (res.ok) return
   if (res.status === 409) throw new Error("Archiver is busy")
-  if (res.status === 503) throw new Error("Archiver runner not available (gateway not running?)")
-  throw new Error(await res.text())
+  if (res.status === 503) {
+    const message = await responseErrorMessage(res)
+    throw new Error(
+      message || "Archiver runner not available (gateway not running?)",
+    )
+  }
+  throw new Error(await responseErrorMessage(res))
+}
+
+async function responseErrorMessage(res: Response): Promise<string> {
+  const text = await res.text()
+  if (!text) return `Request failed: ${res.status}`
+  try {
+    const body = JSON.parse(text) as { error?: unknown }
+    if (typeof body.error === "string") return body.error
+  } catch {
+    // Fall back to the raw response body below.
+  }
+  return text
 }
 
 export function ArchiverPage() {
@@ -83,20 +114,16 @@ export function ArchiverPage() {
       })
       .catch((e) => setError(String(e)))
 
-    const refreshStatus = () =>
-      getStatus()
-        .then(setStatus)
-        .catch(() => {})
-    refreshStatus()
-    const id = setInterval(refreshStatus, 5000)
-    return () => clearInterval(id)
+    getStatus()
+      .then(setStatus)
+      .catch(() => {})
   }, [])
 
   if (!cfg) {
     return (
       <div className="flex h-full flex-col">
         <PageHeader title="Archiver" />
-        <div className="p-6 text-sm text-muted-foreground">
+        <div className="text-muted-foreground p-6 text-sm">
           {error ?? "Loading…"}
         </div>
       </div>
@@ -124,7 +151,7 @@ export function ArchiverPage() {
     setRunningNow(true)
     try {
       await runNow()
-      setInfo("Triggered. Watch the status panel.")
+      setInfo("Triggered.")
     } catch (e) {
       setError(String(e))
     } finally {
@@ -146,7 +173,8 @@ export function ArchiverPage() {
         <p className="text-muted-foreground pt-2 text-sm">
           Save chat conversations to a git repository so anyone can catch up.
           The archiver writes raw jsonl on every message and runs an LLM
-          summarization pass once a day. Disabled when no repository path is set.
+          summarization pass once a day. Disabled when no repository path is
+          set.
         </p>
 
         {error && (
@@ -155,7 +183,7 @@ export function ArchiverPage() {
           </div>
         )}
         {info && (
-          <div className="mt-4 rounded-lg border bg-muted px-4 py-3 text-sm">
+          <div className="bg-muted mt-4 rounded-lg border px-4 py-3 text-sm">
             {info}
           </div>
         )}
@@ -199,7 +227,8 @@ export function ArchiverPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <Label htmlFor="allow">
-              One {"<platform>/<chat_id>"} per line. Empty = nothing is archived.
+              One {"<platform>/<chat_id>"} per line. Empty = nothing is
+              archived.
             </Label>
             <Textarea
               id="allow"
@@ -295,11 +324,17 @@ export function ArchiverPage() {
           <CardContent className="space-y-3">
             {status ? (
               <div className="text-sm">
-                <div>Running: {String(status.running)}</div>
-                {status.last_distilled_at && (
+                <div>
+                  Service running:{" "}
+                  {String(status.service_running ?? status.running)}
+                </div>
+                <div>
+                  Run in progress: {String(status.run_in_progress ?? false)}
+                </div>
+                {isMeaningfulTimestamp(status.last_distilled_at) && (
                   <div>Last distill: {status.last_distilled_at}</div>
                 )}
-                {status.last_pushed_at && (
+                {isMeaningfulTimestamp(status.last_pushed_at) && (
                   <div>Last push: {status.last_pushed_at}</div>
                 )}
                 {(status.consecutive_push_failures ?? 0) > 0 && (
@@ -309,8 +344,45 @@ export function ArchiverPage() {
                 )}
               </div>
             ) : (
-              <div className="text-muted-foreground text-sm">No status yet.</div>
+              <div className="text-muted-foreground text-sm">
+                No status yet.
+              </div>
             )}
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Logs</div>
+              {status?.logs?.length ? (
+                <div className="bg-muted/30 max-h-80 overflow-y-auto rounded-md border">
+                  {status.logs
+                    .slice()
+                    .reverse()
+                    .map((log, i) => (
+                      <div
+                        key={`${log.time}-${i}`}
+                        className="border-b px-3 py-2 font-mono text-xs last:border-b-0"
+                      >
+                        <div className="flex flex-wrap gap-x-2 gap-y-1">
+                          <span className="text-muted-foreground">
+                            {formatLogTime(log.time)}
+                          </span>
+                          <span className={logLevelClass(log.level)}>
+                            {log.level}
+                          </span>
+                          <span>{log.message}</span>
+                        </div>
+                        {log.fields && Object.keys(log.fields).length > 0 && (
+                          <pre className="text-muted-foreground mt-1 break-words whitespace-pre-wrap">
+                            {JSON.stringify(log.fields, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-muted-foreground rounded-md border px-3 py-2 text-sm">
+                  No archiver logs yet.
+                </div>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button onClick={handleRun} disabled={runningNow}>
                 Run now
@@ -327,4 +399,20 @@ export function ArchiverPage() {
       </div>
     </div>
   )
+}
+
+function formatLogTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString()
+}
+
+function isMeaningfulTimestamp(value: string | undefined): value is string {
+  return Boolean(value && !value.startsWith("0001-01-01"))
+}
+
+function logLevelClass(level: string): string {
+  if (level === "error") return "text-destructive"
+  if (level === "warn") return "text-amber-600"
+  return "text-muted-foreground"
 }

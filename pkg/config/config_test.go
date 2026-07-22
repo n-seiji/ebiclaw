@@ -1974,3 +1974,34 @@ func TestMakeBackup_SameDateSuffix(t *testing.T) {
 		t.Errorf("config backup date = %q, security backup date = %q, should match", configDate, secDate)
 	}
 }
+
+func TestCodexPipeConfigDefaults(t *testing.T) {
+	cfg := DefaultConfig()
+	cp := cfg.CodexPipe
+	if cp.Enabled {
+		t.Errorf("CodexPipe.Enabled = true, want false by default")
+	}
+	if got, want := cp.GetCommand(), "codex"; got != want {
+		t.Errorf("GetCommand() = %q, want %q", got, want)
+	}
+	if got, want := cp.GetSandbox(), "workspace-write"; got != want {
+		t.Errorf("GetSandbox() = %q, want %q", got, want)
+	}
+}
+
+func TestCodexPipeConfigParse(t *testing.T) {
+	raw := `{"codex_pipe":{"enabled":true,"model":"gpt-5-codex","workspace":"/tmp/ws","sandbox":"danger-full-access"}}`
+	var cfg Config
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if !cfg.CodexPipe.Enabled {
+		t.Errorf("Enabled = false, want true")
+	}
+	if got, want := cfg.CodexPipe.Model, "gpt-5-codex"; got != want {
+		t.Errorf("Model = %q, want %q", got, want)
+	}
+	if got, want := cfg.CodexPipe.GetSandbox(), "danger-full-access"; got != want {
+		t.Errorf("GetSandbox() = %q, want %q", got, want)
+	}
+}

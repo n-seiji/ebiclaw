@@ -2,10 +2,8 @@
   "navigation": {
     "chat": "Chat",
     "model_group": "Models",
-    "models": "Models",
-    "credentials": "Credentials",
+    "engine": "Engine",
     "agent_group": "Agent",
-    "hub": "Hub",
     "skills": "Skills",
     "tools": "Tools",
     "services": "Services",
@@ -62,11 +60,9 @@
     "imageTooLarge": "\"{{name}}\" exceeds the {{size}} limit.",
     "imageReadFailed": "Failed to read \"{{name}}\".",
     "empty": {
-      "noConfiguredModel": "No Model Configured",
-      "noConfiguredModelDescription": "You need to configure at least one AI model with an API key before you can start chatting.",
-      "goToModels": "Go to Models",
-      "noSelectedModel": "No Model Selected",
-      "noSelectedModelDescription": "You have configured models, but none is set as default. Select a model before starting chat.",
+      "noConfiguredModel": "Engine Not Ready",
+      "noConfiguredModelDescription": "Configure a CLI engine (or a default model) before you can start chatting.",
+      "goToModels": "Go to Engine",
       "notRunning": "Gateway Not Running",
       "notRunningDescription": "Start the gateway service to begin chatting. Use the Start Gateway button in the top bar."
     },
@@ -117,66 +113,42 @@
     "build": "Build",
     "version_unknown": "Unknown"
   },
-  "credentials": {
-    "description": "Manage OAuth and token-based credentials for supported providers.",
-    "loading": "Loading credentials...",
-    "providers": {
-      "openai": {
-        "description": "Supports browser OAuth, device code, and token login."
+  "engine": {
+    "title": "Engine",
+    "description": "Choose the CLI engine that handles your messages. Only Codex is available today.",
+    "loadError": "Failed to load engine settings",
+    "saveError": "Failed to save engine settings",
+    "backend": {
+      "comingSoon": "Coming soon",
+      "codex": {
+        "title": "Codex",
+        "description": "Pipes messages directly to the Codex CLI."
       },
-      "anthropic": {
-        "description": "Uses token login for Claude access."
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "This backend is coming soon."
       }
     },
-    "status": {
-      "connected": "Connected",
-      "needsRefresh": "Needs refresh",
-      "expired": "Expired",
-      "notLoggedIn": "Not logged in"
+    "enabled": {
+      "label": "Enable pipe mode",
+      "description": "When enabled, messages bypass the agent loop and are sent directly to the selected CLI engine."
     },
-    "actions": {
-      "browser": "Browser OAuth",
-      "deviceCode": "Device Code",
-      "stopLoading": "Stop Loading",
-      "saveToken": "Save",
-      "logout": "Logout"
+    "model": {
+      "label": "Model",
+      "placeholder": "Leave blank to use the CLI default",
+      "hint": "Optional. Overrides the CLI's default model."
     },
-    "logoutDialog": {
-      "title": "Logout provider?",
-      "description": "This will remove your saved credential for {{provider}}."
+    "workspace": {
+      "label": "Workspace Path",
+      "placeholder": "/path/to/workspace"
     },
-    "fields": {
-      "openaiToken": "OpenAI token",
-      "anthropicToken": "Anthropic token"
-    },
-    "labels": {
-      "account": "Account",
-      "email": "Email",
-      "project": "Project"
-    },
-    "errors": {
-      "loadFailed": "Failed to load credentials",
-      "flowFailed": "Failed to check authentication flow",
-      "loginFailed": "Login failed",
-      "logoutFailed": "Logout failed",
-      "invalidBrowserResponse": "Invalid browser login response",
-      "invalidDeviceResponse": "Invalid device code response",
-      "popupBlocked": "Unable to open a new tab. Please allow popups and try again."
-    },
-    "flow": {
-      "current": "Current authentication status",
-      "pending": "Waiting for authorization...",
-      "success": "Authentication successful",
-      "error": "Authentication failed",
-      "expired": "Authentication session expired"
-    },
-    "device": {
-      "title": "OpenAI Device Login",
-      "description": "Open the verification page and enter the code below. This page will refresh automatically.",
-      "code": "User Code",
-      "url": "Verification URL",
-      "polling": "Polling login status...",
-      "open": "Open Verification Page"
+    "sandbox": {
+      "label": "Sandbox",
+      "options": {
+        "readOnly": "Read only",
+        "workspaceWrite": "Workspace write",
+        "dangerFullAccess": "Full access (danger)"
+      }
     }
   },
   "models": {
@@ -357,28 +329,6 @@
         "dropzone_label": "Drop a skill file here",
         "dropzone_active": "Release to import this skill",
         "dropzone_release": "The skill will be normalized and saved into the workspace skills directory.",
-        "marketplace_title": "Discover Skills",
-        "marketplace_description": "Search the skill registries and install useful skills into this workspace",
-        "marketplace_search_placeholder": "Search for capabilities like github, docker, database...",
-        "marketplace_search_action": "Search",
-        "marketplace_search_status": "Search Status",
-        "marketplace_install_status": "Install Status",
-        "marketplace_notice_title": "Security Notice",
-        "marketplace_notice_body": "Registry skills are third-party content. Review the author, page URL, instructions, and any required code or credentials before installing.",
-        "marketplace_status_disabled": "Disabled. Enable the corresponding tool on the Tools page first.",
-        "marketplace_status_enable_hint": "Enable the related tool on the Tools page first.",
-        "marketplace_search_error": "Failed to search registries.",
-        "marketplace_loading_results": "Searching skills...",
-        "marketplace_loading_more": "Loading more skills...",
-        "marketplace_results_title": "{{count}} results for “{{query}}”",
-        "marketplace_results_hint": "Registry results install into the current workspace.",
-        "marketplace_install_action": "Install",
-        "marketplace_installed": "Installed",
-        "marketplace_view_installed": "View Local",
-        "marketplace_installed_hint": "Already available in this workspace as “{{name}}”.",
-        "marketplace_empty_results": "No installable skills matched “{{query}}”.",
-        "marketplace_idle": "Search for a capability to discover installable skills from configured registries.",
-        "marketplace_unavailable": "Registry search is currently unavailable. Check the Skills tools configuration.",
         "sort": {
           "name_asc": "Name (A-Z)",
           "name_desc": "Name (Z-A)",
@@ -512,11 +462,11 @@
       "monitor_usb": "Monitor USB",
       "monitor_usb_hint": "Watch USB plug/unplug events when devices are enabled.",
       "autostart_label": "Launch at Login",
-      "autostart_hint": "Start EbiClaw Web automatically when you log in.",
+      "autostart_hint": "Start Tsukasa Web automatically when you log in.",
       "autostart_unsupported": "Launch at login is not supported on this platform.",
       "autostart_load_error": "Failed to load launch-at-login status.",
       "server_port": "Service Port",
-      "server_port_hint": "HTTP port used by EbiClaw Web.",
+      "server_port_hint": "HTTP port used by Tsukasa Web.",
       "launcher_token": "Login Token",
       "launcher_token_section_hint": "Changes in this section take effect after the launcher restarts.",
       "launcher_token_hint": "Used to sign in on the launcher login page.",
@@ -561,12 +511,12 @@
     "next": "Next",
     "finish": "Finish",
     "welcome": {
-      "title": "Welcome to EbiClaw",
-      "description": "EbiClaw is a powerful AI assistant platform. Let's take a few seconds to help you complete the basic setup."
+      "title": "Welcome to Tsukasa",
+      "description": "Tsukasa is a powerful AI assistant platform. Let's take a few seconds to help you complete the basic setup."
     },
-    "models": {
-      "title": "Configure Models",
-      "description": "Click the \"Models\" menu on the left to configure API keys for AI providers. Only configured models can be used for chat."
+    "engine": {
+      "title": "Configure Engine",
+      "description": "Click the \"Engine\" menu on the left to choose a CLI engine. Only a configured engine can be used for chat."
     },
     "gateway": {
       "title": "Start Gateway",

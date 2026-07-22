@@ -60,7 +60,6 @@ type placeholderEntry struct {
 // channelRateConfig maps channel name to per-second rate limit.
 var channelRateConfig = map[string]float64{
 	"telegram": 20,
-	"discord":  1,
 	"slack":    1,
 	"matrix":   2,
 	"line":     10,
@@ -369,10 +368,6 @@ func (m *Manager) initChannels(channels *config.ChannelsConfig) error {
 
 	if channels.Feishu.Enabled {
 		m.initChannel("feishu", "Feishu")
-	}
-
-	if channels.Discord.Enabled && channels.Discord.Token.String() != "" {
-		m.initChannel("discord", "Discord")
 	}
 
 	if channels.MaixCam.Enabled {

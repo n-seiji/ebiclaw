@@ -42,10 +42,10 @@ export function TourGuide() {
       description: t("tour.welcome.description"),
       position: "bottom",
     },
-    models: {
-      title: t("tour.models.title"),
-      description: t("tour.models.description"),
-      targetSelector: "[data-tour='models-nav']",
+    engine: {
+      title: t("tour.engine.title"),
+      description: t("tour.engine.description"),
+      targetSelector: "[data-tour='engine-nav']",
       position: "right",
     },
     gateway: {
@@ -73,7 +73,7 @@ export function TourGuide() {
   const currentConfig = steps[tourState.currentStep]
   const stepOrder: TourStep[] = [
     "welcome",
-    "models",
+    "engine",
     "gateway",
     "docs",
     "completed",
