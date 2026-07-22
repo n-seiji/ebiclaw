@@ -13,7 +13,6 @@ import { Route as LogsRouteImport } from './routes/logs'
 import { Route as LauncherSetupRouteImport } from './routes/launcher-setup'
 import { Route as LauncherLoginRouteImport } from './routes/launcher-login'
 import { Route as EngineRouteImport } from './routes/engine'
-import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as ConfigRouteImport } from './routes/config'
 import { Route as ArchiverRouteImport } from './routes/archiver'
 import { Route as AgentRouteImport } from './routes/agent'
@@ -23,7 +22,6 @@ import { Route as ConfigRawRouteImport } from './routes/config.raw'
 import { Route as ChannelsNameRouteImport } from './routes/channels/$name'
 import { Route as AgentToolsRouteImport } from './routes/agent/tools'
 import { Route as AgentSkillsRouteImport } from './routes/agent/skills'
-import { Route as AgentHubRouteImport } from './routes/agent/hub'
 
 const LogsRoute = LogsRouteImport.update({
   id: '/logs',
@@ -43,11 +41,6 @@ const LauncherLoginRoute = LauncherLoginRouteImport.update({
 const EngineRoute = EngineRouteImport.update({
   id: '/engine',
   path: '/engine',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CredentialsRoute = CredentialsRouteImport.update({
-  id: '/credentials',
-  path: '/credentials',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfigRoute = ConfigRouteImport.update({
@@ -95,11 +88,6 @@ const AgentSkillsRoute = AgentSkillsRouteImport.update({
   path: '/skills',
   getParentRoute: () => AgentRoute,
 } as any)
-const AgentHubRoute = AgentHubRouteImport.update({
-  id: '/hub',
-  path: '/hub',
-  getParentRoute: () => AgentRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -107,12 +95,10 @@ export interface FileRoutesByFullPath {
   '/agent': typeof AgentRouteWithChildren
   '/archiver': typeof ArchiverRoute
   '/config': typeof ConfigRouteWithChildren
-  '/credentials': typeof CredentialsRoute
   '/engine': typeof EngineRoute
   '/launcher-login': typeof LauncherLoginRoute
   '/launcher-setup': typeof LauncherSetupRoute
   '/logs': typeof LogsRoute
-  '/agent/hub': typeof AgentHubRoute
   '/agent/skills': typeof AgentSkillsRoute
   '/agent/tools': typeof AgentToolsRoute
   '/channels/$name': typeof ChannelsNameRoute
@@ -124,12 +110,10 @@ export interface FileRoutesByTo {
   '/agent': typeof AgentRouteWithChildren
   '/archiver': typeof ArchiverRoute
   '/config': typeof ConfigRouteWithChildren
-  '/credentials': typeof CredentialsRoute
   '/engine': typeof EngineRoute
   '/launcher-login': typeof LauncherLoginRoute
   '/launcher-setup': typeof LauncherSetupRoute
   '/logs': typeof LogsRoute
-  '/agent/hub': typeof AgentHubRoute
   '/agent/skills': typeof AgentSkillsRoute
   '/agent/tools': typeof AgentToolsRoute
   '/channels/$name': typeof ChannelsNameRoute
@@ -142,12 +126,10 @@ export interface FileRoutesById {
   '/agent': typeof AgentRouteWithChildren
   '/archiver': typeof ArchiverRoute
   '/config': typeof ConfigRouteWithChildren
-  '/credentials': typeof CredentialsRoute
   '/engine': typeof EngineRoute
   '/launcher-login': typeof LauncherLoginRoute
   '/launcher-setup': typeof LauncherSetupRoute
   '/logs': typeof LogsRoute
-  '/agent/hub': typeof AgentHubRoute
   '/agent/skills': typeof AgentSkillsRoute
   '/agent/tools': typeof AgentToolsRoute
   '/channels/$name': typeof ChannelsNameRoute
@@ -161,12 +143,10 @@ export interface FileRouteTypes {
     | '/agent'
     | '/archiver'
     | '/config'
-    | '/credentials'
     | '/engine'
     | '/launcher-login'
     | '/launcher-setup'
     | '/logs'
-    | '/agent/hub'
     | '/agent/skills'
     | '/agent/tools'
     | '/channels/$name'
@@ -178,12 +158,10 @@ export interface FileRouteTypes {
     | '/agent'
     | '/archiver'
     | '/config'
-    | '/credentials'
     | '/engine'
     | '/launcher-login'
     | '/launcher-setup'
     | '/logs'
-    | '/agent/hub'
     | '/agent/skills'
     | '/agent/tools'
     | '/channels/$name'
@@ -195,12 +173,10 @@ export interface FileRouteTypes {
     | '/agent'
     | '/archiver'
     | '/config'
-    | '/credentials'
     | '/engine'
     | '/launcher-login'
     | '/launcher-setup'
     | '/logs'
-    | '/agent/hub'
     | '/agent/skills'
     | '/agent/tools'
     | '/channels/$name'
@@ -213,7 +189,6 @@ export interface RootRouteChildren {
   AgentRoute: typeof AgentRouteWithChildren
   ArchiverRoute: typeof ArchiverRoute
   ConfigRoute: typeof ConfigRouteWithChildren
-  CredentialsRoute: typeof CredentialsRoute
   EngineRoute: typeof EngineRoute
   LauncherLoginRoute: typeof LauncherLoginRoute
   LauncherSetupRoute: typeof LauncherSetupRoute
@@ -248,13 +223,6 @@ declare module '@tanstack/react-router' {
       path: '/engine'
       fullPath: '/engine'
       preLoaderRoute: typeof EngineRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/credentials': {
-      id: '/credentials'
-      path: '/credentials'
-      fullPath: '/credentials'
-      preLoaderRoute: typeof CredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/config': {
@@ -320,13 +288,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentSkillsRouteImport
       parentRoute: typeof AgentRoute
     }
-    '/agent/hub': {
-      id: '/agent/hub'
-      path: '/hub'
-      fullPath: '/agent/hub'
-      preLoaderRoute: typeof AgentHubRouteImport
-      parentRoute: typeof AgentRoute
-    }
   }
 }
 
@@ -343,13 +304,11 @@ const ChannelsRouteRouteWithChildren = ChannelsRouteRoute._addFileChildren(
 )
 
 interface AgentRouteChildren {
-  AgentHubRoute: typeof AgentHubRoute
   AgentSkillsRoute: typeof AgentSkillsRoute
   AgentToolsRoute: typeof AgentToolsRoute
 }
 
 const AgentRouteChildren: AgentRouteChildren = {
-  AgentHubRoute: AgentHubRoute,
   AgentSkillsRoute: AgentSkillsRoute,
   AgentToolsRoute: AgentToolsRoute,
 }
@@ -373,7 +332,6 @@ const rootRouteChildren: RootRouteChildren = {
   AgentRoute: AgentRouteWithChildren,
   ArchiverRoute: ArchiverRoute,
   ConfigRoute: ConfigRouteWithChildren,
-  CredentialsRoute: CredentialsRoute,
   EngineRoute: EngineRoute,
   LauncherLoginRoute: LauncherLoginRoute,
   LauncherSetupRoute: LauncherSetupRoute,

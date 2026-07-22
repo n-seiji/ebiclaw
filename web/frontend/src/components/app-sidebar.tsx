@@ -4,10 +4,8 @@ import {
   IconAtom,
   IconChevronsDown,
   IconChevronsUp,
-  IconKey,
   IconListDetails,
   IconMessageCircle,
-  IconSearch,
   IconSettings,
   IconSparkles,
   IconTools,
@@ -111,12 +109,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             icon: IconAtom,
             translateTitle: true,
           },
-          {
-            title: "navigation.credentials",
-            url: "/credentials",
-            icon: IconKey,
-            translateTitle: true,
-          },
         ],
       },
       {
@@ -133,12 +125,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         ...baseNavGroups[2],
         items: [
-          {
-            title: "navigation.hub",
-            url: "/agent/hub",
-            icon: IconSearch,
-            translateTitle: true,
-          },
           {
             title: "navigation.skills",
             url: "/agent/skills",
